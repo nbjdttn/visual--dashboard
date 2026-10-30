@@ -12,7 +12,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
 - **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
 - **Share with family**: a full report in Chinese and English, as a long picture (good for WeChat), a PDF or text, from the share button on Home or from **More**. It covers every account, the next three years, what matures and where the money goes, savings plans, tax, the long-term outlook and a plain explanation of each kind of account. Never account numbers.
-- **Assistant** (optional): ask Claude about your money, or give it screenshots from your banking apps and it reads the balances for you. Nothing changes until you tap **Apply**. It needs your own Anthropic API key (see below).
+- **Claude does the updating**: there are no forms to fill in. Send Claude screenshots from your banking apps, or ask it to change pots, monthly moves, dates or settings. Each change shows as a card: tap **Apply**, and **Undo** if you change your mind. It needs your own Anthropic API key (see below).
 - **Face ID and passcode** (optional): the app locks when it opens and after time away. Face ID unlocks it, and a 6-digit passcode does if Face ID doesn't work.
 - **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
 
@@ -32,9 +32,17 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## Each month (about two minutes)
 
-- Tap **Update balances**. Either type the figures in, or paste them: take a screenshot in each banking app, open it in Photos, tap the Live Text button, then **Copy All**, and paste into the box at the top. The app finds the £ amounts, fills in the pots it recognises and asks once about the rest. It remembers your answers next time. If you've set up the assistant, you can tap **Let Claude read the screenshots** instead.
+- Take a screenshot in each banking app whose balance has changed. Fixed savers and bonds change little, and the app adds their interest by itself.
+- Tap the Claude button (✦) at the top right of Home, add the screenshots and send. Check the card Claude shows and tap **Apply**.
 - Tick off the month's money moves on **Monthly**.
-- Every month or two, go to **More**, then **Back up to a file**, and save it to iCloud Drive. That backup is how you restore everything on a new phone.
+- Every couple of weeks, go to **More**, then **Back up**, and save the file to iCloud Drive. The app reminds you.
+
+## Your data on this phone
+
+- Everything is saved as you go, in the app's own storage on this phone.
+- The app also keeps restore points on the phone: one before every change Claude makes, one before you restore a file, and one a day, up to the last 40. **More → Restore points** takes you back to any of them. If the app's main storage is ever empty or damaged when it opens, it recovers from its latest copy by itself.
+- Apple doesn't let web apps save files without a tap, so a copy off the phone is one tap in **More → Back up**. That file is how you restore everything on a new phone.
+- **Delete all** removes everything, including the restore points, the passcode and the API key.
 
 ## Face ID and passcode (optional)
 
@@ -47,11 +55,11 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **If you forget the passcode**: tap **Forgot passcode?**. With Face ID, you can choose a new passcode. Without it, the only way in is to delete the figures on this phone and restore your backup file.
 - **What it protects**: it stops anyone who picks up your phone from opening Money Snapshot. Only a scrambled (hashed) version of the passcode is stored. The passcode, Face ID and your API key aren't in backups, so on a new phone you set them up again.
 
-## The assistant (optional)
+## Claude, the assistant
 
 1. Create an API key in the Claude Console at **platform.claude.com**, under **API keys**. Add some credit there; you can also set a monthly spending limit.
 2. In the app, go to **More**, then **Assistant**, then **Add your API key**, and paste it. Paste it only into the app, never into a chat, email or file.
-3. Tap the sparkle button on Home. Ask a question, or attach screenshots and say "update my balances".
+3. Tap the Claude button (✦) at the top right of Home. Attach screenshots and send, or ask for any change or question.
 
 - **What's sent, and when**: nothing until you send a message. Then your question, the app's figures and any screenshots go to Anthropic, and nowhere else.
 - **Your key** stays on this phone. It's stored apart from your figures, so it's never in a backup or a family report. **Remove the key from this phone** (under **More**, then **Assistant**) deletes it. If you think someone has seen it, delete it in the Claude Console too.
@@ -60,12 +68,12 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## How the month-by-month forecast works
 
-- Each pot grows at its own rate: interest for savings, the average prize rate for Premium Bonds and the expected return for shares and pensions. Figures are before tax and in today's money: future sums are shrunk by inflation, 2.5% a year unless you change it in **Settings**, under **Inflation**. Tax figures stay in actual pounds.
-- When a pot matures, the money goes where you choose on that pot (**When it matures, the money goes to**), otherwise to your best easy-access saver.
+- Each pot grows at its own rate: interest for savings, the average prize rate for Premium Bonds and the expected return for shares and pensions. Figures are before tax and in today's money: future sums are shrunk by inflation, 2.5% a year unless you ask Claude to change it. Tax figures stay in actual pounds.
+- When a pot matures, the money goes where you've told Claude it should, otherwise to your best easy-access saver.
 - The forecast follows your plan for investing (for example 70% in investments and pensions by 30 April 2029). Each month, money in your main saver above your emergency cushion (your months of fixed costs) goes into your investment pot as needed to stay on that path, so most maturing money ends up invested. Add a **Shares and funds** pot without the tax-free tick if you invest outside your ISA, and the forecast will use that one.
-- Monthly moves count when you set **From** and **To** on them. Your pay counts as **My pay or other new money**.
-- Extra pension from pay goes into your pension pot, following the amounts in Settings.
-- If a bonus rate ends, set **Bonus or offer rate ends on** and **Rate after the offer ends** on that pot.
+- Monthly moves count when they say where the money comes from and goes to. Claude sets these when it adds a move.
+- Extra pension from pay goes into your pension pot, following your pension settings.
+- If a bonus rate ends, tell Claude when, and the rate afterwards.
 
 ## A new icon
 

@@ -47,6 +47,12 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+/* A long press shouldn't open link previews or select the app's own text. What you type, Claude's replies and the
+   family report stay selectable, and the report picture can still be saved to Photos. */
+* { -webkit-touch-callout: none; }
+body { -webkit-user-select: none; user-select: none; }
+input, textarea, select, .msg, pre { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+#sharebox img { -webkit-touch-callout: default; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--sans); -webkit-font-smoothing: antialiased; padding-top: env(safe-area-inset-top, 0px); padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
 body.no-tabs { padding-bottom: env(safe-area-inset-bottom, 0px); }
 body.locked { overflow: hidden; }
@@ -191,8 +197,8 @@ button { font: inherit; color: inherit; }
 /* tab bar */
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--tabbar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid var(--line); padding-top: 7px; padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px)); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
 .tabs .in { display: flex; max-width: 560px; margin: 0 auto; }
-.tabs a { flex: 1; display: grid; justify-items: center; gap: 3px; padding: 3px 0; color: var(--muted); text-decoration: none; font-size: 10.5px; font-weight: 600; }
-.tabs a.on { color: var(--brand); }
+.tabs button { flex: 1; display: grid; justify-items: center; gap: 3px; padding: 3px 0; color: var(--muted); background: none; border: 0; font: 600 10.5px var(--sans); cursor: pointer; }
+.tabs button.on { color: var(--brand); }
 .tabs svg { width: 25px; height: 25px; }
 body.no-tabs .tabs { display: none; }
 
@@ -210,6 +216,13 @@ body.no-tabs .tabs { display: none; }
 /* Sheets never grow wider than the screen, whatever they hold. */
 .sheetp, .sheetp .body, .chatlog { grid-template-columns: minmax(0, 1fr); }
 .sheetp > *, .chatlog > * { min-width: 0; }
+
+/* provider badges */
+.bdg { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--bb); color: var(--bf); font: 700 14px/1 var(--round); letter-spacing: -0.02em; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.bdg.n3 { font-size: 12px; }
+.bdg.n4 { font-size: 10.5px; }
+span.row { cursor: default; }
+.titlebtn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
 
 /* passcode and Face ID */
 html.applock #app, html.applock .tabs, html.applock #sheet, html.applock .toast { visibility: hidden; }
@@ -443,12 +456,12 @@ html.applock body { overflow: hidden; }
 
 <nav class="tabs" aria-label="Sections">
   <div class="in">
-    <a href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Home</a>
-    <a href="#pots"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4M5 14v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/></svg>Pots</a>
-    <a href="#monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Monthly</a>
-    <a href="#forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><path d="M5 16l4-4 3 3 7-7"/><path d="M15 8h4v4"/></svg>Forecast</a>
-    <a href="#tax"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z"/><path d="M9 8h6M9 11.5h6M9 15h3.5"/></svg>Tax</a>
-    <a href="#more"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>More</a>
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Home</button>
+    <button type="button" data-tab="pots"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4M5 14v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/></svg>Pots</button>
+    <button type="button" data-tab="monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Monthly</button>
+    <button type="button" data-tab="forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><path d="M5 16l4-4 3 3 7-7"/><path d="M15 8h4v4"/></svg>Forecast</button>
+    <button type="button" data-tab="tax"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z"/><path d="M9 8h6M9 11.5h6M9 15h3.5"/></svg>Tax</button>
+    <button type="button" data-tab="more"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>More</button>
   </div>
 </nav>
 
@@ -483,7 +496,6 @@ const pct = (v, d = 0) => (Number(v || 0) * 100).toFixed(d).replace(/\.0+$/, '')
 const share = (v) => (v > 0 && v < 0.005 ? '<1%' : pct(v));
 const rateTxt = (v) => (Math.round(Number(v || 0) * 10000) / 100) + '%';
 const num = (s) => { const n = parseFloat(String(s == null ? '' : s).replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : 0; };
-const isBlank = (s) => s == null || String(s).trim() === '';
 const localISO = (d = new Date()) => { const z = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - z).toISOString().slice(0, 10); };
 const monthKey = (d = new Date()) => localISO(d).slice(0, 7);
 const parseD = (s) => (s ? new Date(s + 'T12:00:00') : null);
@@ -497,6 +509,7 @@ const sum = (arr, f) => arr.reduce((t, x) => t + (Number(f(x)) || 0), 0);
 const addMonths = (k, n) => { const d = new Date(+k.slice(0, 4), +k.slice(5, 7) - 1 + n, 1, 12); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
 const monthEnd = (k) => new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12);
 const monthsBetween = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+const gbp2 = (v) => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDur = (n) => { const mo = Math.round(n / 30.44); return n < 45 ? n + ' day' + (n === 1 ? '' : 's') : mo < 24 ? mo + ' months' : (mo / 12).toFixed(1).replace(/\.0$/, '') + ' years'; };
 
 /* ---------- icons ---------- */
@@ -518,6 +531,7 @@ const IC = {
   photo: icon('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8.5 8"/>'),
   face: icon('<path d="M4 8.5v-2A2.5 2.5 0 0 1 6.5 4h2M15.5 4h2A2.5 2.5 0 0 1 20 6.5v2M20 15.5v2a2.5 2.5 0 0 1-2.5 2.5h-2M8.5 20h-2A2.5 2.5 0 0 1 4 17.5v-2M9 9.5V11M15 9.5V11M12 9.5V13h-1M9.2 15.6a4 4 0 0 0 5.6 0"/>', 1.6),
   del: icon('<path d="M9 6h10.5A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-6-6z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/>', 1.6),
+  history: icon('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5v4h4"/><path d="M12 8v4.2l2.8 1.6"/>'),
   share: icon('<path d="M12 14.5V3.8M8.2 7.4L12 3.6l3.8 3.8"/><path d="M8 10.5H6.8a1.3 1.3 0 0 0-1.3 1.3v7.4a1.3 1.3 0 0 0 1.3 1.3h10.4a1.3 1.3 0 0 0 1.3-1.3v-7.4a1.3 1.3 0 0 0-1.3-1.3H16"/>'),
 };
 
@@ -529,7 +543,7 @@ const GROWTH_TYPES = new Set(['shares', 'lisa', 'pension']);
 const MATURES = new Set(['fixed', 'gilt']);
 
 const DEFAULTS = {
-  name: '', birthYear: 1990, birthMonth: 1, retireAge: 66,
+  name: '', title: '', birthYear: 1990, birthMonth: 1, retireAge: 66,
   takeHome: 0, fixedCosts: 0, extraPensionMonthly: 0,
   emergencyMonths: 6, targetShares: 0.6, planStartDate: '', planStartShares: 0, targetSharesBy: '', planPath: [],
   isaAllowance: 20000, newSavingsPerYear: 0, targetIncome: 0,
@@ -541,7 +555,7 @@ const DEFAULTS = {
 };
 
 const SETTINGS_FORM = [
-  ['About you', [['name', 'Your name', 'text'], ['birthYear', 'Year of birth', 'int'], ['birthMonth', 'Month of birth (1 to 12)', 'int'], ['retireAge', 'Retire at age', 'int']]],
+  ['About you', [['name', 'Your name', 'text'], ['title', 'Title on the Home page', 'text'], ['birthYear', 'Year of birth', 'int'], ['birthMonth', 'Month of birth (1 to 12)', 'int'], ['retireAge', 'Retire at age', 'int']]],
   ['Each month', [['takeHome', 'Take-home pay (£)', 'money'], ['fixedCosts', 'Fixed costs, such as rent and bills (£)', 'money'], ['extraPensionMonthly', 'Extra pension taken from pay (£)', 'money']]],
   ['Plan', [['emergencyMonths', 'Emergency cash, in months of fixed costs', 'int'], ['targetShares', 'Target in shares and funds (%)', 'pct'], ['targetSharesBy', 'Reach that target by', 'date'], ['isaAllowance', 'ISA allowance a year (£)', 'money'], ['newSavingsPerYear', 'New savings a year, from pay (£)', 'money'], ['targetIncome', 'Target retirement income a year, before tax (£)', 'money']]],
   ['Guaranteed pension', [['dbPension', 'Built so far, a year (£)', 'money'], ['dbLump', 'Lump sum built so far (£)', 'money'], ['dbAccrual', 'Added for each year you work, a year (£)', 'money'], ['dbLumpAccrual', 'Lump sum added each year (£)', 'money'], ['dbAge', 'Paid in full from age', 'int'], ['leaveDbAge', 'Stay in the scheme until age', 'int']]],
@@ -584,6 +598,7 @@ function save() {
   try {
     if (state) localStorage.setItem(KEY, JSON.stringify(state)); else localStorage.removeItem(KEY);
   } catch (e) { toast('Could not save on this device. Check storage space.'); }
+  mirror();
 }
 
 // View choices, such as which split or forecast range is showing. Kept apart from your figures.
@@ -842,12 +857,12 @@ function upcoming(ahead = 120) {
 
 function checks() {
   const s = state.settings, now = new Date(), out = [];
-  if (!state.pots.length) return [{ lvl: 'info', t: 'Add your first pot', d: 'Go to Pots and add each account, ISA, bond or pension.' }];
+  if (!state.pots.length) return [{ lvl: 'info', t: 'Add your first pot', d: 'Ask Claude to add each account, ISA, bond or pension.' }];
   const ls = lastSnap();
   const since = ls ? days(parseD(ls.date), now) : null;
   out.push(ls && since <= 35
     ? { lvl: 'ok', t: 'Balances up to date', d: 'Last updated ' + fmtDate(ls.date) + '.' }
-    : { lvl: 'warn', t: 'Time to update your balances', d: ls ? 'Last updated ' + since + ' days ago.' : "Tap Update balances to record today's figures." });
+    : { lvl: 'warn', t: 'Time to update your balances', d: (ls ? 'Last updated ' + since + ' days ago. ' : '') + 'Give Claude screenshots from your banking apps.' });
   if (s.fixedCosts > 0 && s.emergencyMonths > 0) {
     const cash = sum(state.pots.filter((p) => p.type === 'cash'), (p) => p.balance), need = s.emergencyMonths * s.fixedCosts;
     out.push(cash >= need
@@ -898,7 +913,7 @@ function checks() {
     ? { lvl: 'warn', t: 'Interest takes you over the higher-rate threshold', d: 'About ' + gbp(tf.t.tax) + ' tax on savings interest this tax year. See Tax for how to stay under it.' }
     : { lvl: 'info', t: 'About ' + gbp(tf.t.tax) + ' tax on savings interest this tax year', d: 'HMRC usually collects it through your tax code. See Tax for ways to pay less.' });
   const lb = state.lastExport ? days(parseD(state.lastExport), now) : null;
-  if (lb === null || lb > 45) out.push({ lvl: 'info', t: 'Back up your data', d: lb === null ? "You haven't made a backup yet. It takes a few seconds in More." : 'Last backup ' + lb + ' days ago.' });
+  if (lb === null || lb > 14) out.push({ lvl: 'info', t: 'Save a backup to Files', d: (lb === null ? "You haven't saved one yet." : 'Last saved ' + lb + ' days ago.') + ' It takes a few seconds in More.' });
   const rank = { bad: 0, warn: 1, info: 2, ok: 3 };
   return out.sort((a, b) => rank[a.lvl] - rank[b.lvl]);
 }
@@ -1207,6 +1222,28 @@ document.addEventListener('focusin', (e) => {
 });
 document.addEventListener('focusout', (e) => { if (scrub && e.target === scrub.svg) endScrub(); });
 
+/* ---------- provider badges ---------- */
+// A small tile for each bank or platform, in its colour where the app knows it, so lists read at a glance. They're drawn
+// here rather than fetched, so which banks you use never leaves the phone.
+const BRANDS = [
+  [/\bhsbc\b/i, 'HSBC', '#DB0011'], [/first ?direct/i, 'fd', '#1C1C1C'], [/barclays/i, 'B', '#00AEEF'], [/natwest/i, 'NW', '#5A287D'],
+  [/lloyds/i, 'L', '#006A4D'], [/halifax/i, 'H', '#005EB8'], [/santander/i, 'S', '#EC0000'], [/nationwide/i, 'N', '#13287A'], [/\btsb\b/i, 'TSB', '#1E60A8'],
+  [/monzo/i, 'M', '#FF4F40'], [/starling/i, 'S', '#6935D3'], [/revolut/i, 'R', '#191C1F'], [/j\.? ?p\.? ?morgan|\bjpm\b/i, 'JPM', '#3B2F2A'],
+  [/\bchase\b/i, 'C', '#117ACA'], [/ns ?& ?i|national savings/i, 'NS&I', '#2E2A6B'], [/vanguard/i, 'V', '#96151D'], [/hargreaves/i, 'HL', '#0B2C5A'],
+  [/fidelity/i, 'F', '#368727'], [/tesco/i, 'T', '#00539F'], [/virgin/i, 'V', '#CC0000'], [/co-?op/i, 'Co', '#00B1E7'], [/scottish widows/i, 'SW', '#1C1C1C'],
+  [/\buss\b|universities superannuation/i, 'USS', '#00375F'], [/aviva/i, 'A', '#FFD900'], [/legal ?(&|and) ?general/i, 'L&G', '#0B4FA0'],
+];
+const BADGE_TONES = ['#6B5B4E', '#5E5A7A', '#4F6B63', '#7A6A55', '#4D5B6E'];
+function badgeFor(name) {
+  const t = String(name || '').trim(), hit = BRANDS.find(([re]) => re.test(t));
+  const label = hit ? hit[1] : (t.split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '£');
+  const bg = hit ? hit[2] : BADGE_TONES[Array.from(t).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % BADGE_TONES.length];
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
+  const fg = 0.2126 * r + 0.7152 * g + 0.0722 * b > 165 ? '#1C1C1C' : '#FFFFFF';
+  return '<span class="bdg' + (label.length >= 4 ? ' n4' : label.length === 3 ? ' n3' : '') + '" style="--bb:' + bg + ';--bf:' + fg + '" aria-hidden="true">' + esc(label) + '</span>';
+}
+const badge = (p) => badgeFor(p.provider || p.name);
+
 /* ---------- view parts ---------- */
 const exampleBanner = () => '<div class="banner"><span>These are example figures, not yours.</span><button class="linkbtn" data-act="clear-example">Clear</button></div>';
 const ICON = '<img class="mark" src="icon-180.png" alt="" width="64" height="64">';
@@ -1248,6 +1285,14 @@ function vWelcome() {
     '<button class="btn ghost" data-act="start-example">Look around with example figures</button></div></section>';
 }
 
+const homeTitle = () => state.settings.title || (state.settings.name ? state.settings.name + '’s accounts' : 'Your accounts');
+function openTitle() {
+  openSheet('Title', field('title', 'Title on the Home page', homeTitle(), 'text', 'e.g. Family accounts'), (fd) => {
+    const t = String(fd.get('title') || '').trim();
+    state.settings.title = t === (state.settings.name ? state.settings.name + '’s accounts' : 'Your accounts') ? '' : t;
+    toast('Saved');
+  });
+}
 function vHome() {
   const s = state.settings, ls = lastSnap(), ps = prevSnap(), S = sim(), t = total();
   const at = (i) => S.months[Math.min(S.months.length - 1, i)];
@@ -1257,10 +1302,10 @@ function vHome() {
   if (since > 0 && Math.round(S.nowTotal - t) !== 0) bits.push((bits.length ? 'about ' : 'About ') + gbp(S.nowTotal) + ' today');
   const sub = bits.join(', ') || (ls ? 'Across ' + state.pots.length + ' pot' + (state.pots.length === 1 ? '' : 's') : 'No balances recorded yet');
   const num = bigMoney(t);
-  return '<section class="hero"><header class="head"><div class="who"><span class="who-l"><span>' + esc(s.name ? s.name + '’s money' : 'Your money') + '</span>' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + '</span><span class="who-r"><button type="button" class="icon-btn" data-act="assistant" aria-label="Ask the assistant">' + IC.spark + '</button>' + (t > 0 ? '<button type="button" class="icon-btn" data-act="share" aria-label="Share a summary with family">' + IC.share + '</button>' : '') + '</span></div>' +
+  return '<section class="hero"><header class="head"><div class="who"><span class="who-l"><button type="button" class="titlebtn" data-act="rename" aria-label="Change the title: ' + esc(homeTitle()) + '">' + esc(homeTitle()) + '</button>' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + '</span><span class="who-r"><button type="button" class="icon-btn" data-act="assistant" aria-label="Ask Claude">' + IC.spark + '</button>' + (t > 0 ? '<button type="button" class="icon-btn" data-act="share" aria-label="Share a summary with family">' + IC.share + '</button>' : '') + '</span></div>' +
     '<p class="num" id="hv">' + num + '</p><p class="num-sub" id="hs">' + sub + '</p></header>' +
     (t > 0 ? heroChart(S, num, sub) : '') +
-    '<button class="btn primary full" data-act="update">Update balances</button></section>' +
+    '</section>' +
     (t > 0 ? '<div class="facts">' + fact('Earning', gbp(at(S.off + 1).growth), 'a month') + fact('In a year', gbpShort(simToday()[Math.min(S.months.length - 1, S.off + 12)].total), 'in today’s money') + fact('Tax-free', pct(taxFreeFrac()), 'of the total') + '</div>' : '') +
     splitSection() + attentionSection() + comingSection();
 }
@@ -1282,7 +1327,7 @@ function splitSection() {
   let body;
   if (byProvider) {
     const rows = providerRows(), max = rows.length ? rows[0].value : 1;
-    body = '<ul class="rows">' + rows.map((r) => '<li><span class="main"><span class="line"><span class="t2">' + esc(r.label) + '</span><span class="v">' + gbp(r.value) + '</span></span><span class="track"><i class="grow-x" style="width:' + (100 * r.value / max).toFixed(1) + '%"></i></span></span></li>').join('') + '</ul>';
+    body = '<ul class="rows">' + rows.map((r) => '<li>' + badgeFor(r.label) + '<span class="main"><span class="line"><span class="t2">' + esc(r.label) + '</span><span class="v">' + gbp(r.value) + '</span></span><span class="track"><i class="grow-x" style="width:' + (100 * r.value / max).toFixed(1) + '%"></i></span></span></li>').join('') + '</ul>';
   } else {
     body = mixBlock('hmix', groupSums(nowTypes()), t) +
       (state.settings.targetShares > 0 ? '<p class="note">Investments and pension make up ' + pct(sharesFrac()) + '. Your plan for today is ' + pct(plannedShares(state.settings)) + '.</p>' : '');
@@ -1321,11 +1366,11 @@ function vPots() {
       return '<section class="sec"><h2><span class="gh"><span class="dot" style="background:var(--g-' + g.id + ')"></span>' + g.name + '</span><small>' + gbp(sum(pots, (p) => p.balance)) + '</small></h2><div class="panel"><ul class="rows">' +
         pots.map((p) => {
           const sub = [p.provider, p.rate ? rateTxt(p.rate) + (p.rateNote ? ' ' + p.rateNote : '') : '', p.maturity ? 'until ' + fmtDate(p.maturity) : ''].filter(Boolean).join(', ');
-          return '<li class="tap"><button type="button" class="row" data-act="edit-pot" data-id="' + esc(p.id) + '"><span class="main"><span class="t">' + esc(p.name) + '</span><span class="s">' + esc(sub) + '</span></span><span class="end"><span class="v">' + gbp(p.balance) + '</span>' + potDelta(p) + '</span></button></li>';
+          return '<li>' + badge(p) + '<span class="main"><span class="t">' + esc(p.name) + '</span><span class="s">' + esc(sub) + '</span></span><span class="end"><span class="v">' + gbp(p.balance) + '</span>' + potDelta(p) + '</span></li>';
         }).join('') + '</ul></div></section>';
     }).join('') +
-    (state.pots.length ? '' : '<p class="note">No pots yet. Add each savings account, ISA, bond, gilt and pension.</p>') +
-    '<div class="row-actions"><button class="btn quiet" data-act="add-pot">Add a pot</button><button class="btn primary" data-act="update">Update balances</button></div>';
+    (state.pots.length ? '<button class="linkbtn" data-act="assistant">Ask Claude to add, change or remove a pot</button>'
+      : '<p class="note">No pots yet. Claude can add each savings account, ISA, bond, gilt and pension for you.</p><button class="btn primary full" data-act="assistant">' + IC.spark + 'Add pots with Claude</button>');
 }
 
 function vMonthly() {
@@ -1338,12 +1383,12 @@ function vMonthly() {
     '<section class="sec"><h2>Money moves' + (mv.length ? '<small>' + doneN + ' of ' + mv.length + ' done</small>' : '') + '</h2><div class="panel">' +
     (mv.length ? '<ul class="rows">' + mv.map((m) => {
       const done = dn.has(m.id), ft = flowText(m);
-      return '<li class="mv' + (done ? ' done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(m.title) + '" data-act="toggle-move" data-id="' + esc(m.id) + '"' + (done ? ' checked' : '') + '><button type="button" class="row" data-act="edit-move" data-id="' + esc(m.id) + '"><span class="main"><span class="t">' + esc(m.title) + '</span>' + (ft ? '<span class="s">' + esc(ft) + '</span>' : '') + (m.note ? '<span class="s">' + esc(m.note) + '</span>' : '') + '</span><span class="v">' + (m.amount ? gbp(m.amount) : '') + '</span></button></li>';
-    }).join('') + '</ul>' : '<p class="empty">' + (later.length ? 'Nothing to do this month. Your next moves start in ' + esc(fmtMonth(later[0].start)) + '.' : 'No moves yet. Add the transfers you make each month, such as paying into your ISA.') + '</p>') +
-    '</div><button class="btn quiet" data-act="add-move">Add a monthly move</button></section>' +
-    '<section class="sec"><h2>Pay and costs</h2><div class="panel"><ul class="rows">' + row('Take-home pay', gbp(s.takeHome)) + row('Fixed costs', gbp(-s.fixedCosts)) + row('Left over', gbp(s.takeHome - s.fixedCosts), true) + row('Extra pension from pay', gbp(s.extraPensionMonthly)) + '</ul></div><button class="btn quiet" data-act="edit-monthly">Change these</button></section>' +
+      return '<li class="mv' + (done ? ' done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(m.title) + '" data-act="toggle-move" data-id="' + esc(m.id) + '"' + (done ? ' checked' : '') + '><span class="row"><span class="main"><span class="t">' + esc(m.title) + '</span>' + (ft ? '<span class="s">' + esc(ft) + '</span>' : '') + (m.note ? '<span class="s">' + esc(m.note) + '</span>' : '') + '</span><span class="v">' + (m.amount ? gbp(m.amount) : '') + '</span></span></li>';
+    }).join('') + '</ul>' : '<p class="empty">' + (later.length ? 'Nothing to do this month. Your next moves start in ' + esc(fmtMonth(later[0].start)) + '.' : 'No moves yet. Claude can add the transfers you make each month, such as paying into your ISA.') + '</p>') +
+    '</div><button class="linkbtn" data-act="assistant">Ask Claude to add or change a move</button></section>' +
+    '<section class="sec"><h2>Pay and costs</h2><div class="panel"><ul class="rows">' + row('Take-home pay', gbp(s.takeHome)) + row('Fixed costs', gbp(-s.fixedCosts)) + row('Left over', gbp(s.takeHome - s.fixedCosts), true) + row('Extra pension from pay', gbp(s.extraPensionMonthly)) + '</ul></div></section>' +
     (interestPots.length || prizes > 0 ? '<section class="sec"><h2>Interest each month<small>' + gbp(monthlyInterest() + prizes) + '</small></h2><div class="panel"><ul class="rows">' + interestPots.map((p) => row(potName(p), gbp(p.balance * p.rate / 12))).join('') + (prizes > 0 ? row('Premium Bond prizes, on average', gbp(prizes)) : '') + '</ul></div></section>' : '') +
-    (s.isaAllowance > 0 ? '<section class="sec"><h2>ISA allowance<small>' + esc(ty) + '</small></h2><div class="panel pad"><div class="meter" role="img" aria-label="' + pct(used) + ' of the allowance used"><i class="grow-x" style="width:' + (100 * used).toFixed(1) + '%"></i></div><ul class="rows">' + row('Paid in', gbp(paid)) + row('Left to use', gbp(Math.max(0, s.isaAllowance - paid))) + row('Days until 5 April', String(Math.max(0, days(new Date(), taxYearEnd())))) + '</ul></div><button class="btn quiet" data-act="edit-isa">Record ISA payments</button></section>' : '');
+    (s.isaAllowance > 0 ? '<section class="sec"><h2>ISA allowance<small>' + esc(ty) + '</small></h2><div class="panel pad"><div class="meter" role="img" aria-label="' + pct(used) + ' of the allowance used"><i class="grow-x" style="width:' + (100 * used).toFixed(1) + '%"></i></div><ul class="rows">' + row('Paid in', gbp(paid)) + row('Left to use', gbp(Math.max(0, s.isaAllowance - paid))) + row('Days until 5 April', String(Math.max(0, days(new Date(), taxYearEnd())))) + '</ul></div></section>' : '');
 }
 
 function vForecast() {
@@ -1385,7 +1430,7 @@ function vRetire() {
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
     '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.' +
     '</p></section>' +
-    '<div class="row-actions"><button class="btn quiet" data-act="how-retire">How this works</button><button class="btn quiet" data-act="edit-plan">Edit plan</button></div>';
+    '<div class="row-actions"><button class="btn quiet" data-act="how-retire">How this works</button></div>';
 }
 
 function vMore() {
@@ -1396,22 +1441,24 @@ function vMore() {
     (n ? '<div class="panel pad"><div><p class="fig" id="xv">' + bigMoney(snapTotal(state.snapshots[n - 1])) + '</p><p class="note" id="xs">' + esc(histText(n - 1)) + '</p></div>' + histChart() + '</div>' +
       '<div class="panel"><ul class="rows">' + snaps.slice(0, 36).map((s, i) => {
         const prev = snaps[i + 1], t = snapTotal(s), ch = prev ? t - snapTotal(prev) : null;
-        return '<li><span class="main"><span class="t2">' + esc(fmtDate(s.date)) + '</span></span><span class="end"><span class="v">' + gbp(t) + '</span>' + (ch !== null ? '<span class="vs ' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span>' : '') + '</span><button class="linkbtn quiet" data-act="del-snap" data-id="' + esc(s.date) + '" aria-label="Delete the update from ' + esc(fmtDate(s.date)) + '">Delete</button></li>';
+        return '<li><span class="main"><span class="t2">' + esc(fmtDate(s.date)) + '</span></span><span class="end"><span class="v">' + gbp(t) + '</span>' + (ch !== null ? '<span class="vs ' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span>' : '') + '</span></li>';
       }).join('') + '</ul></div>' : '<p class="note">Your history builds up each time you update your balances.</p>') + '</section>' +
     '<section class="sec"><h2>Dates</h2><div class="panel">' +
-    (evs.length ? '<ul class="rows">' + evs.map((e) => '<li class="' + (e.done ? 'done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(e.title) + '" data-act="toggle-event" data-id="' + esc(e.id) + '"' + (e.done ? ' checked' : '') + '><span class="main"><span class="t2">' + esc(e.title) + '</span><span class="s">' + esc(fmtDate(e.date)) + '</span></span><button class="linkbtn quiet" data-act="del-event" data-id="' + esc(e.id) + '" aria-label="Delete this date">Delete</button></li>').join('') + '</ul>' : '<p class="empty">No dates yet.</p>') +
-    '</div><button class="btn quiet" data-act="add-event">Add a date</button></section>' +
+    (evs.length ? '<ul class="rows">' + evs.map((e) => '<li class="' + (e.done ? 'done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(e.title) + '" data-act="toggle-event" data-id="' + esc(e.id) + '"' + (e.done ? ' checked' : '') + '><span class="main"><span class="t2">' + esc(e.title) + '</span><span class="s">' + esc(fmtDate(e.date)) + '</span></span></li>').join('') + '</ul>' : '<p class="empty">No dates yet.</p>') +
+    '</div><button class="linkbtn" data-act="assistant">Ask Claude to add or remove a date</button></section>' +
     '<section class="sec"><h2>Appearance</h2><div class="themes" role="group" aria-label="Appearance">' + THEMES.map(([id, name]) => '<button type="button" class="th" data-act="theme" data-id="' + id + '" aria-pressed="' + (ui.theme === id) + '"><span class="sw-' + id + '"></span>' + name + '</button>').join('') + '</div></section>' +
     lockSection() +
-    '<section class="sec"><h2>Assistant</h2><div class="panel pad"><p class="note">Ask Claude about your money, or let it read screenshots from your banking apps and update your balances. It uses your own Anthropic API key. Nothing is sent until you ask; then your question, your figures and any screenshots go to Anthropic. Changes it suggests wait for you to apply them.</p>' +
+    '<section class="sec"><h2>Assistant</h2><div class="panel pad"><p class="note">Claude is how you change things in the app: send screenshots from your banking apps to update your balances, or ask it to change pots, monthly moves, dates or settings. It uses your own Anthropic API key. Nothing is sent until you ask; then your question, your figures and any screenshots go to Anthropic. Changes it suggests wait for you to apply them.</p>' +
       (aiConf().key ? '<p class="lockline">' + IC.spark + '<span>' + esc(aiModel()[1]) + ', key ending ' + esc(aiConf().key.slice(-4)) + '</span></p>' : '') +
       '<div class="row-actions"><button class="btn primary" data-act="assistant">' + IC.spark + 'Open assistant</button><button class="btn quiet" data-act="ai-setup">' + (aiConf().key ? 'Key and model' : 'Add your API key') + '</button></div>' +
       (aiConf().key ? '<button class="linkbtn quiet" data-act="ai-forget">Remove the key from this phone</button>' : '') + '</div></section>' +
     '<section class="sec"><h2>Share with family</h2><div class="panel pad"><p class="note">A full report in Chinese and English, as a long picture, a PDF or text: every account, the next three years, what matures, tax, and what each kind of account is. Never account numbers.</p><button class="btn quiet" data-act="share">' + IC.share + 'Share a summary</button></div></section>' +
     '<section class="sec"><h2>Your data</h2><div class="panel pad"><p class="lockline">' + IC.lock + '<span>Stored only on this phone</span></p>' +
-    '<p class="note">Nothing is sent anywhere, except to Anthropic when you use the assistant. Back up now and then to iCloud Drive or Files, and restore that file on a new phone. ' + (state.lastExport ? 'Last backup ' + esc(fmtDate(state.lastExport)) + '.' : 'No backup yet.') + '</p>' +
-    '<div class="row-actions"><button class="btn primary" data-act="export">' + IC.download + 'Back up</button><label class="btn quiet">' + IC.upload + 'Restore<input type="file" class="vh" data-act="import-file"></label></div>' +
-    '<div class="row-actions"><button class="btn quiet" data-act="edit-settings">' + IC.sliders + 'Settings</button><button class="btn quiet danger" data-act="wipe">' + IC.trash + 'Delete all</button></div></div></section>';
+    '<p class="note">Saved as you go, with a restore point before each change Claude makes and once a day. Nothing is sent anywhere, except to Anthropic when you use the assistant.</p>' +
+    '<button class="btn quiet" data-act="points">' + IC.history + 'Restore points</button>' +
+    '<p class="note">For a copy off this phone, back up to Files or iCloud Drive, and restore it on a new phone. Apple only lets web apps save files when you tap, so the app reminds you every two weeks. ' + (state.lastExport ? 'Last backup ' + esc(fmtDate(state.lastExport)) + '.' : 'No backup yet.') + '</p>' +
+    '<div class="row-actions"><button class="btn primary" data-act="export">' + IC.download + 'Back up</button><label class="btn quiet">' + IC.upload + 'Restore a file<input type="file" class="vh" data-act="import-file"></label></div>' +
+    '<div class="row-actions"><button class="btn quiet danger" data-act="wipe">' + IC.trash + 'Delete all</button></div></div></section>';
 }
 
 // Your taxable interest from the first pound to the last: what's tax-free, then each rate. Deeper green, more tax.
@@ -1431,11 +1478,11 @@ function vTax() {
   if (!state.pots.length) return '<header class="page"><h1>Tax</h1></header><p class="note">Add your pots first, then the tax on your savings appears here.</p><button class="btn quiet" data-act="go" data-id="pots">Go to Pots</button>';
   const s = state.settings, y0 = taxYearStart().getFullYear(), y = ui.taxYear === 'next' ? y0 + 1 : y0, r = savingsRates(y);
   const F = taxFigures(y), t = F.t, inc = F.inc;
-  const items = state.pots.filter((p) => inc.taxable[p.id] > 0.5).map((p) => [potName(p) + (p.type === 'gilt' ? ', coupons' : ''), inc.taxable[p.id]]).sort((a, b) => b[1] - a[1]);
+  const items = state.pots.filter((p) => inc.taxable[p.id] > 0.5).map((p) => [potName(p) + (p.type === 'gilt' ? ', coupons' : ''), inc.taxable[p.id], p]).sort((a, b) => b[1] - a[1]);
   const top = Math.max(1, F.early.amount, ...items.map((x) => x[1]));
   const track = (v) => '<span class="track"><i class="grow-x" style="width:' + (100 * v / top).toFixed(1) + '%"></i></span>';
-  const early = y === y0 && F.early.span ? '<li class="tap"><button type="button" class="row" data-act="edit-tax"><span class="main"><span class="line"><span class="t2">6 April to ' + esc(shortDate(localISO(F.early.upTo))) + '</span><span class="v">' + gbp(F.early.amount) + '</span></span>' +
-    '<span class="s">' + (F.early.own ? 'Your figure from your banking apps' : 'Estimated from today’s balances. Tap to add the real figure.') + '</span>' + track(F.early.amount) + '</span></button></li>' : '';
+  const early = y === y0 && F.early.span ? '<li><span class="main"><span class="line"><span class="t2">6 April to ' + esc(shortDate(localISO(F.early.upTo))) + '</span><span class="v">' + gbp(F.early.amount) + '</span></span>' +
+    '<span class="s">' + (F.early.own ? 'Your figure from your banking apps' : 'Estimated from today’s balances. Tell Claude the real figure for a sharper estimate.') + '</span>' + track(F.early.amount) + '</span></li>' : '';
   const freeTotal = sum(Object.values(inc.free), (v) => v);
 
   const tips = [];
@@ -1463,12 +1510,12 @@ function vTax() {
 
   return '<header class="page"><h1>Tax</h1><p class="sub">Tax on your savings interest, estimated</p></header>' +
     seg('taxyr', [['this', 'This year, ' + tyLabel(y0)], ['next', 'Next year, ' + tyLabel(y0 + 1)]], y === y0 ? 'this' : 'next', 'Tax year') +
-    '<section class="hero"><header class="head"><p class="num">' + bigMoney(t ? t.tax : F.interest) + '</p><p class="num-sub">' + esc(t ? 'Estimated tax on your savings interest in ' + tyLabel(y) : 'Taxable interest in ' + tyLabel(y) + '. Add your pay to work out the tax.') + '</p></header>' +
-    (t ? '' : '<button class="btn primary full" data-act="edit-tax">Add your pay</button>') + '</section>' +
+    '<section class="hero"><header class="head"><p class="num">' + bigMoney(t ? t.tax : F.interest) + '</p><p class="num-sub">' + esc(t ? 'Estimated tax on your savings interest in ' + tyLabel(y) : 'Taxable interest in ' + tyLabel(y) + '. Tell Claude your taxable pay to work out the tax.') + '</p></header>' +
+    (t ? '' : '<button class="btn primary full" data-act="ask" data-id="My taxable pay this tax year is £">' + IC.spark + 'Tell Claude your pay</button>') + '</section>' +
     '<div class="facts">' + fact('Taxable interest', gbpShort(F.interest), tyLabel(y)) + fact('Allowance', t ? gbp(t.psa) : '£1,000', t ? ['basic rate', 'higher rate', 'additional rate'][t.psa === 1000 ? 0 : t.psa === 500 ? 1 : 2] : 'if basic rate') + fact('Tax-free', gbpShort(freeTotal), 'ISAs, bonds, gilt gains') + '</div>' +
-    (t ? '<section class="sec"><h2>How it’s worked out</h2><div class="panel pad"><p class="note">' + esc(gbp(F.interest) + ' of taxable interest, on top of ' + gbp(F.pay) + ' of taxable pay.') + '</p>' + taxBar(t) + '</div><button class="btn quiet" data-act="edit-tax">Change pay or interest</button></section>' : '') +
+    (t ? '<section class="sec"><h2>How it’s worked out</h2><div class="panel pad"><p class="note">' + esc(gbp(F.interest) + ' of taxable interest, on top of ' + gbp(F.pay) + ' of taxable pay.') + '</p>' + taxBar(t) + '</div></section>' : '') +
     '<section class="sec"><h2>Where the interest comes from</h2><div class="panel"><ul class="rows">' + early +
-    items.map(([label, v]) => '<li><span class="main"><span class="line"><span class="t2">' + esc(label) + '</span><span class="v">' + gbp(v) + '</span></span>' + track(v) + '</span></li>').join('') +
+    items.map(([label, v, pot]) => '<li>' + badge(pot) + '<span class="main"><span class="line"><span class="t2">' + esc(label) + '</span><span class="v">' + gbp(v) + '</span></span>' + track(v) + '</span></li>').join('') +
     (early || items.length ? '' : '<li><span class="main"><span class="s">No taxable interest in ' + tyLabel(y) + '.</span></span></li>') + '</ul></div>' +
     (gilts.length ? '<p class="note">For gilts only the coupons count. ISAs and Premium Bonds are tax-free.</p>' : '') + '</section>' +
     (tips.length ? '<section class="sec"><h2>Ways to pay less tax</h2><div class="panel"><ul class="rows">' + tips.map(([h, d]) => '<li class="chk"><span class="main"><span class="t">' + esc(h) + '</span><span class="s">' + esc(d) + '</span></span></li>').join('') + '</ul></div></section>' : '') +
@@ -1493,7 +1540,7 @@ function render(animate) {
   document.body.classList.remove('no-tabs');
   let view = location.hash.slice(1);
   if (!VIEWS[view]) view = 'home';
-  $$('.tabs a').forEach((a) => { const on = a.getAttribute('href') === '#' + view; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  $$('.tabs [data-tab]').forEach((a) => { const on = a.getAttribute('data-tab') === view; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   app.innerHTML = (state.example ? exampleBanner() : '') + VIEWS[view]();
 }
 
@@ -1523,108 +1570,6 @@ function field(name, label, value, kind, ph, hint) {
 }
 function selectField(name, label, value, options, hint) {
   return '<label class="f"><span>' + esc(label) + (hint ? '<small>' + esc(hint) + '</small>' : '') + '</span><select name="' + esc(name) + '">' + options.map(([v, l]) => '<option value="' + esc(v) + '"' + (v === value ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select></label>';
-}
-const showVal = (v, kind) => (kind === 'pct' ? (v === '' || v == null ? '' : +(Number(v) * 100).toFixed(3)) : v);
-
-function openSettings(groups) {
-  const s = state.settings;
-  const sel = SETTINGS_FORM.filter(([g]) => !groups || groups.includes(g));
-  const body = sel.map(([g, fields]) => '<h3>' + esc(g) + '</h3>' + fields.map(([k, label, kind]) => field('s_' + k, label, showVal(s[k], kind), kind)).join('')).join('');
-  openSheet(groups && groups.length === 1 ? groups[0] : 'Settings', body, (fd) => {
-    sel.forEach(([, fields]) => fields.forEach(([k, , kind]) => {
-      const raw = fd.get('s_' + k);
-      if (raw === null) return;
-      const str = String(raw).trim();
-      if (kind === 'text' || kind === 'date') s[k] = str;
-      else if (str === '') return;
-      else if (kind === 'pct') s[k] = num(str) / 100;
-      else if (kind === 'int') s[k] = Math.round(num(str));
-      else s[k] = num(str);
-    }));
-    toast('Saved');
-  });
-}
-
-function openUpdate() {
-  if (!state.pots.length) { toast('Add a pot first'); location.hash = '#pots'; return; }
-  const ls = lastSnap();
-  pasteRows = []; pasteLearn = {}; pasteSkip = []; pasteUnignore = [];
-  const body = '<div class="pastebox"><label class="f"><span>Paste from your banking apps<small>In Photos, open a screenshot of a banking app, tap the Live Text button, then Copy All. Paste it here and the app fills in the balances it finds.</small></span>' +
-    '<textarea name="paste" rows="3" placeholder="Paste text here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></label>' +
-    '<div class="row-actions"><button type="button" class="btn quiet" data-act="paste-clip">Paste</button><button type="button" class="btn quiet" data-act="detect">Find balances</button></div><div id="found" hidden></div>' +
-    (aiConf().key ? '<button type="button" class="btn quiet full" data-act="assistant-shots">' + IC.spark + 'Let Claude read the screenshots</button>' : '<button type="button" class="linkbtn" data-act="ai-setup">Or let Claude read screenshots: set up the assistant</button>') + '</div>' +
-    '<p class="note">Or type each balance as it is today. Leave a box as it is if nothing changed.</p>' +
-    '<label class="f"><span>Date</span><input type="date" name="date" value="' + localISO() + '"></label>' +
-    state.pots.map((p) => '<label class="f row"><span>' + esc(p.name) + '<small>' + esc(p.provider || TYPES[p.type]) + (ls && ls.balances[p.id] !== undefined ? ', last ' + gbp(ls.balances[p.id]) : '') + '</small></span><input name="b_' + esc(p.id) + '" inputmode="decimal" value="' + esc(String(Math.round(p.balance * 100) / 100)) + '" autocomplete="off"></label>').join('');
-  openSheet('Update balances', body, (fd) => {
-    const date = String(fd.get('date') || '') || localISO();
-    const balances = {};
-    state.pots.forEach((p) => { const raw = fd.get('b_' + p.id); if (!isBlank(raw)) p.balance = num(raw); balances[p.id] = p.balance; });
-    state.snapshots = state.snapshots.filter((s) => s.date !== date);
-    state.snapshots.push({ date, balances });
-    state.snapshots.sort((a, b) => a.date.localeCompare(b.date));
-    learnPasteNames();
-    toast('Balances saved');
-  });
-}
-
-function openPot(id) {
-  const existing = id ? state.pots.find((x) => x.id === id) : null;
-  if (id && !existing) return;
-  const p = existing || { id: uid(), name: '', provider: '', type: 'cash', balance: 0, rate: 0, rateNote: '', monthly: false, maturity: '', offerEnds: '', cap: 0, taxFree: false, notes: '', rateAfter: null, thenTo: '', coupon: null, nominal: 0, aka: '' };
-  const others = state.pots.filter((x) => x.id !== p.id).map((x) => [x.id, potName(x)]), gt = giltTerms(p);
-  const body = field('name', 'Name', p.name, 'text', 'e.g. Easy access saver') + field('provider', 'With', p.provider, 'text', 'The bank or platform') +
-    '<label class="f"><span>Type</span><select name="type">' + TYPE_ORDER.map((t) => '<option value="' + t + '"' + (p.type === t ? ' selected' : '') + '>' + TYPES[t] + '</option>').join('') + '</select></label>' +
-    field('balance', 'Balance (£)', existing ? p.balance : '', 'money') + field('rate', 'Rate a year (%)', p.rate ? +(p.rate * 100).toFixed(3) : '', 'pct') +
-    field('rateNote', 'About the rate', p.rateNote, 'text', 'e.g. fixed, variable, expected') +
-    '<label class="chk-f"><input type="checkbox" class="tick" name="monthly"' + (p.monthly ? ' checked' : '') + '> Pays interest every month</label>' +
-    '<label class="chk-f"><input type="checkbox" class="tick" name="taxFree"' + (p.taxFree ? ' checked' : '') + '> Tax-free (ISA, Premium Bonds, pension)</label>' +
-    '<div class="mature-only"' + (MATURES.has(p.type) ? '' : ' hidden') + '>' + field('maturity', 'Matures on', p.maturity, 'date') +
-    selectField('thenTo', 'When it matures, the money goes to', p.thenTo || '', [['', 'My main easy-access saver']].concat(others), 'Used for your month-by-month forecast') + '</div>' +
-    field('offerEnds', 'Bonus or offer rate ends on', p.offerEnds, 'date') +
-    field('rateAfter', 'Rate after the offer ends (%)', p.rateAfter == null ? '' : +(p.rateAfter * 100).toFixed(3), 'pct', 'Leave blank if it stays the same') +
-    field('cap', 'Best rate only up to (£)', p.cap || '', 'money', 'Leave blank if no limit') +
-    '<div class="gilt-only"' + (p.type === 'gilt' ? '' : ' hidden') + '>' + field('coupon', 'Coupon (%)', gt.coupon === null ? '' : +(gt.coupon * 100).toFixed(4), 'pct', 'e.g. 0.125', 'The rate in the gilt’s name: 0⅛% is 0.125. Only the coupons are taxed.') +
-    field('nominal', 'Nominal (£)', gt.nominal || '', 'money', 'Leave blank to use the balance', 'What it repays when it matures.') + '</div>' +
-    field('aka', 'Names in your banking apps', p.aka, 'text', 'e.g. Fixed Rate Saver', 'Used when you paste balances. Separate names with commas.') + field('notes', 'Notes', p.notes, 'text');
-  const extra = existing ? '<button type="button" class="btn danger" data-act="del-pot" data-id="' + esc(p.id) + '">Delete</button>' : '';
-  openSheet(existing ? 'Edit pot' : 'Add a pot', body, (fd) => {
-    const name = String(fd.get('name') || '').trim();
-    if (!name) { toast('Give the pot a name'); return false; }
-    Object.assign(p, {
-      name, provider: String(fd.get('provider') || '').trim(), type: TYPES[fd.get('type')] ? fd.get('type') : 'cash',
-      balance: num(fd.get('balance')), rate: num(fd.get('rate')) / 100, rateNote: String(fd.get('rateNote') || '').trim(),
-      monthly: fd.get('monthly') === 'on', taxFree: fd.get('taxFree') === 'on', maturity: String(fd.get('maturity') || ''), offerEnds: String(fd.get('offerEnds') || ''),
-      rateAfter: isBlank(fd.get('rateAfter')) ? null : num(fd.get('rateAfter')) / 100, thenTo: String(fd.get('thenTo') || ''),
-      cap: num(fd.get('cap')), notes: String(fd.get('notes') || '').trim(),
-      coupon: isBlank(fd.get('coupon')) ? null : num(fd.get('coupon')) / 100, nominal: num(fd.get('nominal')), aka: String(fd.get('aka') || '').trim(),
-    });
-    if (!MATURES.has(p.type)) { p.maturity = ''; p.thenTo = ''; }
-    if (!existing) state.pots.push(p);
-    toast('Saved');
-  }, { extra });
-}
-
-function openMove(id) {
-  const existing = id ? state.moves.find((m) => m.id === id) : null;
-  if (id && !existing) return;
-  const m = existing || { id: uid(), title: '', amount: 0, note: '', start: monthKey(), end: '', from: 'pay', to: '' };
-  const pots = state.pots.map((x) => [x.id, potName(x)]);
-  const body = field('title', 'What to do', m.title, 'text', 'e.g. Pay into the ISA') + field('amount', 'Amount (£)', m.amount || '', 'money', 'Optional') +
-    selectField('from', 'From', m.from, [['', 'Not in the forecast'], ['pay', 'My pay or other new money']].concat(pots)) +
-    selectField('to', 'To', m.to, [['', 'Not in the forecast']].concat(pots)) +
-    '<p class="fine">Pick From and To, with an amount, to include this move in your month-by-month forecast.</p>' +
-    field('note', 'Note', m.note, 'text', 'e.g. Use the app, it takes a minute') +
-    '<label class="f"><span>First month</span><input type="month" name="start" placeholder="YYYY-MM" value="' + esc(m.start) + '"></label>' +
-    '<label class="f"><span>Last month (leave blank to keep going)</span><input type="month" name="end" placeholder="YYYY-MM" value="' + esc(m.end) + '"></label>';
-  const extra = existing ? '<button type="button" class="btn danger" data-act="del-move" data-id="' + esc(m.id) + '">Delete</button>' : '';
-  openSheet(existing ? 'Edit monthly move' : 'Add a monthly move', body, (fd) => {
-    const title = String(fd.get('title') || '').trim();
-    if (!title) { toast('Say what the move is'); return false; }
-    Object.assign(m, { title, amount: num(fd.get('amount')), note: String(fd.get('note') || '').trim(), start: String(fd.get('start') || ''), end: String(fd.get('end') || ''), from: String(fd.get('from') || ''), to: String(fd.get('to') || '') });
-    if (!existing) state.moves.push(m);
-    toast('Saved');
-  }, { extra });
 }
 
 function openMonth(k) {
@@ -1682,176 +1627,8 @@ function openHowRetire() {
   openSheet('How this works', '<ul class="plain">' + items.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>', () => {}, { label: 'Done', noCancel: true });
 }
 
-function openEvent() {
-  openSheet('Add a date', '<label class="f"><span>Date</span><input type="date" name="date" value="' + localISO() + '"></label>' + field('title', 'What happens', '', 'text', 'e.g. Fixed saver matures'), (fd) => {
-    const title = String(fd.get('title') || '').trim(), date = String(fd.get('date') || '');
-    if (!title || !date) { toast('Add a date and a description'); return false; }
-    state.events.push({ id: uid(), date, title, done: false });
-    toast('Added');
-  });
-}
-
-function openIsa() {
-  const ty = taxYearKey();
-  openSheet('ISA payments, ' + ty, '<p class="fine">Include all ISAs you paid new money into this tax year, including a Lifetime ISA. Transfers between ISAs don’t count.</p>' + field('isa', 'Paid in this tax year (£)', Number(state.isa[ty]) || 0, 'money'), (fd) => {
-    state.isa[ty] = num(fd.get('isa'));
-    toast('Saved');
-  });
-}
-
-function openTax() {
-  const s = state.settings, y0 = taxYearStart().getFullYear(), e = earlierIncome(sim(), y0);
-  const body = '<p class="note">For the Tax page. Like everything else, these stay on this phone.</p>' +
-    field('pay', 'Taxable pay, ' + tyLabel(y0) + ' (£)', payFor(y0) || '', 'money', 'e.g. 48000', 'Salary before tax, less pension paid by salary sacrifice. Your payslip shows it as taxable pay.') +
-    field('payNext', 'Taxable pay, ' + tyLabel(y0 + 1) + ' (£)', Number(s.taxYearOf) === y0 && s.taxPayNext ? s.taxPayNext : '', 'money', 'Same as this year', 'Leave blank if about the same.') +
-    field('soFar', 'Interest paid to you since 6 April (£)', e.own ? s.interestSoFar : '', 'money', e.span && !e.own ? 'About ' + gbp(e.amount) + ', estimated' : '', 'Outside ISAs, including gilt coupons. Leave blank to use the estimate.');
-  openSheet('Pay and interest', body, (fd) => {
-    s.taxPayThis = num(fd.get('pay'));
-    s.taxPayNext = isBlank(fd.get('payNext')) ? 0 : num(fd.get('payNext'));
-    s.taxYearOf = y0;
-    const so = fd.get('soFar');
-    if (isBlank(so)) { s.interestSoFar = null; s.interestSoFarTo = ''; } else {
-      const v = num(so);
-      if (!e.own || v !== Number(s.interestSoFar)) s.interestSoFarTo = localISO();
-      s.interestSoFar = v;
-    }
-    toast('Saved');
-  });
-}
-
 function confirmSheet(title, text, label, action) {
   openSheet(title, '<p>' + esc(text) + '</p>', () => { action(); }, { label, danger: true });
-}
-
-/* ---------- paste to update ---------- */
-// Reads balances out of pasted text, such as Live Text copied from a screenshot of a banking app, and matches each
-// to a pot by its name, its provider or a name your bank uses (learned when you choose a pot for an amount).
-const SKIP_LABEL = /\b(available|pending|book cost|profit|loss|gain|price|credit|limit|overdraft|total|portfolio|performance|accounts|allowance|contributions?|round-ups?|interest|earned|prizes?|won|bonus|spent|payments?)\b/i;
-const GENERIC = /^(current |account |your |cash )?(balance|value|amount|valuation)$/i;
-const MONEY = /£\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\s?\.\s?(\d{2}))?/g;
-const gbp2 = (v) => '£' + Number(v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const cleanLabel = (s) => String(s).replace(new RegExp(MONEY.source, 'g'), ' ').replace(/[•·|>+:]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
-// The name for an amount on a line of its own: the nearest line above with words, skipping rates, other amounts and
-// words such as "Balance".
-const labelAbove = (lines, i) => {
-  for (let j = i - 1; j >= 0 && j >= i - 3; j--) { const l = cleanLabel(lines[j]); if (/[a-z]/i.test(l) && !/£/.test(lines[j]) && !/^[+\-−]?\s?\d[\d.,]*\s?%/.test(l) && !GENERIC.test(l)) return l; }
-  return '';
-};
-// pasteRows: each amount found, with the pot it fills ('' for none yet, 'ignore' for not tracked). pasteLearn,
-// pasteSkip and pasteUnignore hold the names you chose this time, kept when you save.
-let pasteRows = [], pasteLearn = {}, pasteSkip = [], pasteUnignore = [];
-function aliasesOf(p) {
-  return [p.name, p.provider && p.provider + ' ' + p.name, p.provider && p.name + ' ' + p.provider].concat(String(p.aka || '').split(','), pasteLearn[p.id] || [])
-    .map((a) => String(a || '').trim().toLowerCase()).filter((a) => a.length >= 3);
-}
-// Looks up from an amount for the nearest line that names a pot, stopping at the previous balance. The longest name
-// wins. If pots share it, the one whose provider is mentioned close by, otherwise the one with the nearest balance.
-function potForLine(lines, idx, before, real, amount) {
-  for (let i = idx; i >= 0 && i > idx - 11; i--) {
-    if (i < idx && real.has(i)) break;
-    const text = (i === idx ? before : lines[i]).toLowerCase();
-    if (!text) continue;
-    let best = [], len = 0;
-    state.pots.forEach((p) => aliasesOf(p).forEach((a) => {
-      if (!text.includes(a)) return;
-      if (a.length > len) { best = [p]; len = a.length; } else if (a.length === len && !best.includes(p)) best.push(p);
-    }));
-    if (best.length === 1) return best[0];
-    if (best.length > 1) {
-      let pick = null, dist = 13;
-      best.forEach((p) => { const pv = p.provider.trim().toLowerCase(); if (pv.length >= 3) lines.forEach((l, j) => { if (Math.abs(j - idx) < dist && l.toLowerCase().includes(pv)) { dist = Math.abs(j - idx); pick = p; } }); });
-      return pick || best.slice().sort((a, b) => Math.abs(a.balance - amount) - Math.abs(b.balance - amount))[0];
-    }
-  }
-  return null;
-}
-function readBalances(text) {
-  const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const ignore = (state.pasteIgnore || []).filter((l) => !pasteUnignore.includes(l)).concat(pasteSkip).map((l) => l.toLowerCase());
-  const named = new Set(state.pots.flatMap(aliasesOf)), found = [];
-  lines.forEach((l, i) => {
-    Array.from(l.matchAll(MONEY)).forEach((m) => {
-      const lead = l.slice(0, m.index), b0 = cleanLabel(lead), before = GENERIC.test(b0) ? '' : b0;
-      const label = /[a-z]/i.test(before) ? before : labelAbove(lines, i), amount = Number(m[1].replace(/,/g, '') + '.' + (m[2] || '00'));
-      // Changes such as +£30.52 aren't balances, and nor are totals, limits, costs or interest, unless named as a pot.
-      if (/[+\-−]\s?$/.test(lead) || !(amount >= 0.01)) return;
-      if ((SKIP_LABEL.test(before) || SKIP_LABEL.test(label)) && !named.has(label.toLowerCase())) return;
-      found.push({ i, amount, label, before, ignored: ignore.includes(label.toLowerCase()) });
-    });
-  });
-  const real = new Set(found.map((f) => f.i));
-  return found.map((f) => {
-    const pot = f.ignored ? null : potForLine(lines, f.i, f.before, real, f.amount);
-    return { label: f.label, amount: f.amount, pot: f.ignored ? 'ignore' : pot ? pot.id : '', user: false };
-  });
-}
-// Several amounts for one pot: the same figure counts once, a figure that is the sum of the others is the total,
-// otherwise they add up (two bonds in one pot, say). Zeros alone never wipe a balance.
-function combineAmounts(a) {
-  const u = Array.from(new Set(a.map((x) => Math.round(x * 100)))).map((c) => c / 100).filter((x) => x > 0);
-  if (!u.length) return null;
-  const tot = u.reduce((t, x) => t + x, 0), whole = u.find((x) => Math.abs(x * 2 - tot) < 1);
-  return whole !== undefined ? whole : tot;
-}
-function fillPots() {
-  state.pots.forEach((p) => {
-    const inp = $('#sheet input[name="b_' + p.id + '"]');
-    if (!inp) return;
-    const v = combineAmounts(pasteRows.filter((r) => r.pot === p.id).map((r) => r.amount)), f = inp.closest('.f');
-    if (v !== null) { inp.value = String(Math.round(v * 100) / 100); f.classList.add('hit'); }
-    else if (f.classList.contains('hit')) { inp.value = String(Math.round(p.balance * 100) / 100); f.classList.remove('hit'); }
-  });
-}
-function paintFound() {
-  const box = $('#found');
-  if (!box) return;
-  const n = new Set(pasteRows.filter((r) => potById(r.pot)).map((r) => r.pot)).size, left = pasteRows.filter((r) => !r.pot).length;
-  box.hidden = false;
-  box.innerHTML = '<p class="note">' + (!pasteRows.length ? 'No balances found. Copy text that shows amounts in £.' : (n ? 'Filled in ' + n + ' pot' + (n === 1 ? '' : 's') + ', highlighted below. ' : 'Nothing matched your pots yet. ') +
-    (left ? 'Choose a pot for the rest, or Not tracked, and the app will remember next time.' : 'Check them, then Save.')) + '</p>' +
-    (pasteRows.length ? '<ul class="rows found">' + pasteRows.map((r, i) => '<li><span class="main"><span class="t2">' + esc(r.label || 'No name') + '</span><span class="s">' + esc(gbp2(r.amount)) + '</span></span>' +
-      '<select class="pick' + (r.pot ? ' set' : '') + '" data-i="' + i + '" aria-label="Pot for ' + esc(gbp2(r.amount)) + '"><option value="">Which pot?</option><option value="ignore"' + (r.pot === 'ignore' ? ' selected' : '') + '>Not tracked</option>' +
-      state.pots.map((p) => '<option value="' + esc(p.id) + '"' + (r.pot === p.id ? ' selected' : '') + '>' + esc(potName(p)) + '</option>').join('') + '</select></li>').join('') + '</ul>' : '');
-}
-function detectBalances() {
-  const ta = $('#sheet textarea[name="paste"]');
-  if (!ta) return;
-  if (!ta.value.trim()) { toast('Paste some text first'); return; }
-  pasteRows = readBalances(ta.value);
-  fillPots(); paintFound();
-}
-// Your choice for an amount: noted at once, so finding again keeps it, and kept for next time when you save.
-function pickPot(el) {
-  const r = pasteRows[Number(el.getAttribute('data-i'))];
-  if (!r) return;
-  r.pot = el.value; r.user = true;
-  if (r.label) {
-    Object.keys(pasteLearn).forEach((id) => { pasteLearn[id] = pasteLearn[id].filter((l) => l !== r.label); });
-    pasteSkip = pasteSkip.filter((l) => l !== r.label);
-    if (r.pot === 'ignore') pasteSkip.push(r.label);
-    else { if (r.pot) (pasteLearn[r.pot] = pasteLearn[r.pot] || []).push(r.label); pasteUnignore.push(r.label); }
-  }
-  fillPots(); paintFound();
-}
-async function pasteClip() {
-  const ta = $('#sheet textarea[name="paste"]');
-  if (!ta) return;
-  try {
-    const t = await navigator.clipboard.readText();
-    if (!t || !t.trim()) { toast('Nothing to paste. Copy the text first.'); return; }
-    ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + t.trim();
-    detectBalances();
-  } catch (err) { ta.focus(); toast('Press and hold in the box, then tap Paste'); }
-}
-function learnPasteNames() {
-  Object.entries(pasteLearn).forEach(([id, labels]) => {
-    const p = potById(id);
-    if (!p) return;
-    const have = [p.name, p.provider + ' ' + p.name, p.name + ' ' + p.provider].concat(String(p.aka || '').split(',')).map((a) => a.trim().toLowerCase());
-    const add = Array.from(new Set(labels)).filter((l) => !have.includes(l.toLowerCase()));
-    if (add.length) p.aka = [p.aka].concat(add).filter(Boolean).join(', ');
-  });
-  state.pasteIgnore = Array.from(new Set((state.pasteIgnore || []).filter((l) => !pasteUnignore.includes(l)).concat(pasteSkip))).slice(-60);
 }
 
 /* ---------- share a report ---------- */
@@ -2270,10 +2047,16 @@ const aiConf = () => { try { return JSON.parse(localStorage.getItem(AI_KEY) || '
 const aiSave = (c) => { try { if (c) localStorage.setItem(AI_KEY, JSON.stringify(c)); else localStorage.removeItem(AI_KEY); } catch (e) { toast('Could not save on this device'); } };
 const aiModel = () => AI_MODELS.find((m) => m[0] === aiConf().model) || AI_MODELS[0];
 const AI_SYSTEM = 'You are the assistant inside Money Snapshot, a private money tracker on the user\'s iPhone. They live in the UK and amounts are in pounds.\n\n' +
-  'You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; and propose changes to pots and settings, such as a new rate, a maturity date, their pay or a new pot.\n\n' +
+  'The app has no edit buttons: every change to their figures goes through you. You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; add, change or remove pots, monthly money moves and dates; remove an update from their history; and change any setting, such as their pay for tax, ISA payments, pension plans, retirement age or growth assumptions. You can\'t change how the app itself looks or works.\n\n' +
   'The app\'s figures come with the user\'s first message. Call get_finances again after the user applies a change, and use get_forecast and get_tax for figures about the future and tax rather than working them out yourself. Forecasts are estimates in today\'s money; tax follows the app\'s rules for England, Wales and Northern Ireland.\n\n' +
   'Changes only happen through the propose tools, and the user approves each one in the app, so never say you have changed something. Match each amount in a screenshot to a pot by name and provider, and use the pot ids from the figures. If you can\'t tell which pot an amount belongs to, ask rather than guess. Amounts that aren\'t balances, such as interest earned, pending payments, totals and changes, aren\'t updates.\n\n' +
   'You explain options and trade-offs but don\'t give regulated financial advice. Keep replies short and plain, and reply in the language the user writes in.';
+const MOVE_PROPS = {
+  title: { type: 'string', description: 'What to do, such as Pay into the ISA' }, amount: { type: 'number', description: 'Pounds each month' },
+  from: { type: 'string', description: '"pay" for their pay or other new money, a pot id, or empty to leave it out of the forecast' },
+  to: { type: 'string', description: 'A pot id, or empty to leave it out of the forecast' },
+  start: { type: 'string', description: 'First month, YYYY-MM' }, end: { type: 'string', description: 'Last month, YYYY-MM, or empty to keep going' }, note: { type: 'string' },
+};
 const AI_TOOLS = [
   { name: 'get_finances', description: 'Get the current pots (ids, balances, rates, maturities), monthly moves, plan and settings. Call it when figures may have changed since the conversation started, for example after the user applied a proposal.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false } },
@@ -2297,25 +2080,33 @@ const AI_TOOLS = [
       offer_ends: { type: 'string', description: 'YYYY-MM-DD when a bonus rate ends, or empty' }, rate_after_percent: { type: 'number', description: 'Rate after the offer ends, in percent' },
       cap: { type: 'number', description: 'Best rate only up to this many pounds; 0 for no limit' },
       coupon_percent: { type: 'number', description: 'A gilt\'s coupon, such as 0.125 for 0⅛%' }, nominal: { type: 'number', description: 'A gilt\'s nominal, what it repays' },
-      then_to: { type: 'string', description: 'Pot id that the money goes to when this pot matures, or empty for the main saver' }, notes: { type: 'string' } },
+      then_to: { type: 'string', description: 'Pot id that the money goes to when this pot matures, or empty for the main saver' }, notes: { type: 'string' },
+      also_called: { type: 'string', description: 'Other names for this account in banking apps, comma separated' } },
       required: ['pot_id'], additionalProperties: false } } }, required: ['changes'], additionalProperties: false } },
   { name: 'propose_new_pot', description: 'Propose adding a new pot: a savings account, ISA, bond, gilt, investment account or pension. The user taps Apply.',
     input_schema: { type: 'object', properties: {
       name: { type: 'string' }, provider: { type: 'string' }, type: { type: 'string', enum: TYPE_ORDER }, balance: { type: 'number' },
       rate_percent: { type: 'number' }, rate_note: { type: 'string' }, monthly_interest: { type: 'boolean' }, tax_free: { type: 'boolean' },
-      maturity: { type: 'string', description: 'YYYY-MM-DD, for fixed savings and gilts' }, cap: { type: 'number' }, notes: { type: 'string' } },
+      maturity: { type: 'string', description: 'YYYY-MM-DD, for fixed savings and gilts' }, then_to: { type: 'string', description: 'Pot id the money goes to when it matures, or empty for the main saver' },
+      offer_ends: { type: 'string', description: 'YYYY-MM-DD when a bonus rate ends' }, rate_after_percent: { type: 'number' }, cap: { type: 'number' },
+      coupon_percent: { type: 'number', description: 'A gilt\'s coupon, such as 0.125' }, nominal: { type: 'number', description: 'A gilt\'s nominal' }, notes: { type: 'string' },
+      also_called: { type: 'string', description: 'Other names for this account in banking apps, comma separated' } },
     required: ['name', 'type', 'balance'], additionalProperties: false } },
-  { name: 'propose_settings_changes', description: 'Propose changes to settings: taxable pay, interest already received this tax year, inflation, take-home pay, fixed costs, emergency months, extra pension from pay, the investing target, or ISA money paid in this tax year. Include only what changes. The user taps Apply.',
+  { name: 'propose_monthly_moves', description: 'Propose adding or changing monthly money moves: transfers the user makes each month, such as paying into an ISA. A move with an amount, a from and a to counts in the forecast. Include only the fields that change. The user taps Apply.',
     input_schema: { type: 'object', properties: {
-      taxable_pay_this_year: { type: 'number' }, taxable_pay_next_year: { type: 'number' },
-      interest_received_so_far: { type: 'number', description: 'Interest paid to them since 6 April, outside ISAs, including gilt coupons' },
-      inflation_percent: { type: 'number' }, take_home: { type: 'number', description: 'Take-home pay a month' }, fixed_costs: { type: 'number', description: 'Fixed costs a month' },
-      emergency_months: { type: 'number' }, extra_pension_monthly: { type: 'number' },
-      target_invest_percent: { type: 'number', description: 'Target share in investments and pensions, in percent' }, target_invest_by: { type: 'string', description: 'YYYY-MM-DD' },
-      isa_paid_this_year: { type: 'number' } }, additionalProperties: false } },
+      add: { type: 'array', items: { type: 'object', properties: MOVE_PROPS, required: ['title'], additionalProperties: false } },
+      change: { type: 'array', items: { type: 'object', properties: Object.assign({ move_id: { type: 'string' } }, MOVE_PROPS), required: ['move_id'], additionalProperties: false } } },
+    additionalProperties: false } },
+  { name: 'propose_dates', description: 'Propose dates to remember, such as when an offer rate ends. They appear under Coming up. The user taps Apply.',
+    input_schema: { type: 'object', properties: { add: { type: 'array', items: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' }, title: { type: 'string' } }, required: ['date', 'title'], additionalProperties: false } } }, required: ['add'], additionalProperties: false } },
+  { name: 'propose_removals', description: 'Propose removing pots, monthly moves, dates, or updates from the history (by their date). Use the ids from get_finances. Past updates keep their totals when a pot is removed. The user taps Apply.',
+    input_schema: { type: 'object', properties: { pots: { type: 'array', items: { type: 'string' } }, monthly_moves: { type: 'array', items: { type: 'string' } }, dates: { type: 'array', items: { type: 'string' } },
+      history_updates: { type: 'array', items: { type: 'string', description: 'YYYY-MM-DD' } } }, additionalProperties: false } },
+  { name: 'propose_settings_changes', description: 'Propose changes to any setting: taxable pay for the tax estimate, interest already received this tax year, ISA money paid in this tax year, and everything about them, their month, their plan, pensions, inflation and growth. get_finances lists every setting with its current value. Include only what changes. The user taps Apply.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false } },
 ];
 let chat = null;
-const newChat = () => ({ messages: [], log: [], props: [], files: [], notes: [], busy: false, cost: 0 });
+const newChat = () => ({ messages: [], log: [], props: [], files: [], notes: [], busy: false, cost: 0, lastApplied: null });
 
 // What Claude sees about your money. Pot ids let its proposals name the right pot.
 function aiFinances() {
@@ -2326,11 +2117,12 @@ function aiFinances() {
       rate_percent: pc(p.rate), rate_note: p.rateNote || null, monthly_interest: p.monthly, tax_free: p.taxFree, maturity: p.maturity || null,
       offer_ends: p.offerEnds || null, rate_after_percent: p.rateAfter == null ? null : pc(p.rateAfter), cap: p.cap || null, then_to: p.thenTo || null,
       also_called: p.aka || null, notes: p.notes || null }, p.type === 'gilt' ? { coupon_percent: giltTerms(p).coupon == null ? null : pc(giltTerms(p).coupon), nominal: giltTerms(p).nominal || null } : {})),
-    monthly_moves: state.moves.map((m) => ({ title: m.title, amount: m.amount, from: m.from === 'pay' ? 'pay' : m.from ? potName(potById(m.from) || { name: m.from, provider: '' }) : null,
-      to: m.to ? potName(potById(m.to) || { name: m.to, provider: '' }) : null, start: m.start || null, end: m.end || null })),
-    settings: { born: s.birthYear, retire_at: s.retireAge, take_home: s.takeHome, fixed_costs: s.fixedCosts, emergency_months: s.emergencyMonths, extra_pension_monthly: s.extraPensionMonthly,
-      taxable_pay_this_year: payFor(y0) || null, taxable_pay_next_year: payFor(y0 + 1) || null, interest_received_so_far: s.interestSoFar, inflation_percent: pc(inflation()),
-      investing_plan: planMarks(s).map((m) => ({ by: m.date, share_percent: pc(m.share) })), isa_allowance: s.isaAllowance, isa_paid_this_year: Number(state.isa[taxYearKey()]) || 0 },
+    monthly_moves: state.moves.map((m) => ({ id: m.id, title: m.title, amount: m.amount, from: m.from || null, from_name: moveEnd(m.from), to: m.to || null, to_name: moveEnd(m.to),
+      start: m.start || null, end: m.end || null, note: m.note || null, done_this_month: doneSet(monthKey()).has(m.id) })),
+    dates: state.events.map((e) => ({ id: e.id, date: e.date, title: e.title, done: !!e.done })),
+    history: state.snapshots.slice(-24).map((x) => ({ date: x.date, total: Math.round(snapTotal(x)) })),
+    settings: Object.assign(Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => { const v = f[2](s); return [k, v == null || v === '' ? null : f[5] === 'pct' ? pc(v) : v]; })),
+      { investing_plan: planMarks(s).map((m) => ({ by: m.date, share_percent: pc(m.share) })) }),
   };
 }
 function aiForecast(n) {
@@ -2374,21 +2166,36 @@ const POT_FIELDS = {
   rate_after_percent: ['rateAfter', 'Rate after the offer', (v) => (v === null ? null : percent(v, 'The rate after the offer')), (v) => (v == null ? 'same' : rateTxt(v))],
   cap: ['cap', 'Best rate only up to', (v) => money(v, 'The cap'), (v) => (v ? gbp(v) : 'no limit')],
   coupon_percent: ['coupon', 'Coupon', (v) => percent(v, 'The coupon'), (v) => (v == null ? 'not set' : +(v * 100).toFixed(3) + '%')], nominal: ['nominal', 'Nominal', (v) => money(v, 'The nominal'), (v) => (v ? gbp(v) : 'not set')],
-  then_to: ['thenTo', 'When it matures, to', (v) => (v ? potOf(v).id : ''), (v) => (v ? potName(potById(v)) : 'main saver')], notes: ['notes', 'Notes', (v) => String(v).trim(), (v) => v || 'none'],
+  then_to: ['thenTo', 'When it matures, to', (v) => (v ? potOf(v).id : ''), (v) => (v ? potName(potById(v) || { name: v, provider: '' }) : 'main saver')], notes: ['notes', 'Notes', (v) => String(v).trim(), (v) => v || 'none'],
+  also_called: ['aka', 'Names in banking apps', (v) => String(v).trim(), (v) => v || 'none'],
 };
+const moveEnd = (v) => (v === 'pay' ? 'Pay or new money' : v ? potName(potById(v) || { name: v, provider: '' }) : 'Not in the forecast');
+const moveOf = (id) => { const m = state.moves.find((x) => x.id === id); if (!m) throw new Error('There is no monthly move with id "' + id + '". Use the ids from get_finances.'); return m; };
+const month = (v, what) => { if (v === '' || v == null) return ''; if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(v))) throw new Error(what + ' must be a month as YYYY-MM.'); return String(v); };
+const MOVE_FIELDS = {
+  title: ['title', 'What', (v) => { const t = String(v).trim(); if (!t) throw new Error('A move needs a title.'); return t; }, (v) => v || 'none'],
+  amount: ['amount', 'Amount', (v) => money(v, 'The amount'), (v) => (v ? gbp(v) : 'none')],
+  from: ['from', 'From', (v) => (v === 'pay' ? 'pay' : v ? potOf(v).id : ''), moveEnd], to: ['to', 'To', (v) => (v ? potOf(v).id : ''), moveEnd],
+  start: ['start', 'First month', (v) => month(v, 'The first month'), (v) => (v ? fmtMonth(v) : 'not set')], end: ['end', 'Last month', (v) => month(v, 'The last month'), (v) => (v ? fmtMonth(v) : 'keeps going')],
+  note: ['note', 'Note', (v) => String(v).trim(), (v) => v || 'none'],
+};
+// Each setting: [what it is, set it, read it, show it, check a new value, kind].
 const SET_FIELDS = {
-  taxable_pay_this_year: ['Taxable pay, this tax year', (s, v) => { s.taxPayNext = payFor(taxYearStart().getFullYear() + 1) === payFor(taxYearStart().getFullYear()) ? 0 : payFor(taxYearStart().getFullYear() + 1); s.taxPayThis = v; s.taxYearOf = taxYearStart().getFullYear(); }, () => payFor(taxYearStart().getFullYear()), gbp, money],
-  taxable_pay_next_year: ['Taxable pay, next tax year', (s, v) => { s.taxPayThis = payFor(taxYearStart().getFullYear()); s.taxYearOf = taxYearStart().getFullYear(); s.taxPayNext = v; }, () => payFor(taxYearStart().getFullYear() + 1), gbp, money],
-  interest_received_so_far: ['Interest received since 6 April', (s, v) => { s.interestSoFar = v; s.interestSoFarTo = localISO(); }, (s) => s.interestSoFar, (v) => (v == null ? 'estimated' : gbp(v)), money],
-  inflation_percent: ['Inflation a year', (s, v) => { s.inflation = v; }, (s) => s.inflation, (v) => pct(v, 1), percent],
-  take_home: ['Take-home pay a month', (s, v) => { s.takeHome = v; }, (s) => s.takeHome, gbp, money],
-  fixed_costs: ['Fixed costs a month', (s, v) => { s.fixedCosts = v; }, (s) => s.fixedCosts, gbp, money],
-  emergency_months: ['Emergency cash, months', (s, v) => { s.emergencyMonths = Math.round(v); }, (s) => s.emergencyMonths, (v) => String(v), (v) => { const n = Number(v); if (!(n >= 0 && n <= 36)) throw new Error('Emergency months must be 0 to 36.'); return n; }],
-  extra_pension_monthly: ['Extra pension from pay a month', (s, v) => { s.extraPensionMonthly = v; }, (s) => s.extraPensionMonthly, gbp, money],
-  target_invest_percent: ['Target in investments and pensions', (s, v) => { s.targetShares = v; }, (s) => s.targetShares, (v) => pct(v), percent],
-  target_invest_by: ['Reach the target by', (s, v) => { s.targetSharesBy = v; }, (s) => s.targetSharesBy, (v) => (v ? fmtDate(v) : 'not set'), (v) => { if (!isDay(v)) throw new Error('The target date must be YYYY-MM-DD.'); return String(v); }],
-  isa_paid_this_year: ['ISA paid in this tax year', (s, v) => { state.isa[taxYearKey()] = v; }, () => Number(state.isa[taxYearKey()]) || 0, gbp, money],
+  taxable_pay_this_year: ['Taxable pay, this tax year', (s, v) => { s.taxPayNext = payFor(taxYearStart().getFullYear() + 1) === payFor(taxYearStart().getFullYear()) ? 0 : payFor(taxYearStart().getFullYear() + 1); s.taxPayThis = v; s.taxYearOf = taxYearStart().getFullYear(); }, () => payFor(taxYearStart().getFullYear()), gbp, money, 'money'],
+  taxable_pay_next_year: ['Taxable pay, next tax year', (s, v) => { s.taxPayThis = payFor(taxYearStart().getFullYear()); s.taxYearOf = taxYearStart().getFullYear(); s.taxPayNext = v; }, () => payFor(taxYearStart().getFullYear() + 1), gbp, money, 'money'],
+  interest_received_so_far: ['Interest received since 6 April', (s, v) => { s.interestSoFar = v; s.interestSoFarTo = localISO(); }, (s) => s.interestSoFar, (v) => (v == null ? 'estimated' : gbp(v)), money, 'money'],
+  isa_paid_this_year: ['ISA paid in this tax year', (s, v) => { state.isa[taxYearKey()] = v; }, () => Number(state.isa[taxYearKey()]) || 0, gbp, money, 'money'],
 };
+SETTINGS_FORM.forEach(([g, fields]) => fields.forEach(([k, label, kind]) => {
+  const what = g + ': ' + label.replace(/ \((£|%)\)$/, '');
+  const whole = (v) => { const n = Math.round(Number(v)); if (!Number.isFinite(n) || n < 0) throw new Error(what + ' must be a whole number.'); return n; };
+  SET_FIELDS[k.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase()) + (kind === 'pct' ? '_percent' : '')] = [what, (s, v) => { s[k] = v; }, (s) => s[k],
+    kind === 'money' ? gbp : kind === 'pct' ? (v) => pct(v, 1) : kind === 'date' ? (v) => (v ? fmtDate(v) : 'not set') : kind === 'text' ? (v) => v || 'none' : (v) => String(v),
+    kind === 'money' ? money : kind === 'pct' ? percent : kind === 'date' ? (v) => dayOrBlank(v, what) : kind === 'text' ? (v) => String(v).trim() : whole, kind];
+}));
+AI_TOOLS.find((t) => t.name === 'propose_settings_changes').input_schema.properties = Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => [k, {
+  type: f[5] === 'int' ? 'integer' : f[5] === 'text' || f[5] === 'date' ? 'string' : 'number',
+  description: f[0] + (f[5] === 'money' ? ', in pounds' : f[5] === 'pct' ? ', in percent' : f[5] === 'date' ? ', YYYY-MM-DD' : '') }]));
 function aiPropose(name, x) {
   let title, rows, apply;
   if (name === 'propose_balance_updates') {
@@ -2421,13 +2228,52 @@ function aiPropose(name, x) {
         if (!MATURES.has(q.type)) { q.maturity = ''; q.thenTo = ''; }
       });
     };
+  } else if (name === 'propose_monthly_moves') {
+    const fields = (c, skip) => Object.keys(c).filter((k) => k !== skip).map((k) => { const f = MOVE_FIELDS[k]; if (!f) throw new Error('Unknown field ' + k); return [f, f[2](c[k])]; });
+    const adds = (x.add || []).map((c) => { if (!String(c.title || '').trim()) throw new Error('A move needs a title.'); return fields(c); });
+    const changes = (x.change || []).map((c) => { const m = moveOf(c.move_id), sets = fields(c, 'move_id'); if (!sets.length) throw new Error('No changes were given for ' + m.title + '.'); return { m, sets }; });
+    if (!adds.length && !changes.length) throw new Error('No moves were given.');
+    title = (adds.length ? 'Add ' + adds.length + ' monthly move' + (adds.length === 1 ? '' : 's') : '') + (adds.length && changes.length ? ', ' : '') + (changes.length ? (adds.length ? 'change ' : 'Change ') + changes.length : '') + (changes.length && !adds.length ? ' monthly move' + (changes.length === 1 ? '' : 's') : '');
+    rows = adds.map((sets) => { const m = Object.fromEntries(sets.map(([f, v]) => [f[0], v])); return [m.title, flowText(Object.assign({ from: '', to: '' }, m)) || 'Not in the forecast', m.amount ? gbp(m.amount) : '']; })
+      .concat(changes.flatMap(({ m, sets }) => sets.map(([f, v]) => [m.title, f[1], f[3](m[f[0]]) + ' → ' + f[3](v)])));
+    apply = () => {
+      const now = changes.map(({ m }) => moveOf(m.id));
+      now.forEach((m, i) => changes[i].sets.forEach(([f, v]) => { m[f[0]] = v; }));
+      adds.forEach((sets) => state.moves.push(Object.assign({ id: uid(), title: '', amount: 0, note: '', start: monthKey(), end: '', from: '', to: '' }, Object.fromEntries(sets.map(([f, v]) => [f[0], v])))));
+    };
+  } else if (name === 'propose_dates') {
+    const adds = (x.add || []).map((d) => { const title = String(d.title || '').trim(); if (!title) throw new Error('A date needs a title.'); if (!isDay(d.date)) throw new Error('Dates must be YYYY-MM-DD.'); return { date: String(d.date), title }; });
+    if (!adds.length) throw new Error('No dates were given.');
+    title = 'Add ' + adds.length + ' date' + (adds.length === 1 ? '' : 's');
+    rows = adds.map((d) => [d.title, '', fmtDate(d.date)]);
+    apply = () => adds.forEach((d) => state.events.push({ id: uid(), date: d.date, title: d.title, done: false }));
+  } else if (name === 'propose_removals') {
+    const pots = (x.pots || []).map(potOf), moves = (x.monthly_moves || []).map(moveOf);
+    const dates = (x.dates || []).map((id) => { const e = state.events.find((q) => q.id === id); if (!e) throw new Error('There is no date with id "' + id + '".'); return e; });
+    const ups = (x.history_updates || []).map((d) => { const u = state.snapshots.find((q) => q.date === d); if (!u) throw new Error('There is no update on ' + d + ' in the history.'); return u; });
+    const n = pots.length + moves.length + dates.length + ups.length;
+    if (!n) throw new Error('Nothing to remove was given.');
+    title = 'Remove ' + n + ' item' + (n === 1 ? '' : 's');
+    rows = pots.map((q) => [potName(q), 'Pot', gbp2(q.balance)]).concat(moves.map((m) => [m.title, 'Monthly move', m.amount ? gbp(m.amount) : '']),
+      dates.map((e) => [e.title, 'Date', fmtDate(e.date)]), ups.map((u) => ['Update on ' + fmtDate(u.date), 'History', gbp(snapTotal(u))]));
+    apply = () => {
+      const gone = new Set(pots.map((q) => q.id));
+      state.pots = state.pots.filter((q) => !gone.has(q.id));
+      state.pots.forEach((q) => { if (gone.has(q.thenTo)) q.thenTo = ''; });
+      state.moves = state.moves.filter((m) => !moves.some((r) => r.id === m.id));
+      state.moves.forEach((m) => { if (gone.has(m.from)) m.from = ''; if (gone.has(m.to)) m.to = ''; });
+      state.events = state.events.filter((e) => !dates.some((r) => r.id === e.id));
+      state.snapshots = state.snapshots.filter((u) => !ups.some((r) => r.date === u.date));
+    };
   } else if (name === 'propose_new_pot') {
     const name2 = String(x.name || '').trim();
     if (!name2) throw new Error('The new pot needs a name.');
     if (!TYPES[x.type]) throw new Error('Unknown type ' + x.type);
+    if ((x.maturity || x.then_to) && !MATURES.has(x.type)) throw new Error(TYPES[x.type] + ' has no maturity date. Only fixed savings and gilts mature.');
     const p = { id: uid(), name: name2, provider: String(x.provider || '').trim(), type: x.type, balance: money(x.balance, 'The balance'), rate: x.rate_percent == null ? 0 : percent(x.rate_percent, 'The rate'),
-      rateNote: String(x.rate_note || ''), monthly: !!x.monthly_interest, maturity: MATURES.has(x.type) ? dayOrBlank(x.maturity, 'The maturity') : '', offerEnds: '', cap: x.cap ? money(x.cap, 'The cap') : 0,
-      taxFree: !!x.tax_free, notes: String(x.notes || ''), rateAfter: null, thenTo: '', coupon: null, nominal: 0, aka: '' };
+      rateNote: String(x.rate_note || ''), monthly: !!x.monthly_interest, maturity: MATURES.has(x.type) ? dayOrBlank(x.maturity, 'The maturity') : '', offerEnds: dayOrBlank(x.offer_ends, 'The offer end'), cap: x.cap ? money(x.cap, 'The cap') : 0,
+      taxFree: !!x.tax_free, notes: String(x.notes || ''), rateAfter: x.rate_after_percent == null ? null : percent(x.rate_after_percent, 'The rate after the offer'), thenTo: x.then_to ? potOf(x.then_to).id : '',
+      coupon: x.coupon_percent == null ? null : percent(x.coupon_percent, 'The coupon'), nominal: x.nominal ? money(x.nominal, 'The nominal') : 0, aka: String(x.also_called || '').trim() };
     title = 'Add a pot';
     rows = [[potName(p), TYPES[p.type] + (p.rate ? ', ' + rateTxt(p.rate) : '') + (p.maturity ? ', matures ' + fmtDate(p.maturity) : '') + (p.taxFree ? ', tax-free' : ''), gbp2(p.balance)]];
     apply = () => { state.pots.push(p); };
@@ -2569,14 +2415,14 @@ function chatItem(it) {
   return '<div class="prop' + (p.status === 'open' ? '' : ' done') + '"><p class="t">' + esc(p.title) + '</p><ul class="rows">' +
     p.rows.map(([a, b, c]) => '<li><span class="main"><span class="t2">' + esc(a) + '</span>' + (b ? '<span class="s">' + esc(b) + '</span>' : '') + '</span><span class="v">' + esc(c) + '</span></li>').join('') + '</ul>' +
     (p.status === 'open' ? '<div class="row-actions"><button type="button" class="btn primary" data-act="prop-apply" data-id="' + it.id + '">Apply</button><button type="button" class="btn quiet" data-act="prop-skip" data-id="' + it.id + '">Not now</button></div>'
-      : '<p class="note">' + (p.status === 'applied' ? 'Applied.' : 'Not applied.') + '</p>') + '</div>';
+      : '<p class="note">' + (p.status === 'applied' ? 'Applied.' + (chat.lastApplied === it.id ? ' <button type="button" class="linkbtn" data-act="prop-undo" data-id="' + it.id + '">Undo</button>' : '') : p.status === 'undone' ? 'Undone.' : 'Not applied.') + '</p>') + '</div>';
 }
 function paintChat() {
   const box = $('#chatlog');
   if (!box || !chat) return;
   const m = aiModel();
   box.innerHTML = '<p class="note chatmeta">' + esc(m[1]) + (chat.cost >= 0.005 ? ', about $' + chat.cost.toFixed(2) + ' so far' : '') + '. Your question, your figures and any screenshots go to Anthropic. Changes wait for you to apply them.</p>' +
-    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Add screenshots from your banking apps and I’ll update your balances, or ask me anything about your money, forecast or tax.</p></div>') +
+    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Send me screenshots from your banking apps and I’ll update your balances. I can also change your pots, monthly moves, dates and settings, or answer questions about your money, forecast and tax.</p></div>') +
     chat.log.map(chatItem).join('') + (chat.busy ? '<div class="msg ai pending">Thinking…</div>' : '');
   const sp = $('#sheet .sheetp');
   if (sp) sp.scrollTop = sp.scrollHeight;
@@ -2588,23 +2434,36 @@ function aiDecide(id, ok) {
   if (!p || p.status !== 'open') return;
   if (ok) {
     if (!state) { toast('Add your figures first'); return; }
-    try { p.apply(); } catch (e) { toast(e.message); return; }
+    const before = JSON.stringify(state);
+    try { p.apply(); } catch (e) { state = normalise(JSON.parse(before)); toast(e.message); return; }
+    pointSave('Before: ' + p.title, before);
     save(); render();
+    p.undo = before; chat.lastApplied = id;
     toast('Applied');
   }
   p.status = ok ? 'applied' : 'skipped';
   chat.notes.push('(The user ' + (ok ? 'applied' : 'chose not to apply') + ' proposal ' + (id + 1) + ': ' + p.title + '.)');
   paintChat();
 }
-function openAssistant(pick) {
-  if (!aiConf().key) { openAiSetup(() => openAssistant(pick)); return; }
+// Puts the figures back as they were before the last change Claude made.
+function aiUndo(id) {
+  const p = chat && chat.props[id];
+  if (!p || p.status !== 'applied' || chat.lastApplied !== id || !p.undo) return;
+  state = normalise(JSON.parse(p.undo)); save(); render();
+  Object.assign(p, { status: 'undone', undo: null }); chat.lastApplied = null;
+  chat.notes.push('(The user undid proposal ' + (id + 1) + ': ' + p.title + '. Those figures are back as they were.)');
+  toast('Undone'); paintChat();
+}
+function openAssistant(prefill) {
+  if (!aiConf().key) { openAiSetup(() => openAssistant(prefill)); return; }
   if (!chat) chat = newChat();
   openSheet('Assistant', '<div id="chatlog" class="chatlog" role="log" aria-live="polite"></div>', () => { aiSend(); return false; }, {
     cls: 'chat', label: 'Send', noCancel: true, head: '<button type="button" class="linkbtn" data-act="chat-new">New chat</button>',
     extra: '<div class="composer"><div id="chatfiles" class="thumbs" hidden></div><div class="crow"><label class="icon-btn" aria-label="Add screenshots">' + IC.photo +
       '<input type="file" accept="image/*" multiple class="vh" data-act="chat-files"></label><textarea id="chatin" name="q" rows="1" placeholder="Ask, or add screenshots" autocomplete="off"></textarea></div></div>' });
   paintChat(); paintFiles();
-  if (pick) { const f = $('#sheet input[data-act="chat-files"]'); if (f) f.click(); }
+  const ta = $('#chatin');
+  if (prefill && ta && !ta.value) { ta.value = prefill; ta.focus(); }
 }
 function openAiSetup(then) {
   const c = aiConf();
@@ -2619,6 +2478,82 @@ function openAiSetup(then) {
     if (aiModel()[0] !== was) chat = null;
     toast('Assistant ready');
     if (then) setTimeout(then, 0);
+  });
+}
+
+/* ---------- restore points ---------- */
+// Copies of your figures kept on this phone, apart from the app's main storage: the latest one, a restore point before
+// each change Claude makes or file you restore, and one a day. If the main storage comes back empty or damaged when the
+// app opens, it recovers from the latest copy. Deleting everything deletes these too.
+const POINTS_KEEP = 40;
+let pointsDb = null, lastPointDay = '', mirrorTimer = null;
+function pointsOpen() {
+  if (!pointsDb) pointsDb = new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error('No storage')); return; }
+    const r = indexedDB.open('money-snapshot', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('kv'); r.result.createObjectStore('points', { keyPath: 'at' }); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return pointsDb;
+}
+// One request in its own transaction; resolves with the request's result once it's stored.
+async function idbDo(store, mode, fn) {
+  const db = await pointsOpen();
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode), r = fn(t.objectStore(store));
+    t.oncomplete = () => res(r && r.result);
+    t.onerror = t.onabort = () => rej(t.error);
+  });
+}
+const pointsAll = () => idbDo('points', 'readonly', (st) => st.getAll()).then((a) => (a || []).sort((x, y) => y.at.localeCompare(x.at))).catch(() => []);
+const pointsClear = () => idbDo('points', 'readwrite', (st) => st.clear()).catch(() => {});
+function pointSave(why, data) {
+  let d;
+  try { d = JSON.parse(data); } catch (e) { return; }
+  lastPointDay = localISO();
+  idbDo('points', 'readwrite', (st) => st.put({ at: new Date().toISOString(), why, total: sum(d.pots || [], (q) => q.balance), pots: (d.pots || []).length, data }))
+    .then(pointsAll).then((all) => (all.length > POINTS_KEEP ? idbDo('points', 'readwrite', (st) => { all.slice(POINTS_KEEP).forEach((q) => st.delete(q.at)); }) : null))
+    .catch(() => {});
+}
+function mirror() {
+  clearTimeout(mirrorTimer);
+  if (!state) { idbDo('kv', 'readwrite', (st) => st.delete('latest')).catch(() => {}); return; }
+  mirrorTimer = setTimeout(() => {
+    if (!state) return;
+    const data = JSON.stringify(state);
+    idbDo('kv', 'readwrite', (st) => st.put(data, 'latest')).catch(() => {});
+    if (lastPointDay !== localISO()) pointSave('Daily copy', data);
+  }, 400);
+}
+function recover() {
+  pointsAll().then((all) => { if (all[0] && !lastPointDay) lastPointDay = localISO(new Date(all[0].at)); });
+  if (state) return;
+  idbDo('kv', 'readonly', (st) => st.get('latest')).then((data) => {
+    if (!data || state) return;
+    state = normalise(JSON.parse(data)); save(); render(true);
+    toast('Your figures were recovered from the copy kept on this phone');
+  }).catch(() => {});
+}
+const pointWhen = (at) => { const d = new Date(at); return fmtDate(localISO(d)) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); };
+function openPoints() {
+  pointsAll().then((all) => {
+    const body = all.length ? '<p class="note">Copies kept on this phone. Going back to one saves how things are now as a restore point first.</p><ul class="rows">' + all.map((q) =>
+      '<li><span class="main"><span class="t2">' + esc(pointWhen(q.at)) + '</span><span class="s">' + esc(q.why) + ', ' + gbp(q.total) + '</span></span><button type="button" class="btn quiet" data-act="point-go" data-id="' + esc(q.at) + '">Go back</button></li>').join('') + '</ul>'
+      : '<p class="note">No restore points yet. One is saved before each change Claude makes, and once a day.</p>';
+    openSheet('Restore points', body, () => {}, { label: 'Done', noCancel: true });
+  });
+}
+function pointGo(at) {
+  pointsAll().then((all) => {
+    const q = all.find((x) => x.at === at);
+    if (!q) return;
+    const when = pointWhen(q.at);
+    confirmSheet('Go back to ' + when + '?', 'Your figures will be as they were then: ' + gbp(q.total) + ' across ' + q.pots + ' pot' + (q.pots === 1 ? '' : 's') + '. How things are now is saved as a restore point first, so you can come back.', 'Go back', () => {
+      if (state) pointSave('Before going back to ' + when, JSON.stringify(state));
+      state = normalise(JSON.parse(q.data));
+      toast('Back to ' + when);
+    });
   });
 }
 
@@ -2652,7 +2587,7 @@ function importFile(file) {
   r.onload = () => {
     let d;
     try { d = normalise(JSON.parse(String(r.result))); } catch (err) { toast('That file isn’t a Money Snapshot backup'); return; }
-    const apply = () => { state = d; if (location.hash !== '#home') location.hash = '#home'; toast('Imported ' + d.pots.length + ' pots'); };
+    const apply = () => { if (state && !state.example) pointSave('Before restoring ' + file.name, JSON.stringify(state)); state = d; if (location.hash !== '#home') location.hash = '#home'; toast('Imported ' + d.pots.length + ' pots'); };
     if (!state || state.example) { apply(); save(); render(true); return; }
     confirmSheet('Replace your data?', 'This replaces everything in the app with "' + file.name + '": ' + d.pots.length + ' pots and ' + d.snapshots.length + ' updates. Back up first if you might need what is here now.', 'Replace', apply);
   };
@@ -2689,26 +2624,13 @@ function exampleData() {
 
 /* ---------- events ---------- */
 document.addEventListener('click', (e) => {
+  const tab = e.target.closest('[data-tab]');
+  if (tab) { const h = '#' + tab.getAttribute('data-tab'); if (location.hash === h) window.scrollTo(0, 0); else location.hash = h; return; }
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const act = el.getAttribute('data-act'), id = el.getAttribute('data-id');
   switch (act) {
     case 'close': closeSheet(); break;
-    case 'update': openUpdate(); break;
-    case 'add-pot': openPot(null); break;
-    case 'edit-pot': openPot(id); break;
-    case 'del-pot': {
-      const p = state.pots.find((x) => x.id === id);
-      if (p) confirmSheet('Delete ' + p.name + '?', 'This removes the pot. Past updates keep their totals.', 'Delete', () => { state.pots = state.pots.filter((x) => x.id !== id); toast('Deleted'); });
-      break;
-    }
-    case 'add-move': openMove(null); break;
-    case 'edit-move': openMove(id); break;
-    case 'del-move': {
-      const m = state.moves.find((x) => x.id === id);
-      if (m) confirmSheet('Delete this move?', m.title, 'Delete', () => { state.moves = state.moves.filter((x) => x.id !== id); toast('Deleted'); });
-      break;
-    }
     case 'toggle-move': {
       const k = monthKey(), set = doneSet(k);
       if (set.has(id)) set.delete(id); else set.add(id);
@@ -2719,15 +2641,13 @@ document.addEventListener('click', (e) => {
     case 'split': ui.split = id; saveUi(); render(); break;
     case 'theme': ui.theme = id; saveUi(); applyTheme(); render(); break;
     case 'taxyr': ui.taxYear = id; saveUi(); render(true); break;
-    case 'edit-tax': openTax(); break;
-    case 'paste-clip': pasteClip(); break;
-    case 'detect': detectBalances(); break;
     case 'share': openShare(); break;
     case 'share-mode': shareMode = id; paintShare(); break;
     case 'share-go': shareGo(); break;
     case 'share-copy': copyText(shareText); break;
-    case 'assistant': openAssistant(false); break;
-    case 'assistant-shots': closeSheet(); openAssistant(true); break;
+    case 'assistant': openAssistant(); break;
+    case 'ask': openAssistant(id); break;
+    case 'rename': openTitle(); break;
     case 'ai-setup': openAiSetup(null); break;
     case 'lock-on': openLockOn(); break;
     case 'lock-now': lock(); break;
@@ -2740,6 +2660,7 @@ document.addEventListener('click', (e) => {
     case 'chat-unfile': if (chat) { chat.files = []; paintFiles(); } break;
     case 'prop-apply': aiDecide(Number(id), true); break;
     case 'prop-skip': aiDecide(Number(id), false); break;
+    case 'prop-undo': aiUndo(Number(id)); break;
     case 'fc': ui.fc = id; saveUi(); render(true); break;
     case 'range': ui.range = Number(id) || 36; ui.allMonths = false; saveUi(); render(true); break;
     case 'month': openMonth(id); break;
@@ -2748,23 +2669,18 @@ document.addEventListener('click', (e) => {
     case 'how': openHow(); break;
     case 'how-retire': openHowRetire(); break;
     case 'go': location.hash = '#' + id; break;
-    case 'edit-monthly': openSettings(['Each month']); break;
-    case 'edit-plan': openSettings(['Plan', 'Guaranteed pension', 'Pension pot contributions', 'State Pension', 'Inflation', 'Growth above inflation']); break;
-    case 'edit-settings': openSettings(null); break;
-    case 'edit-isa': openIsa(); break;
-    case 'add-event': openEvent(); break;
     case 'toggle-event': {
       const ev = state.events.find((x) => x.id === id);
       if (ev) { ev.done = !ev.done; save(); render(); }
       break;
     }
-    case 'del-event': state.events = state.events.filter((x) => x.id !== id); save(); render(); break;
-    case 'del-snap': confirmSheet('Delete this update?', 'The update from ' + fmtDate(id) + ' will be removed from your history.', 'Delete', () => { state.snapshots = state.snapshots.filter((s) => s.date !== id); }); break;
     case 'export': exportData(); break;
+    case 'points': openPoints(); break;
+    case 'point-go': pointGo(id); break;
     case 'start-blank': state = blank(); state.settings.planStartDate = localISO(); save(); location.hash = '#pots'; render(true); break;
     case 'start-example': state = exampleData(); save(); location.hash = '#home'; render(true); break;
     case 'clear-example': state = null; save(); history.replaceState(null, '', location.pathname); render(true); break;
-    case 'wipe': confirmSheet('Delete everything?', 'This deletes all your pots, history and settings from this device, along with your passcode and API key. It cannot be undone, so back up first if you might need them.', 'Delete everything', wipeAll); break;
+    case 'wipe': confirmSheet('Delete everything?', 'This deletes all your pots, history, settings and restore points from this phone, along with your passcode and API key. It cannot be undone, so back up first if you might need them.', 'Delete everything', wipeAll); break;
     default: break;
   }
 });
@@ -2775,18 +2691,10 @@ document.addEventListener('change', (e) => {
     el.value = '';
     if (f) importFile(f);
   } else if (el.matches && el.matches('#sheet input[data-act="chat-files"]')) { const fs = el.files; aiAddFiles(fs).then(() => { el.value = ''; }); }
-  else if (el.matches && el.matches('#sheet select.pick')) pickPot(el);
   else if (el.matches && el.matches('#app select[name="lock_after"]')) { const c = lockConf(); if (c) { c.after = Number(el.value) || 0; lockSave(c); toast('Saved'); } }
-  else if (el.matches && el.matches('#sheet select[name="type"]')) {
-    const g = $('#sheet .gilt-only'), m = $('#sheet .mature-only');
-    if (g) g.hidden = el.value !== 'gilt';
-    if (m) m.hidden = !MATURES.has(el.value);
-  }
 });
-// Pasting into the box finds the balances straight away.
 // The question box grows with what you type.
 document.addEventListener('input', (e) => { const t = e.target; if (t.id === 'chatin') { t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; } });
-document.addEventListener('paste', (e) => { if (e.target.matches && e.target.matches('#sheet textarea[name="paste"]')) setTimeout(detectBalances, 0); });
 window.addEventListener('hashchange', () => { render(true); window.scrollTo(0, 0); });
 document.addEventListener('keydown', (e) => {
   if (pad) { padKey(e); return; }
@@ -2884,7 +2792,7 @@ function padPaint() {
       (face ? '<button type="button" class="btn primary" data-k="forgot-face">' + IC.face + 'Use Face ID</button>' : '') +
       '<button type="button" class="btn quiet danger" data-k="wipe">Delete everything on this phone</button><button type="button" class="btn quiet" data-k="back">Back</button></div></div>';
   } else if (p.mode === 'wipe') {
-    lockEl.innerHTML = top + '<h2 id="lockt">Delete everything?</h2><p class="lockmsg">Your pots, history, settings, passcode and API key will be deleted from this phone. Then you can restore your figures from your backup file.</p><div class="stack">' +
+    lockEl.innerHTML = top + '<h2 id="lockt">Delete everything?</h2><p class="lockmsg">Your pots, history, settings, restore points, passcode and API key will be deleted from this phone. Then you can restore your figures from your backup file.</p><div class="stack">' +
       '<button type="button" class="btn danger" data-k="wipe-go">Delete everything</button><button type="button" class="btn quiet" data-k="back">Back</button></div></div>';
   } else {
     const title = p.mode === 'unlock' ? 'Enter your passcode' : p.mode === 'check' ? 'Enter your current passcode' : p.first ? 'Enter it again' : p.title || 'Choose a passcode';
@@ -2969,7 +2877,7 @@ document.addEventListener('visibilitychange', () => {
   hiddenAt = 0;
 });
 function wipeAll() {
-  state = null; save();
+  state = null; save(); pointsClear();
   aiSave(null); chat = null;
   faceForget(lockConf()); lockSave(null);
   history.replaceState(null, '', location.pathname);
@@ -3002,6 +2910,7 @@ function lockReady() {
 applyTheme();
 lock();
 render(true);
+recover();
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
