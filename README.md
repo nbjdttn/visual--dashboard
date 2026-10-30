@@ -42,7 +42,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 2. Choose a 6-digit passcode and enter it twice. It's for when Face ID doesn't work, so don't use your bank card PIN.
 3. Tap **Turn on Face ID**. Your iPhone offers to save a passkey for the app: that's how Face ID works for web apps. Allow it.
 
-- **Opening the app**: Face ID unlocks it. If Face ID fails or you cancel it, tap **Use passcode** and type your passcode.
+- **Opening the app**: Face ID starts by itself. If it doesn't recognise you, can't run, or you cancel it, type your passcode on the keypad. Tap the face on the keypad to try Face ID again.
 - **When it locks**: when the app opens, and when you come back after a minute away. Change this under **Ask for it**, or tap **Lock now**.
 - **If you forget the passcode**: tap **Forgot passcode?**. With Face ID, you can choose a new passcode. Without it, the only way in is to delete the figures on this phone and restore your backup file.
 - **What it protects**: it stops anyone who picks up your phone from opening Money Snapshot. Only a scrambled (hashed) version of the passcode is stored. The passcode, Face ID and your API key aren't in backups, so on a new phone you set them up again.

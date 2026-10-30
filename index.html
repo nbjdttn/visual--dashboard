@@ -2810,8 +2810,9 @@ function toast(msg) {
 }
 
 /* ---------- passcode and Face ID ---------- */
-// The app locks when it opens and after time away. Face ID unlocks it first; if that fails, a 6-digit passcode
-// does. Only a slow hash of the passcode is kept, and Face ID works through a passkey saved on this phone.
+// The app locks when it opens and after time away. Face ID starts by itself; if it fails, is cancelled or can't run,
+// the 6-digit passcode keypad is already there. Only a slow hash of the passcode is kept, and Face ID works through
+// a passkey saved on this phone.
 const LOCK_KEY = 'money-snapshot-lock';
 const LOCK_AFTER = [[0, 'Every time you come back'], [1, 'After 1 minute away'], [5, 'After 5 minutes away'], [15, 'After 15 minutes away']];
 const lockConf = () => { try { return JSON.parse(localStorage.getItem(LOCK_KEY) || 'null'); } catch (e) { return null; } };
@@ -2862,7 +2863,7 @@ if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAut
   PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then((v) => { faceCan = !!v; if (v && state && location.hash === '#more' && !pad) render(); }).catch(() => {});
 }
 
-// The lock covers the whole app. Modes: face (Face ID first), unlock (the passcode), check (the current passcode),
+// The lock covers the whole app. Modes: unlock (Face ID, then the passcode), check (the current passcode),
 // new (choose one, then repeat it), and the two "forgot" screens.
 const lockEl = $('#lock');
 let pad = null, lockedNow = false, hiddenAt = 0;
@@ -2877,10 +2878,7 @@ function padPaint() {
   const p = pad;
   if (!p) return;
   const top = '<div class="lockp" role="dialog" aria-modal="true" aria-labelledby="lockt" tabindex="-1"><div class="lockmark" aria-hidden="true">' + IC.lock + '</div>';
-  if (p.mode === 'face') {
-    lockEl.innerHTML = top + '<h2 id="lockt">Money Snapshot is locked</h2><p class="lockmsg"></p><div class="stack">' +
-      '<button type="button" class="btn primary" data-k="face">' + IC.face + 'Unlock with Face ID</button><button type="button" class="linkbtn" data-k="use-code">Use passcode</button></div></div>';
-  } else if (p.mode === 'forgot') {
+  if (p.mode === 'forgot') {
     const face = faceKey();
     lockEl.innerHTML = top + '<h2 id="lockt">Forgot your passcode?</h2><p class="lockmsg">' + (face ? 'Use Face ID to choose a new one. Or delete' : 'You can delete') + ' everything on this phone and restore your backup file.</p><div class="stack">' +
       (face ? '<button type="button" class="btn primary" data-k="forgot-face">' + IC.face + 'Use Face ID</button>' : '') +
@@ -2935,8 +2933,7 @@ lockEl.addEventListener('click', (e) => {
   if (!b || !p) return;
   const k = b.getAttribute('data-k');
   if (/^(\d|del)$/.test(k)) padPress(k);
-  else if (k === 'face') faceUnlock(true);
-  else if (k === 'use-code') { Object.assign(p, { mode: 'unlock', code: '', msg: '' }); padPaint(); }
+  else if (k === 'face') faceUnlock();
   else if (k === 'cancel') { padClose(); if (p.back) p.back(); }
   else if (k === 'forgot' || k === 'wipe') { p.mode = k; padPaint(); }
   else if (k === 'back') { Object.assign(p, { mode: 'unlock', code: '', msg: '' }); padPaint(); }
@@ -2951,22 +2948,23 @@ lockEl.addEventListener('click', (e) => {
 function lock() {
   if (!lockConf()) return;
   lockedNow = true;
-  padOpen({ mode: faceKey() ? 'face' : 'unlock', done: () => { lockedNow = false; } });
-  if (document.visibilityState === 'visible') faceUnlock(false);
+  padOpen({ mode: 'unlock', done: () => { lockedNow = false; } });
+  if (document.visibilityState === 'visible') faceUnlock();
 }
-async function faceUnlock(asked) {
+// Face ID over the keypad: unlocked if it recognises you, otherwise the passcode is right there.
+async function faceUnlock() {
   const p = pad;
-  if (!p || (p.mode !== 'face' && p.mode !== 'unlock') || !faceKey() || faceBusy) return;
+  if (!p || p.mode !== 'unlock' || !faceKey() || faceBusy) return;
   const ok = await faceCheck().catch(() => false);
   if (pad !== p) return;
-  if (ok) { padClose(); lockedNow = false; } else if (asked) { Object.assign(p, { mode: 'unlock', code: '', msg: 'Face ID didn’t unlock it. Enter your passcode.' }); padPaint(); }
+  if (ok) { padClose(); lockedNow = false; } else if (!p.code) { Object.assign(p, { msg: 'Face ID didn’t unlock it.', bad: false }); padPaint(); }
 }
 // Away for longer than the setting, the app locks. A Face ID prompt doesn't count as being away.
 document.addEventListener('visibilitychange', () => {
   const c = lockConf();
   if (!c || faceBusy || Date.now() - faceEnded < 1500) return;
   if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); if (!c.after && !lockedNow) lock(); return; }
-  if (lockedNow) faceUnlock(false);
+  if (lockedNow) faceUnlock();
   else if (hiddenAt && Date.now() - hiddenAt >= c.after * 60000) lock();
   hiddenAt = 0;
 });
