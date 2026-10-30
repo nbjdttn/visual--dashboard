@@ -472,7 +472,7 @@ const DEFAULTS = {
   pensionThisYear: 0, pensionPerYearA: 0, pensionSwitchYear: 2030, pensionPerYearB: 0,
   statePension: 12548, statePensionAge: 68,
   taxPayThis: 0, taxPayNext: 0, taxYearOf: 0, interestSoFar: null, interestSoFarTo: '',
-  sharesLow: 0.02, sharesMid: 0.04, sharesHigh: 0.06, safeLow: 0, safeMid: 0.01, safeHigh: 0.015, drawRate: 0.04,
+  sharesLow: 0.02, sharesMid: 0.04, sharesHigh: 0.06, safeLow: 0, safeMid: 0.01, safeHigh: 0.015, drawRate: 0.04, inflation: 0.025,
 };
 
 const SETTINGS_FORM = [
@@ -482,6 +482,7 @@ const SETTINGS_FORM = [
   ['Guaranteed pension', [['dbPension', 'Built so far, a year (£)', 'money'], ['dbLump', 'Lump sum built so far (£)', 'money'], ['dbAccrual', 'Added for each year you work, a year (£)', 'money'], ['dbLumpAccrual', 'Lump sum added each year (£)', 'money'], ['dbAge', 'Paid in full from age', 'int'], ['leaveDbAge', 'Stay in the scheme until age', 'int']]],
   ['Pension pot contributions', [['pensionThisYear', 'Extra, for the rest of this tax year (£)', 'money'], ['pensionPerYearA', 'Extra a year after that (£)', 'money'], ['pensionSwitchYear', 'Until the year', 'int'], ['pensionPerYearB', 'Extra a year from then on (£)', 'money']]],
   ['State Pension', [['statePension', 'A year (£)', 'money'], ['statePensionAge', 'From age', 'int']]],
+  ['Inflation', [['inflation', 'Prices rise each year by (%)', 'pct']]],
   ['Growth above inflation', [['sharesLow', 'Shares, low case (%)', 'pct'], ['sharesMid', 'Shares, central case (%)', 'pct'], ['sharesHigh', 'Shares, high case (%)', 'pct'], ['safeLow', 'Cash and gilts, low case (%)', 'pct'], ['safeMid', 'Cash and gilts, central case (%)', 'pct'], ['safeHigh', 'Cash and gilts, high case (%)', 'pct'], ['drawRate', 'Drawn from pots each year in retirement (%)', 'pct']]],
 ];
 
@@ -551,6 +552,10 @@ const potName = (p) => (p.provider ? p.name + ' (' + p.provider + ')' : p.name);
 function ageNow(s, at = new Date()) { return at.getFullYear() - s.birthYear + (at.getMonth() + 1 - s.birthMonth) / 12; }
 function taxYearStart(d = new Date()) { const y = d.getFullYear(); const s = new Date(y, 3, 6); return d >= s ? s : new Date(y - 1, 3, 6); }
 function taxYearEnd(d = new Date()) { const s = taxYearStart(d); return new Date(s.getFullYear() + 1, 3, 5, 23, 59); }
+// What a sum in the future is worth in today's money, with prices rising at your inflation rate.
+const inflation = () => Math.max(0, Number(state.settings.inflation) || 0);
+const todays = (v, years) => v / Math.pow(1 + inflation(), Math.max(0, years));
+const later = (v, years) => v * Math.pow(1 + inflation(), Math.max(0, years));
 function taxYearKey(d = new Date()) { const y = taxYearStart(d).getFullYear(); return y + '-' + String((y + 1) % 100).padStart(2, '0'); }
 
 function plannedShares(s, at = new Date()) {
@@ -992,7 +997,7 @@ function heroChart(S, num, sub) {
 }
 
 // Forecast: the projected total for each month ahead. Hollow rings mark months when a pot matures.
-const projSub = (r, S) => { const ch = r.total - S.nowTotal; return 'End of ' + esc(fmtMonth(r.k)) + ', <span class="' + (ch >= 0 ? 'up' : 'down') + '">' + (ch >= 0 ? 'up ' : 'down ') + gbp(Math.abs(ch)) + '</span>'; };
+const projSub = (r, S) => { const ch = r.total - S.nowTotal; return 'End of ' + esc(fmtMonth(r.k)) + ', <span class="' + (ch >= 0 ? 'up' : 'down') + '">' + (ch >= 0 ? 'up ' : 'down ') + gbp(Math.abs(ch)) + '</span>' + (inflation() > 0 ? '<br>' + gbp(todays(r.total, monthsBetween(S.kNow, r.k) / 12)) + ' in today’s money' : ''); };
 function projChart(rows, S) {
   const W = 340, H = 190, T = 10, B = 22, L = 2, R = 46;
   const n = rows.length, vals = rows.map((r) => r.total);
@@ -1016,7 +1021,7 @@ function projChart(rows, S) {
 }
 
 // Retirement: the central case, the low to high range around it, and the pension pot on its own.
-const retireText = (d) => 'At ' + Math.round(d.age) + ', in today’s money. Range ' + gbpShort(d.lo) + ' to ' + gbpShort(d.hi) + '.';
+const retireText = (d, a0) => 'At ' + Math.round(d.age) + ', in today’s money' + (inflation() > 0 ? ', or about ' + gbpShort(later(d.mid, d.age - a0)) + ' in ' + (state.settings.birthYear + Math.round(d.age)) + ' pounds' : '') + '. Range ' + gbpShort(d.lo) + ' to ' + gbpShort(d.hi) + '.';
 function retireChart(ser) {
   const W = 340, H = 200, T = 10, B = 22, L = 2, R = 46;
   const a0 = ser[0].age, a1 = ser[ser.length - 1].age;
@@ -1028,7 +1033,7 @@ function retireChart(ser) {
   const every = a1 - a0 > 24 ? 10 : 5;
   let xt = '';
   for (let a = Math.ceil(a0 / every) * every; a <= a1 + 0.01; a += every) if (x(a) > 10 && x(a) < W - R - 8) xt += '<text x="' + f1(x(a)) + '" y="' + (H - 4) + '" text-anchor="middle" class="tick">' + a + '</text>';
-  const show = (i) => { $('#rv').innerHTML = bigMoney(ser[i].mid); $('#rs').textContent = retireText(ser[i]); };
+  const show = (i) => { $('#rv').innerHTML = bigMoney(ser[i].mid); $('#rs').textContent = retireText(ser[i], a0); };
   CH.retire = { W, H, T, B, n: ser.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(ser.length - 1) };
   return '<div class="chartbox">' + chartSvg('retire', W, H, 'Forecast by age, in today’s money', guides(rg, y, L, W - R) +
     '<path d="' + band + '" class="band fade"/><path d="' + at0(Pp[0]) + curve(Pp).join('') + '" class="ln pen draw" pathLength="1"/>' +
@@ -1270,11 +1275,12 @@ function vRetire() {
   const tot = (r) => r.inv + r.pot;
   const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]) }));
   const last = ser[ser.length - 1];
-  return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last)) + '</p></header>' +
+  return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last, ser[0].age)) + '</p></header>' +
     (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
     '<section class="sec"><h2>At ' + esc(s.retireAge) + '</h2><div class="panel"><ul class="rows">' + row('Savings and investments', gbp(end.inv)) + row('Pension pot', gbp(end.pot)) + row('Guaranteed pension', gbp(f.db) + ' a year') + row('Guaranteed lump sum', gbp(f.dbLump)) + '</ul></div></section>' +
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
-    '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.</p></section>' +
+    '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.' +
+    (inflation() > 0 ? ' Everything here is in today’s money, with prices rising ' + pct(inflation(), 1) + ' a year. In ' + (s.birthYear + s.retireAge) + ' pounds the central income is about ' + about(later(f.income.mid, f.years)) + ' a year.' : '') + '</p></section>' +
     '<div class="row-actions"><button class="btn quiet" data-act="how-retire">How this works</button><button class="btn quiet" data-act="edit-plan">Edit plan</button></div>';
 }
 
@@ -1554,6 +1560,7 @@ function openHow() {
 function openHowRetire() {
   const s = state.settings;
   const items = [
+    'Everything is in today’s money. Prices rise ' + pct(inflation(), 1) + ' a year, and the growth below is on top of that.',
     'Shares grow ' + pct(s.sharesMid, 1) + ' a year above inflation (' + pct(s.sharesLow, 1) + ' to ' + pct(s.sharesHigh, 1) + ').',
     'Cash, gilts and Premium Bonds grow ' + pct(s.safeMid, 1) + ' a year above inflation (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + ').',
     'You add ' + gbp(s.newSavingsPerYear) + ' a year from pay.',
@@ -1783,11 +1790,11 @@ function summary() {
     [(Number(s.pensionPerYearB) || 0) / 12, s.pensionSwitchYear + '年4月起', 'from April ' + s.pensionSwitchYear]].filter((x) => x[0] >= 1);
   return {
     date: ls ? parseD(ls.date) : today, t: total(), change: ls && ps ? { v: snapTotal(ls) - snapTotal(ps), since: parseD(ps.date) } : null,
-    earn: at(S.off + 1).growth, taxFree: taxFreeFrac(), y1: at(S.off + 12).total, y2: at(S.off + 24).total, y3: at(S.off + 36).total,
+    earn: at(S.off + 1).growth, taxFree: taxFreeFrac(), y1: at(S.off + 12).total, y2: at(S.off + 24).total, y3: at(S.off + 36).total, infl: inflation(), y3Today: todays(at(S.off + 36).total, 3),
     path: S.months.slice(S.off, S.off + 37).map((m) => m.total), groups: GROUPS.filter((g) => v[g.id] >= 1).map((g) => ({ id: g.id, name: g.name, types: g.types, v: v[g.id] })),
     pots: state.pots.filter((p) => p.balance >= 1).sort((a, b) => b.balance - a.balance), providers: providerRows(), soon,
     plans: state.moves.filter((m) => m.amount > 0 && (linked(m) || within(m)) && (!m.end || m.end >= k)).sort((a, b) => (a.start || '').localeCompare(b.start || '')),
-    pension, tax, retire: f.years > 0 ? { age: s.retireAge, year: s.birthYear + s.retireAge, pots: fin.inv + fin.pot, income: f.income.mid, draw: s.drawRate } : null, glossary: glossary(),
+    pension, tax, retire: f.years > 0 ? { age: s.retireAge, year: s.birthYear + s.retireAge, pots: fin.inv + fin.pot, income: f.income.mid, draw: s.drawRate, potsLater: later(fin.inv + fin.pot, f.years), incomeLater: later(f.income.mid, f.years) } : null, glossary: glossary(),
   };
 }
 
@@ -1795,24 +1802,26 @@ function summaryText(D) {
   const k = monthKey(), byGroup = (line) => D.groups.flatMap((g) => { const ps = D.pots.filter((p) => g.types.includes(p.type)); return ps.length ? [line(g, ps)].concat(ps.map((p) => '· ' + potName(p) + line(null, null, p))) : []; });
   const cn = ['财务快照（' + cnDate(D.date) + '）', '', '总资产：' + gbp(D.t) + (D.change ? '（较' + cnDate(D.change.since) + ' ' + gbpSigned(D.change.v) + '）' : ''), '每月利息和收益约 ' + gbp(D.earn) + '，免税部分占 ' + pct(D.taxFree), '', '资产分布：']
     .concat(D.groups.map((g) => '· ' + CN_GROUP[g.id] + '：' + gbp(g.v) + '（' + share(g.v / D.t) + '）'))
-    .concat(['', '未来三年（估算）：', '· 一年后约 ' + about(D.y1), '· 两年后约 ' + about(D.y2), '· 三年后约 ' + about(D.y3)])
+    .concat(['', '未来三年（估算）：', '· 一年后约 ' + about(D.y1), '· 两年后约 ' + about(D.y2), '· 三年后约 ' + about(D.y3)].concat(D.infl > 0 ? ['· 按每年 ' + pct(D.infl, 1) + ' 的通胀，三年后的金额约相当于今天的 ' + about(D.y3Today)] : []))
     .concat(['', '账户明细（' + D.pots.length + '个）：'], byGroup((g, ps, p) => (g ? '【' + CN_GROUP[g.id] + ' ' + gbp(sum(ps, (x) => x.balance)) + '】' : '：' + gbp(p.balance) + '（' + potCN(p) + '）')))
     .concat(['', '按机构：'], D.providers.map((r) => '· ' + r.label + '：' + gbp(r.value)))
     .concat(D.soon.length ? ['', '到期安排：'].concat(D.soon.map((n) => '· ' + cnDate(parseD(n.pot.maturity)) + '：' + potName(n.pot) + ' 到期，约 ' + gbp(n.amount) + '，然后转入 ' + potName(n.to))) : [])
     .concat(D.pension.length || D.plans.length ? ['', '储蓄计划：'].concat(D.pension.length ? ['· 从工资额外存入养老金：' + D.pension.map((x) => x[1] + '每月 ' + gbp(x[0])).join('；')] : [], D.plans.map((m) => '· ' + m.title + '：' + gbp(m.amount) + '（' + planCN(m, k) + '）')) : [])
     .concat(['', '税务（估算）：'], D.tax.map((t) => '· ' + tyPlain(t.y) + '：应税利息约 ' + gbp(t.interest) + '，免税收益约 ' + gbp(t.free) + (t.tax !== null ? '，预计税额约 ' + gbp(t.tax) : '')), ['· 2027年4月起，储蓄利息税率升至 24%、44% 和 49%。'])
-    .concat(D.retire ? ['', '长期展望（按今日币值）：', '· ' + D.retire.age + '岁（' + D.retire.year + '年）退休时，储蓄和养老金约 ' + about(D.retire.pots) + '，每年收入约 ' + about(D.retire.income)] : [])
+    .concat(D.retire ? ['', '长期展望（按今日币值' + (D.infl > 0 ? '，每年通胀 ' + pct(D.infl, 1) : '') + '）：', '· ' + D.retire.age + '岁（' + D.retire.year + '年）退休时，储蓄和养老金约 ' + about(D.retire.pots) + '，每年收入约 ' + about(D.retire.income)]
+      .concat(D.infl > 0 ? ['· 折合' + D.retire.year + '年的英镑：储蓄和养老金约 ' + about(D.retire.potsLater) + '，每年收入约 ' + about(D.retire.incomeLater)] : []) : [])
     .concat(['', '名词解释：'], D.glossary.map(([c, e, x]) => '· ' + c + '（' + e + '）：' + x))
     .concat(['', '注：以上为估算，未扣税；投资价值可能上下波动。']);
   const en = ['Money snapshot, ' + enDate(D.date), '', 'Total: ' + gbp(D.t) + (D.change ? ' (' + gbpSigned(D.change.v) + ' since ' + enDate(D.change.since) + ')' : ''), 'Earning about ' + gbp(D.earn) + ' a month in interest and growth. ' + pct(D.taxFree) + ' is tax-free.', '', 'How it’s split:']
     .concat(D.groups.map((g) => '· ' + g.name + ': ' + gbp(g.v) + ' (' + share(g.v / D.t) + ')'))
-    .concat(['', 'The next three years, estimated:', '· In a year: about ' + about(D.y1), '· In two years: about ' + about(D.y2), '· In three years: about ' + about(D.y3)])
+    .concat(['', 'The next three years, estimated:', '· In a year: about ' + about(D.y1), '· In two years: about ' + about(D.y2), '· In three years: about ' + about(D.y3)].concat(D.infl > 0 ? ['· With prices rising ' + pct(D.infl, 1) + ' a year, that is worth about ' + about(D.y3Today) + ' in today’s money'] : []))
     .concat(['', 'Every account (' + D.pots.length + '):'], byGroup((g, ps, p) => (g ? '[' + g.name + ', ' + gbp(sum(ps, (x) => x.balance)) + ']' : ': ' + gbp(p.balance) + ' (' + potEN(p) + ')')))
     .concat(['', 'By provider:'], D.providers.map((r) => '· ' + r.label + ': ' + gbp(r.value)))
     .concat(D.soon.length ? ['', 'What matures, and where it goes:'].concat(D.soon.map((n) => '· ' + enDate(parseD(n.pot.maturity)) + ': ' + potName(n.pot) + ' matures, about ' + gbp(n.amount) + ', then to ' + potName(n.to))) : [])
     .concat(D.pension.length || D.plans.length ? ['', 'Savings plan:'].concat(D.pension.length ? ['· Extra pension from pay: ' + D.pension.map((x) => gbp(x[0]) + ' a month ' + x[2]).join('; ')] : [], D.plans.map((m) => '· ' + m.title + ': ' + gbp(m.amount) + ' (' + planEN(m, k) + ')')) : [])
     .concat(['', 'Tax, estimated:'], D.tax.map((t) => '· ' + tyPlain(t.y) + ': taxable interest about ' + gbp(t.interest) + ', tax-free returns about ' + gbp(t.free) + (t.tax !== null ? ', tax about ' + gbp(t.tax) : '')), ['· From April 2027, savings interest is taxed at 24%, 44% and 49%.'])
-    .concat(D.retire ? ['', 'Looking further ahead, in today’s money:', '· Retiring at ' + D.retire.age + ' in ' + D.retire.year + ': savings and pensions about ' + about(D.retire.pots) + ', income about ' + about(D.retire.income) + ' a year'] : [])
+    .concat(D.retire ? ['', 'Looking further ahead, in today’s money' + (D.infl > 0 ? ' (prices rising ' + pct(D.infl, 1) + ' a year)' : '') + ':', '· Retiring at ' + D.retire.age + ' in ' + D.retire.year + ': savings and pensions about ' + about(D.retire.pots) + ', income about ' + about(D.retire.income) + ' a year']
+      .concat(D.infl > 0 ? ['· In ' + D.retire.year + ' pounds: savings and pensions about ' + about(D.retire.potsLater) + ', income about ' + about(D.retire.incomeLater) + ' a year'] : []) : [])
     .concat(['', 'What these accounts are:'], D.glossary.map(([, e, , x]) => '· ' + e + ': ' + x))
     .concat(['', 'Estimates, before tax. Investments can go down as well as up.']);
   return cn.join('\n') + '\n\n' + en.join('\n');
@@ -1923,6 +1932,11 @@ function drawReport(D) {
     y = bot + 44;
     para('每月预测，包括利息、投资收益和计划中的存款。', ink2, 12, 18);
     para('Month by month, with interest, growth and planned savings.', muted, 11, 16);
+    if (D.infl > 0) {
+      y += 6;
+      para('按每年 ' + pct(D.infl, 1) + ' 的通胀，三年后的 ' + about(D.y3) + ' 约相当于今天的 ' + about(D.y3Today) + '。', ink2, 12, 18);
+      para('With prices rising ' + pct(D.infl, 1) + ' a year, ' + about(D.y3) + ' in three years is worth about ' + about(D.y3Today) + ' today.', muted, 11, 16);
+    }
     y -= 16;
 
     // Every account, by group.
@@ -2020,9 +2034,10 @@ function drawReport(D) {
       pair('退休', 'Retire', D.retire.age + '岁 · ' + D.retire.year);
       pair('届时储蓄和养老金', 'Savings and pensions then', '≈ ' + about(D.retire.pots));
       pair('每年收入', 'Income a year', '≈ ' + about(D.retire.income));
+      if (D.infl > 0) { pair('折合' + D.retire.year + '年的英镑', 'In ' + D.retire.year + ' pounds', '≈ ' + about(D.retire.potsLater)); pair('当年每年收入', 'Income a year, ' + D.retire.year + ' pounds', '≈ ' + about(D.retire.incomeLater)); }
       y += 2;
-      para('按今日币值估算，税前。收入包括保证养老金、国家养老金，以及每年从储蓄中提取 ' + pct(D.retire.draw, 1) + '。', ink2, 12, 18);
-      para('In today’s money, before tax: the guaranteed pension, the State Pension and ' + pct(D.retire.draw, 1) + ' a year drawn from savings.', muted, 11, 16);
+      para('按今日币值估算' + (D.infl > 0 ? '（假设每年通胀 ' + pct(D.infl, 1) + '，上面最后两行是折合' + D.retire.year + '年的英镑）' : '') + '，税前。收入包括保证养老金、国家养老金，以及每年从储蓄中提取 ' + pct(D.retire.draw, 1) + '。', ink2, 12, 18);
+      para('In today’s money' + (D.infl > 0 ? ', with prices rising ' + pct(D.infl, 1) + ' a year (the last two rows are in ' + D.retire.year + ' pounds)' : '') + ', before tax: the guaranteed pension, the State Pension and ' + pct(D.retire.draw, 1) + ' a year drawn from savings.', muted, 11, 16);
       y -= 16;
     }
 
@@ -2239,7 +2254,7 @@ document.addEventListener('click', (e) => {
     case 'how-retire': openHowRetire(); break;
     case 'go': location.hash = '#' + id; break;
     case 'edit-monthly': openSettings(['Each month']); break;
-    case 'edit-plan': openSettings(['Plan', 'Guaranteed pension', 'Pension pot contributions', 'State Pension', 'Growth above inflation']); break;
+    case 'edit-plan': openSettings(['Plan', 'Guaranteed pension', 'Pension pot contributions', 'State Pension', 'Inflation', 'Growth above inflation']); break;
     case 'edit-settings': openSettings(null); break;
     case 'edit-isa': openIsa(); break;
     case 'add-event': openEvent(); break;

@@ -8,7 +8,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 - **Home**: your total, an estimate for today (interest and growth since your last update), a chart of the next 12 months, how your money is split (by type or by provider), anything that needs attention and what's coming up.
 - **Forecast, month by month**: every pot projected for 1, 2, 3 or 5 years. Slide your finger along the chart to see the total and the mix for any month. It also shows when each fixed saver or gilt unlocks and what it will be worth.
-- **Forecast, to retirement**: the long-term picture in today's money, with low, central and high cases.
+- **Forecast, to retirement**: the long-term picture in today's money, with low, central and high cases, and what that comes to in future pounds.
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
 - **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
 - **Share with family**: a full report in Chinese and English, as a long picture (good for WeChat), a PDF or text, from the share button on Home or from **More**. It covers every account, the next three years, what matures and where the money goes, savings plans, tax, the long-term outlook and a plain explanation of each kind of account. Never account numbers.
@@ -36,7 +36,8 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## How the month-by-month forecast works
 
-- Each pot grows at its own rate: interest for savings, the average prize rate for Premium Bonds and the expected return for shares and pensions. Figures are before tax and not adjusted for inflation.
+- Each pot grows at its own rate: interest for savings, the average prize rate for Premium Bonds and the expected return for shares and pensions. Figures are before tax and in future pounds; the Forecast also shows each month in today's money.
+- Inflation is 2.5% a year unless you change it in **Settings**, under **Inflation**. The retirement forecast uses growth above that rate, so it is all in today's money.
 - When a pot matures, the money goes where you choose on that pot (**When it matures, the money goes to**), otherwise to your best easy-access saver.
 - Monthly moves count when you set **From** and **To** on them. Your pay counts as **My pay or other new money**.
 - Extra pension from pay goes into your pension pot, following the amounts in Settings.
