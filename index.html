@@ -554,8 +554,6 @@ function taxYearStart(d = new Date()) { const y = d.getFullYear(); const s = new
 function taxYearEnd(d = new Date()) { const s = taxYearStart(d); return new Date(s.getFullYear() + 1, 3, 5, 23, 59); }
 // What a sum in the future is worth in today's money, with prices rising at your inflation rate.
 const inflation = () => Math.max(0, Number(state.settings.inflation) || 0);
-const todays = (v, years) => v / Math.pow(1 + inflation(), Math.max(0, years));
-const later = (v, years) => v * Math.pow(1 + inflation(), Math.max(0, years));
 function taxYearKey(d = new Date()) { const y = taxYearStart(d).getFullYear(); return y + '-' + String((y + 1) % 100).padStart(2, '0'); }
 
 function plannedShares(s, at = new Date()) {
@@ -635,6 +633,15 @@ function bestSaver(except) {
   const open = cash.filter((p) => !(p.cap > 0));
   return (open.length ? open : cash).slice().sort((a, b) => b.balance - a.balance)[0] || null;
 }
+// Where your plan invests: an investment account outside an ISA if you have one, otherwise your largest shares pot.
+function investPot() {
+  const sh = state.pots.filter((p) => p.type === 'shares'), big = (a) => a.slice().sort((x, y) => y.balance - x.balance)[0] || null;
+  return big(sh.filter((p) => !p.taxFree)) || big(sh);
+}
+// Your plan's milestones for the share in investments and pensions, such as 70% by 30 April 2029.
+const planMarks = (s) => (s.planPath || []).filter((p) => p && p.date).map((p) => ({ date: p.date, share: Number(p.share) || 0 }))
+  .concat(s.targetSharesBy ? [{ date: s.targetSharesBy, share: Number(s.targetShares) || 0 }] : []).sort((a, b) => a.date.localeCompare(b.date));
+const cushionOf = (s) => Math.max(0, (Number(s.emergencyMonths) || 0) * (Number(s.fixedCosts) || 0));
 const payoutTo = (p) => (p.thenTo && p.thenTo !== p.id && potById(p.thenTo)) || bestSaver(p.id);
 function landing(p, at) {
   for (let i = 0; p && i < 8; i++) {
@@ -655,7 +662,10 @@ function pensionIn(k) {
 }
 const typeSums = (bal) => { const o = {}; state.pots.forEach((p) => { o[p.type] = (o[p.type] || 0) + (bal[p.id] || 0); }); return o; };
 const balSum = (bal) => Object.values(bal).reduce((t, v) => t + v, 0);
-const noteText = (n) => (n.kind === 'mature' ? potName(n.pot) + ' matures: ' + gbp(n.amount) + ' to ' + potName(n.to) : n.move.title + ': ' + gbp(n.amount));
+const noteText = (n) => (n.kind === 'mature' ? potName(n.pot) + ' matures: ' + gbp(n.amount) + ' to ' + potName(n.to) : n.kind === 'invest' ? 'Invested ' + gbp(n.amount) + ' in ' + potName(n.to) + ', following your plan' : n.move.title + ': ' + gbp(n.amount));
+// Where a maturing pot's money goes. Paid into the main saver, it's invested from there as your plan needs.
+const planOn = () => Number(state.settings.targetShares) > 0 && !!investPot();
+const unlockText = (z) => 'Then to ' + potName(z.to) + (planOn() && z.to.id === (bestSaver() || {}).id ? ', and invested from there as your plan needs' : '');
 
 function simulate(ahead) {
   const ls = lastSnap(), today = parseD(localISO());
@@ -664,6 +674,7 @@ function simulate(ahead) {
   const bal = {}, pbTop = {};
   state.pots.forEach((p) => { bal[p.id] = Math.max(0, Number(p.balance) || 0); pbTop[p.id] = Math.max(PB_MAX, bal[p.id]); });
   const pen = state.pots.find((p) => p.type === 'pension') || null;
+  const st = state.settings, inv = Number(st.targetShares) > 0 ? investPot() : null, saver = bestSaver(), cushion = cushionOf(st);
   // mode: 'first' takes moves not yet ticked off, 'month' every move plus pension, 'part' only ticked moves, 'none' no moves
   const step = (b, from, to, k, mode) => {
     let growth = 0, added = 0;
@@ -701,6 +712,16 @@ function simulate(ahead) {
       });
     }
     if (mode === 'month' && pen) { const c = pensionIn(k); if (c > 0) { b[pen.id] += c; added += c; } }
+    // Following your plan: money above your emergency cushion in the main saver is invested until investments
+    // and pensions reach the share the plan sets for this date, so maturing money paid in there is invested as needed.
+    if ((mode === 'month' || mode === 'first') && inv && saver) {
+      const want = plannedShares(st, to) * balSum(b) - sum(state.pots.filter((p) => GROWTH_TYPES.has(p.type)), (p) => b[p.id]);
+      const amt = Math.min(want, b[saver.id] - cushion);
+      if (amt >= 50) {
+        b[saver.id] -= amt; b[inv.id] += amt;
+        notes.push({ kind: 'invest', to: inv, amount: amt });
+      }
+    }
     return { growth, added, notes, pg };
   };
   const months = [], startTotal = balSum(bal);
@@ -726,6 +747,19 @@ function horizon() {
 }
 let simCache = null;
 const sim = () => simCache || (simCache = simulate(horizon()));
+// The forecast in today's money: each month's figures shrunk by inflation from now until then. Planned moves keep
+// their own amounts; maturing and invested sums are in today's money like everything else. Tax uses actual pounds.
+function inToday(S) {
+  const f = (k) => Math.pow(1 + inflation(), -Math.max(0, monthsBetween(S.kNow, k)) / 12);
+  return S.months.map((m, j) => {
+    const d = f(m.k), scale = (o) => { const out = {}; Object.keys(o).forEach((x) => { out[x] = o[x] * d; }); return out; };
+    const total = m.total * d, added = m.added * d, prev = j ? S.months[j - 1].total * f(S.months[j - 1].k) : null;
+    return { ...m, total, added, bal: scale(m.bal), types: scale(m.types), growth: prev === null ? m.growth * d : total - prev - added,
+      notes: m.notes.map((n) => (n.kind === 'move' ? n : { ...n, amount: n.amount * d })) };
+  });
+}
+let todayCache = null;
+const simToday = () => todayCache || (todayCache = inToday(sim()));
 
 function upcoming(ahead = 120) {
   const now = new Date(), list = [];
@@ -973,7 +1007,7 @@ function heroChart(S, num, sub) {
   const cut = Date.now() - 2 * YEAR_MS;
   const hist = state.snapshots.map((s) => ({ t: parseD(s.date).getTime(), v: snapTotal(s), rec: true })).filter((p) => p.t >= cut);
   const proj = [{ t: S.start.getTime(), v: S.startTotal, rec: hist.length > 0 }];
-  S.months.slice(0, S.off + 13).forEach((m) => { if (m.date.getTime() > proj[proj.length - 1].t) proj.push({ t: m.date.getTime(), v: m.total, rec: false }); });
+  simToday().slice(0, S.off + 13).forEach((m) => { if (m.date.getTime() > proj[proj.length - 1].t) proj.push({ t: m.date.getTime(), v: m.total, rec: false }); });
   const past = hist.filter((p) => p.t < proj[0].t), all = past.concat(proj);
   if (all.length < 2) return '';
   const t0 = all[0].t, t1 = all[all.length - 1].t, vals = all.map((p) => p.v);
@@ -997,7 +1031,7 @@ function heroChart(S, num, sub) {
 }
 
 // Forecast: the projected total for each month ahead. Hollow rings mark months when a pot matures.
-const projSub = (r, S) => { const ch = r.total - S.nowTotal; return 'End of ' + esc(fmtMonth(r.k)) + ', <span class="' + (ch >= 0 ? 'up' : 'down') + '">' + (ch >= 0 ? 'up ' : 'down ') + gbp(Math.abs(ch)) + '</span>' + (inflation() > 0 ? '<br>' + gbp(todays(r.total, monthsBetween(S.kNow, r.k) / 12)) + ' in today’s money' : ''); };
+const projSub = (r, S) => { const ch = r.total - S.nowTotal; return 'End of ' + esc(fmtMonth(r.k)) + ', <span class="' + (ch >= 0 ? 'up' : 'down') + '">' + (ch >= 0 ? 'up ' : 'down ') + gbp(Math.abs(ch)) + '</span>'; };
 function projChart(rows, S) {
   const W = 340, H = 190, T = 10, B = 22, L = 2, R = 46;
   const n = rows.length, vals = rows.map((r) => r.total);
@@ -1021,7 +1055,7 @@ function projChart(rows, S) {
 }
 
 // Retirement: the central case, the low to high range around it, and the pension pot on its own.
-const retireText = (d, a0) => 'At ' + Math.round(d.age) + ', in today’s money' + (inflation() > 0 ? ', or about ' + gbpShort(later(d.mid, d.age - a0)) + ' in ' + (state.settings.birthYear + Math.round(d.age)) + ' pounds' : '') + '. Range ' + gbpShort(d.lo) + ' to ' + gbpShort(d.hi) + '.';
+const retireText = (d) => 'At ' + Math.round(d.age) + ', in today’s money. Range ' + gbpShort(d.lo) + ' to ' + gbpShort(d.hi) + '.';
 function retireChart(ser) {
   const W = 340, H = 200, T = 10, B = 22, L = 2, R = 46;
   const a0 = ser[0].age, a1 = ser[ser.length - 1].age;
@@ -1033,7 +1067,7 @@ function retireChart(ser) {
   const every = a1 - a0 > 24 ? 10 : 5;
   let xt = '';
   for (let a = Math.ceil(a0 / every) * every; a <= a1 + 0.01; a += every) if (x(a) > 10 && x(a) < W - R - 8) xt += '<text x="' + f1(x(a)) + '" y="' + (H - 4) + '" text-anchor="middle" class="tick">' + a + '</text>';
-  const show = (i) => { $('#rv').innerHTML = bigMoney(ser[i].mid); $('#rs').textContent = retireText(ser[i], a0); };
+  const show = (i) => { $('#rv').innerHTML = bigMoney(ser[i].mid); $('#rs').textContent = retireText(ser[i]); };
   CH.retire = { W, H, T, B, n: ser.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(ser.length - 1) };
   return '<div class="chartbox">' + chartSvg('retire', W, H, 'Forecast by age, in today’s money', guides(rg, y, L, W - R) +
     '<path d="' + band + '" class="band fade"/><path d="' + at0(Pp[0]) + curve(Pp).join('') + '" class="ln pen draw" pathLength="1"/>' +
@@ -1162,7 +1196,7 @@ function vHome() {
     '<p class="num" id="hv">' + num + '</p><p class="num-sub" id="hs">' + sub + '</p></header>' +
     (t > 0 ? heroChart(S, num, sub) : '') +
     '<button class="btn primary full" data-act="update">Update balances</button></section>' +
-    (t > 0 ? '<div class="facts">' + fact('Earning', gbp(at(S.off + 1).growth), 'a month') + fact('In a year', gbpShort(at(S.off + 12).total), 'projected') + fact('Tax-free', pct(taxFreeFrac()), 'of the total') + '</div>' : '') +
+    (t > 0 ? '<div class="facts">' + fact('Earning', gbp(at(S.off + 1).growth), 'a month') + fact('In a year', gbpShort(simToday()[Math.min(S.months.length - 1, S.off + 12)].total), 'in today’s money') + fact('Tax-free', pct(taxFreeFrac()), 'of the total') + '</div>' : '') +
     splitSection() + attentionSection() + comingSection();
 }
 
@@ -1249,24 +1283,29 @@ function vMonthly() {
 
 function vForecast() {
   const mode = ui.fc === 'retire' ? 'retire' : 'months';
-  return '<header class="page"><h1>Forecast</h1></header>' +
+  return '<header class="page"><h1>Forecast</h1><p class="sub">In today’s money</p></header>' +
     seg('fc', [['months', 'Month by month'], ['retire', 'To retirement']], mode, 'Forecast type') +
     (mode === 'months' ? vMonths() : vRetire());
 }
 
 function vMonths() {
   if (!state.pots.length) return '<p class="note">Add your pots first, then your month-by-month forecast appears here.</p><button class="btn quiet" data-act="go" data-id="pots">Go to Pots</button>';
-  const S = sim(), range = rangeNow(), rows = S.months.slice(S.off, S.off + range + 1), end = rows[rows.length - 1], flows = rows.slice(1);
+  const S = sim(), M = simToday(), range = rangeNow(), rows = M.slice(S.off, S.off + range + 1), end = rows[rows.length - 1], flows = rows.slice(1);
   const avg = (f) => (flows.length ? sum(flows, f) / flows.length : 0);
   const unlocks = [];
-  S.months.forEach((m) => m.notes.forEach((z) => { if (z.kind === 'mature' && parseD(z.pot.maturity) > parseD(localISO())) unlocks.push(z); }));
+  M.forEach((m) => m.notes.forEach((z) => { if (z.kind === 'mature' && parseD(z.pot.maturity) > parseD(localISO())) unlocks.push(z); }));
   unlocks.sort((a, b) => a.pot.maturity.localeCompare(b.pot.maturity));
+  const byYear = {};
+  flows.forEach((r) => r.notes.forEach((n) => { if (n.kind === 'invest') byYear[r.k.slice(0, 4)] = (byYear[r.k.slice(0, 4)] || 0) + n.amount; }));
+  const invested = Object.entries(byYear).filter(([, v]) => v >= 1);
   return '<section class="hero"><header class="head"><p class="num" id="fv">' + bigMoney(end.total) + '</p><p class="num-sub" id="fs">' + projSub(end, S) + '</p></header>' +
     projChart(rows, S) +
     seg('range', [[12, '1Y', '1 year'], [24, '2Y', '2 years'], [36, '3Y', '3 years'], [60, '5Y', '5 years']], range, 'How far ahead', 'ranges') + '</section>' +
     '<section class="sec"><h2 id="fmt">Mix in ' + esc(fmtMonth(end.k)) + '</h2><div class="panel pad">' + mixBlock('fmix', groupSums(end.types), end.total) + '</div></section>' +
-    '<section class="sec"><h2>Each month, on average</h2><div class="facts two">' + fact('Growth', gbp(avg((r) => r.growth)), 'interest and returns') + fact('From your pay', gbp(avg((r) => r.added)), 'moves and pension') + '</div></section>' +
-    (unlocks.length ? '<section class="sec"><h2>Unlocking</h2><div class="panel"><ul class="rows">' + unlocks.map((z) => '<li>' + dateCell(z.pot.maturity, true) + '<span class="main"><span class="t">' + esc(potName(z.pot)) + '</span><span class="s">Then to ' + esc(potName(z.to)) + '</span></span><span class="v">' + gbp(z.amount) + '</span></li>').join('') + '</ul></div></section>' : '') +
+    '<section class="sec"><h2>Each month, on average</h2><div class="facts two">' + fact('Growth', gbp(avg((r) => r.growth)), 'after inflation') + fact('From your pay', gbp(avg((r) => r.added)), 'moves and pension') + '</div></section>' +
+    (invested.length ? '<section class="sec"><h2>Following your plan</h2><div class="panel"><ul class="rows">' + invested.map(([y, v]) => row('Invested in ' + y, gbp(v))).join('') + '</ul></div>' +
+      '<p class="note">Money in ' + esc(potName(bestSaver())) + ' above your ' + gbp(cushionOf(state.settings)) + ' emergency cushion goes into ' + esc(potName(investPot())) + ' as needed, so investments and pensions reach ' + esc(planMarks(state.settings).map((m) => pct(m.share) + ' by ' + fmtDate(m.date)).join(', ')) + '.</p></section>' : '') +
+    (unlocks.length ? '<section class="sec"><h2>Unlocking</h2><div class="panel"><ul class="rows">' + unlocks.map((z) => '<li>' + dateCell(z.pot.maturity, true) + '<span class="main"><span class="t">' + esc(potName(z.pot)) + '</span><span class="s">' + esc(unlockText(z)) + '</span></span><span class="v">' + gbp(z.amount) + '</span></li>').join('') + '</ul></div></section>' : '') +
     '<div class="row-actions"><button class="btn quiet" data-act="table">Every month</button><button class="btn quiet" data-act="how">How this works</button></div>';
 }
 
@@ -1275,12 +1314,12 @@ function vRetire() {
   const tot = (r) => r.inv + r.pot;
   const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]) }));
   const last = ser[ser.length - 1];
-  return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last, ser[0].age)) + '</p></header>' +
+  return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last)) + '</p></header>' +
     (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
     '<section class="sec"><h2>At ' + esc(s.retireAge) + '</h2><div class="panel"><ul class="rows">' + row('Savings and investments', gbp(end.inv)) + row('Pension pot', gbp(end.pot)) + row('Guaranteed pension', gbp(f.db) + ' a year') + row('Guaranteed lump sum', gbp(f.dbLump)) + '</ul></div></section>' +
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
     '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.' +
-    (inflation() > 0 ? ' Everything here is in today’s money, with prices rising ' + pct(inflation(), 1) + ' a year. In ' + (s.birthYear + s.retireAge) + ' pounds the central income is about ' + about(later(f.income.mid, f.years)) + ' a year.' : '') + '</p></section>' +
+    '</p></section>' +
     '<div class="row-actions"><button class="btn quiet" data-act="how-retire">How this works</button><button class="btn quiet" data-act="edit-plan">Edit plan</button></div>';
 }
 
@@ -1370,7 +1409,7 @@ function vTax() {
 const VIEWS = { home: vHome, pots: vPots, monthly: vMonthly, forecast: vForecast, tax: vTax, more: vMore };
 let animTimer = null;
 function render(animate) {
-  simCache = null;
+  simCache = null; todayCache = null;
   endScrub();
   const app = $('#app');
   app.classList.toggle('anim', !!animate);
@@ -1518,14 +1557,14 @@ function openMove(id) {
 }
 
 function openMonth(k) {
-  const S = sim(), i = S.months.findIndex((m) => m.k === k);
+  const M = simToday(), i = M.findIndex((m) => m.k === k);
   if (i < 0) return;
-  const r = S.months[i], ch = r.growth + r.added, v = groupSums(r.types);
-  const body = '<div><p class="fig">' + gbp(r.total) + '</p><p class="note"><span class="' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span> ' + (i === 0 ? 'after your update' : 'in the month') + ': ' + gbp(r.growth) + ' growth' + (r.added > 0.5 ? ' and ' + gbp(r.added) + ' from your pay' : '') + '.</p></div>' +
+  const r = M[i], ch = r.growth + r.added, v = groupSums(r.types);
+  const body = '<div><p class="fig">' + gbp(r.total) + '</p><p class="note"><span class="' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span> ' + (i === 0 ? 'after your update' : 'in the month') + ': ' + gbp(r.growth) + ' growth after inflation' + (r.added > 0.5 ? ' and ' + gbp(r.added) + ' from your pay' : '') + '.</p></div>' +
     (r.notes.length ? '<ul class="rows">' + r.notes.map((z) => '<li><span class="main"><span class="t2">' + esc(noteText(z)) + '</span></span></li>').join('') + '</ul>' : '') +
     GROUPS.filter((g) => v[g.id] > 0.5).map((g) => '<h3><span class="dot" style="background:var(--g-' + g.id + ')"></span>' + g.name + '<small>' + gbp(v[g.id]) + '</small></h3><ul class="rows">' +
       state.pots.filter((p) => g.types.includes(p.type) && r.bal[p.id] > 0.5).map((p) => row(potName(p), gbp(r.bal[p.id]))).join('') + '</ul>').join('') +
-    '<p class="note">Projected for the end of the month.</p>';
+    '<p class="note">Projected for the end of the month, in today’s money.</p>';
   openSheet('End of ' + fmtMonth(k), body, () => {}, { label: 'Done', noCancel: true });
 }
 
@@ -1534,8 +1573,8 @@ function openChecks() {
 }
 
 function openTable() {
-  const S = sim(), rows = S.months.slice(S.off, S.off + rangeNow() + 1);
-  const body = '<ul class="rows">' + rows.map((r, i) => {
+  const S = sim(), rows = simToday().slice(S.off, S.off + rangeNow() + 1);
+  const body = '<p class="note">In today’s money.</p><ul class="rows">' + rows.map((r, i) => {
     const ch = r.growth + r.added;
     return '<li class="tap"><button type="button" class="row" data-act="month" data-id="' + r.k + '"><span class="main"><span class="t">' + esc(fmtMon(r.k)) + '</span>' + (r.notes.length ? '<span class="s">' + esc(r.notes.map(noteText).join('. ')) + '</span>' : '') + '</span><span class="end"><span class="v">' + gbp(r.total) + '</span><span class="vs ' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span></span></button></li>';
   }).join('') + '</ul>';
@@ -1546,9 +1585,10 @@ function openHow() {
   const s = state.settings, ls = lastSnap(), saver = bestSaver(), pen = state.pots.find((p) => p.type === 'pension');
   const counted = state.moves.filter((m) => m.amount > 0 && !within(m)), out = counted.filter((m) => !linked(m));
   const items = [
-    'Each pot grows at its own rate: interest for savings, the average prize rate for Premium Bonds and the expected return for shares and pensions. Figures are before tax and inflation. Shares can fall as well as rise.',
+    'Each pot grows at its own rate: interest for savings, the average prize rate for Premium Bonds and the expected return for shares and pensions. Figures are before tax and in today’s money, with prices rising ' + pct(inflation(), 1) + ' a year. Shares can fall as well as rise.',
     ls ? 'It starts from your last update, on ' + fmtDate(ls.date) + '.' : '',
     saver ? 'Maturing money goes where you choose on each pot, otherwise to ' + potName(saver) + '.' : 'Add an easy-access pot so maturing money has somewhere to go.',
+    s.targetShares > 0 && saver && investPot() ? 'Following your plan, money in ' + potName(saver) + ' above your emergency cushion of ' + gbp(cushionOf(s)) + ' is invested in ' + potName(investPot()) + ' each month as needed, so investments and pensions reach ' + planMarks(s).map((m) => pct(m.share) + ' by ' + fmtDate(m.date)).join(', ') + '.' : '',
     state.pots.some((p) => p.type === 'premium') ? 'Premium Bonds stay within the £50,000 limit. Prizes above it go to your main saver.' : '',
     state.pots.some((p) => p.offerEnds && p.rateAfter !== null) ? 'Offer rates drop to the rate you set for when each offer ends.' : '',
     pen ? 'Extra pension: ' + gbp(s.extraPensionMonthly) + ' a month into ' + pen.name + ' this tax year, then ' + gbp(s.pensionPerYearA / 12) + ' a month until April ' + s.pensionSwitchYear + ', then ' + gbp(s.pensionPerYearB / 12) + '.' : '',
@@ -1760,6 +1800,11 @@ const potCN = (p) => [CN_TYPE[p.type], p.rate ? RATE_CN[p.type] + ' ' + rateTxt(
 const potEN = (p) => [TYPES[p.type], p.rate ? rateTxt(p.rate) + ' ' + RATE_EN[p.type] : '', p.maturity ? 'matures ' + enDate(parseD(p.maturity), true) : ''].filter(Boolean).join(' · ');
 const planCN = (m, k) => (m.start && m.start === m.end ? cnMonth(m.start) + '，一次性' : '每月' + (m.start > k ? '，' + cnMonth(m.start) + '起' : '') + (m.end ? '，至' + cnMonth(m.end) : '')) + ' · ' +
   (within(m) ? '在 ' + potName(potById(m.from)) + ' 内' : (m.from === 'pay' ? '从工资存入 ' : '从 ' + potName(potById(m.from)) + ' 转入 ') + potName(potById(m.to)));
+const marksCN = (D) => D.marks.map((m) => cnDate(parseD(m.date)) + ' ' + pct(m.share)).join('，');
+const marksEN = (D) => D.marks.map((m) => pct(m.share) + ' by ' + enDate(parseD(m.date), true)).join(', ');
+const hasPlan = (D) => !!D.invest && D.marks.length > 0;
+const unlockCN = (n, D) => '然后转入 ' + potName(n.to) + (hasPlan(D) && n.to.id === D.saverId ? '，再按投资计划逐步投入 ' + potName(D.invest) : '');
+const unlockEN = (n, D) => 'Then to ' + potName(n.to) + (hasPlan(D) && n.to.id === D.saverId ? ', then into ' + potName(D.invest) + ' as your plan needs' : '');
 const planEN = (m, k) => (m.start && m.start === m.end ? 'One-off, ' + fmtMon(m.start) : 'Every month' + (m.start > k ? ' from ' + fmtMon(m.start) : '') + (m.end ? ' until ' + fmtMon(m.end) : '')) + ' · ' + flowText(m);
 let shareText = '', shareFile = null, sharePdf = null, shareUrl = '', shareMode = 'picture';
 
@@ -1780,8 +1825,8 @@ function glossary() {
 
 function summary() {
   const s = state.settings, S = simulate(Math.max(horizon(), 36)), v = groupSums(nowTypes()), ls = lastSnap(), ps = prevSnap(), today = parseD(localISO()), k = monthKey();
-  const at = (i) => S.months[Math.min(S.months.length - 1, i)], soon = [];
-  S.months.forEach((m) => m.notes.forEach((n) => { if (n.kind === 'mature' && parseD(n.pot.maturity) > today) soon.push(n); }));
+  const M = inToday(S), at = (i) => M[Math.min(M.length - 1, i)], soon = [];
+  M.forEach((m) => m.notes.forEach((n) => { if (n.kind === 'mature' && parseD(n.pot.maturity) > today) soon.push(n); }));
   soon.sort((a, b) => a.pot.maturity.localeCompare(b.pot.maturity));
   const y0 = taxYearStart().getFullYear(), f = forecast(), fin = f.mid[f.mid.length - 1];
   const tax = [y0, y0 + 1].map((y) => { const F = taxFigures(y); return { y, interest: F.interest, free: sum(Object.values(F.inc.free), (x) => x), tax: F.t ? F.t.tax : null }; });
@@ -1790,11 +1835,13 @@ function summary() {
     [(Number(s.pensionPerYearB) || 0) / 12, s.pensionSwitchYear + '年4月起', 'from April ' + s.pensionSwitchYear]].filter((x) => x[0] >= 1);
   return {
     date: ls ? parseD(ls.date) : today, t: total(), change: ls && ps ? { v: snapTotal(ls) - snapTotal(ps), since: parseD(ps.date) } : null,
-    earn: at(S.off + 1).growth, taxFree: taxFreeFrac(), y1: at(S.off + 12).total, y2: at(S.off + 24).total, y3: at(S.off + 36).total, infl: inflation(), y3Today: todays(at(S.off + 36).total, 3),
-    path: S.months.slice(S.off, S.off + 37).map((m) => m.total), groups: GROUPS.filter((g) => v[g.id] >= 1).map((g) => ({ id: g.id, name: g.name, types: g.types, v: v[g.id] })),
+    earn: S.months[Math.min(S.months.length - 1, S.off + 1)].growth, taxFree: taxFreeFrac(), y1: at(S.off + 12).total, y2: at(S.off + 24).total, y3: at(S.off + 36).total, infl: inflation(),
+    path: M.slice(S.off, S.off + 37).map((m) => m.total), groups: GROUPS.filter((g) => v[g.id] >= 1).map((g) => ({ id: g.id, name: g.name, types: g.types, v: v[g.id] })),
     pots: state.pots.filter((p) => p.balance >= 1).sort((a, b) => b.balance - a.balance), providers: providerRows(), soon,
     plans: state.moves.filter((m) => m.amount > 0 && (linked(m) || within(m)) && (!m.end || m.end >= k)).sort((a, b) => (a.start || '').localeCompare(b.start || '')),
-    pension, tax, retire: f.years > 0 ? { age: s.retireAge, year: s.birthYear + s.retireAge, pots: fin.inv + fin.pot, income: f.income.mid, draw: s.drawRate, potsLater: later(fin.inv + fin.pot, f.years), incomeLater: later(f.income.mid, f.years) } : null, glossary: glossary(),
+    invest: investPot(), marks: planMarks(s), cushion: cushionOf(s), saverId: (bestSaver() || {}).id,
+    investedBy: s.targetSharesBy ? sum(M.filter((m) => m.k >= S.kNow && m.k <= s.targetSharesBy.slice(0, 7)), (m) => sum(m.notes.filter((n) => n.kind === 'invest'), (n) => n.amount)) : 0,
+    pension, tax, retire: f.years > 0 ? { age: s.retireAge, year: s.birthYear + s.retireAge, pots: fin.inv + fin.pot, income: f.income.mid, draw: s.drawRate } : null, glossary: glossary(),
   };
 }
 
@@ -1802,28 +1849,26 @@ function summaryText(D) {
   const k = monthKey(), byGroup = (line) => D.groups.flatMap((g) => { const ps = D.pots.filter((p) => g.types.includes(p.type)); return ps.length ? [line(g, ps)].concat(ps.map((p) => '· ' + potName(p) + line(null, null, p))) : []; });
   const cn = ['财务快照（' + cnDate(D.date) + '）', '', '总资产：' + gbp(D.t) + (D.change ? '（较' + cnDate(D.change.since) + ' ' + gbpSigned(D.change.v) + '）' : ''), '每月利息和收益约 ' + gbp(D.earn) + '，免税部分占 ' + pct(D.taxFree), '', '资产分布：']
     .concat(D.groups.map((g) => '· ' + CN_GROUP[g.id] + '：' + gbp(g.v) + '（' + share(g.v / D.t) + '）'))
-    .concat(['', '未来三年（估算）：', '· 一年后约 ' + about(D.y1), '· 两年后约 ' + about(D.y2), '· 三年后约 ' + about(D.y3)].concat(D.infl > 0 ? ['· 按每年 ' + pct(D.infl, 1) + ' 的通胀，三年后的金额约相当于今天的 ' + about(D.y3Today)] : []))
+    .concat(['', '未来三年（估算，按今日币值）：', '· 一年后约 ' + about(D.y1), '· 两年后约 ' + about(D.y2), '· 三年后约 ' + about(D.y3)])
     .concat(['', '账户明细（' + D.pots.length + '个）：'], byGroup((g, ps, p) => (g ? '【' + CN_GROUP[g.id] + ' ' + gbp(sum(ps, (x) => x.balance)) + '】' : '：' + gbp(p.balance) + '（' + potCN(p) + '）')))
     .concat(['', '按机构：'], D.providers.map((r) => '· ' + r.label + '：' + gbp(r.value)))
-    .concat(D.soon.length ? ['', '到期安排：'].concat(D.soon.map((n) => '· ' + cnDate(parseD(n.pot.maturity)) + '：' + potName(n.pot) + ' 到期，约 ' + gbp(n.amount) + '，然后转入 ' + potName(n.to))) : [])
-    .concat(D.pension.length || D.plans.length ? ['', '储蓄计划：'].concat(D.pension.length ? ['· 从工资额外存入养老金：' + D.pension.map((x) => x[1] + '每月 ' + gbp(x[0])).join('；')] : [], D.plans.map((m) => '· ' + m.title + '：' + gbp(m.amount) + '（' + planCN(m, k) + '）')) : [])
+    .concat(D.soon.length ? ['', '到期安排：'].concat(D.soon.map((n) => '· ' + cnDate(parseD(n.pot.maturity)) + '：' + potName(n.pot) + ' 到期，约 ' + gbp(n.amount) + '：' + unlockCN(n, D))) : [])
+    .concat(D.pension.length || D.plans.length || hasPlan(D) ? ['', '储蓄计划：'].concat(hasPlan(D) ? ['· 投资计划：投资和养老金占总资产的比例目标为 ' + marksCN(D) + '。每月把应急资金（' + gbp(D.cushion) + '）以外的储蓄按需要投入 ' + potName(D.invest) + (D.investedBy >= 1 ? '，到' + cnDate(parseD(D.marks[D.marks.length - 1].date)) + '共约 ' + about(D.investedBy) : '') + '。'] : [], D.pension.length ? ['· 从工资额外存入养老金：' + D.pension.map((x) => x[1] + '每月 ' + gbp(x[0])).join('；')] : [], D.plans.map((m) => '· ' + m.title + '：' + gbp(m.amount) + '（' + planCN(m, k) + '）')) : [])
     .concat(['', '税务（估算）：'], D.tax.map((t) => '· ' + tyPlain(t.y) + '：应税利息约 ' + gbp(t.interest) + '，免税收益约 ' + gbp(t.free) + (t.tax !== null ? '，预计税额约 ' + gbp(t.tax) : '')), ['· 2027年4月起，储蓄利息税率升至 24%、44% 和 49%。'])
-    .concat(D.retire ? ['', '长期展望（按今日币值' + (D.infl > 0 ? '，每年通胀 ' + pct(D.infl, 1) : '') + '）：', '· ' + D.retire.age + '岁（' + D.retire.year + '年）退休时，储蓄和养老金约 ' + about(D.retire.pots) + '，每年收入约 ' + about(D.retire.income)]
-      .concat(D.infl > 0 ? ['· 折合' + D.retire.year + '年的英镑：储蓄和养老金约 ' + about(D.retire.potsLater) + '，每年收入约 ' + about(D.retire.incomeLater)] : []) : [])
+    .concat(D.retire ? ['', '长期展望（按今日币值）：', '· ' + D.retire.age + '岁（' + D.retire.year + '年）退休时，储蓄和养老金约 ' + about(D.retire.pots) + '，每年收入约 ' + about(D.retire.income)] : [])
     .concat(['', '名词解释：'], D.glossary.map(([c, e, x]) => '· ' + c + '（' + e + '）：' + x))
-    .concat(['', '注：以上为估算，未扣税；投资价值可能上下波动。']);
+    .concat(['', '注：以上为估算，未扣税；未来的数字按今日币值（假设每年通胀 ' + pct(D.infl, 1) + '）；投资价值可能上下波动。']);
   const en = ['Money snapshot, ' + enDate(D.date), '', 'Total: ' + gbp(D.t) + (D.change ? ' (' + gbpSigned(D.change.v) + ' since ' + enDate(D.change.since) + ')' : ''), 'Earning about ' + gbp(D.earn) + ' a month in interest and growth. ' + pct(D.taxFree) + ' is tax-free.', '', 'How it’s split:']
     .concat(D.groups.map((g) => '· ' + g.name + ': ' + gbp(g.v) + ' (' + share(g.v / D.t) + ')'))
-    .concat(['', 'The next three years, estimated:', '· In a year: about ' + about(D.y1), '· In two years: about ' + about(D.y2), '· In three years: about ' + about(D.y3)].concat(D.infl > 0 ? ['· With prices rising ' + pct(D.infl, 1) + ' a year, that is worth about ' + about(D.y3Today) + ' in today’s money'] : []))
+    .concat(['', 'The next three years, estimated, in today’s money:', '· In a year: about ' + about(D.y1), '· In two years: about ' + about(D.y2), '· In three years: about ' + about(D.y3)])
     .concat(['', 'Every account (' + D.pots.length + '):'], byGroup((g, ps, p) => (g ? '[' + g.name + ', ' + gbp(sum(ps, (x) => x.balance)) + ']' : ': ' + gbp(p.balance) + ' (' + potEN(p) + ')')))
     .concat(['', 'By provider:'], D.providers.map((r) => '· ' + r.label + ': ' + gbp(r.value)))
-    .concat(D.soon.length ? ['', 'What matures, and where it goes:'].concat(D.soon.map((n) => '· ' + enDate(parseD(n.pot.maturity)) + ': ' + potName(n.pot) + ' matures, about ' + gbp(n.amount) + ', then to ' + potName(n.to))) : [])
-    .concat(D.pension.length || D.plans.length ? ['', 'Savings plan:'].concat(D.pension.length ? ['· Extra pension from pay: ' + D.pension.map((x) => gbp(x[0]) + ' a month ' + x[2]).join('; ')] : [], D.plans.map((m) => '· ' + m.title + ': ' + gbp(m.amount) + ' (' + planEN(m, k) + ')')) : [])
+    .concat(D.soon.length ? ['', 'What matures, and where it goes:'].concat(D.soon.map((n) => '· ' + enDate(parseD(n.pot.maturity)) + ': ' + potName(n.pot) + ' matures, about ' + gbp(n.amount) + ': ' + unlockEN(n, D))) : [])
+    .concat(D.pension.length || D.plans.length || hasPlan(D) ? ['', 'Savings plan:'].concat(hasPlan(D) ? ['· Investment plan: investments and pensions reach ' + marksEN(D) + ' of the total. Each month, savings above the ' + gbp(D.cushion) + ' emergency cushion go into ' + potName(D.invest) + ' as needed' + (D.investedBy >= 1 ? ', about ' + about(D.investedBy) + ' by ' + enDate(parseD(D.marks[D.marks.length - 1].date), true) : '') + '.'] : [], D.pension.length ? ['· Extra pension from pay: ' + D.pension.map((x) => gbp(x[0]) + ' a month ' + x[2]).join('; ')] : [], D.plans.map((m) => '· ' + m.title + ': ' + gbp(m.amount) + ' (' + planEN(m, k) + ')')) : [])
     .concat(['', 'Tax, estimated:'], D.tax.map((t) => '· ' + tyPlain(t.y) + ': taxable interest about ' + gbp(t.interest) + ', tax-free returns about ' + gbp(t.free) + (t.tax !== null ? ', tax about ' + gbp(t.tax) : '')), ['· From April 2027, savings interest is taxed at 24%, 44% and 49%.'])
-    .concat(D.retire ? ['', 'Looking further ahead, in today’s money' + (D.infl > 0 ? ' (prices rising ' + pct(D.infl, 1) + ' a year)' : '') + ':', '· Retiring at ' + D.retire.age + ' in ' + D.retire.year + ': savings and pensions about ' + about(D.retire.pots) + ', income about ' + about(D.retire.income) + ' a year']
-      .concat(D.infl > 0 ? ['· In ' + D.retire.year + ' pounds: savings and pensions about ' + about(D.retire.potsLater) + ', income about ' + about(D.retire.incomeLater) + ' a year'] : []) : [])
+    .concat(D.retire ? ['', 'Looking further ahead, in today’s money:', '· Retiring at ' + D.retire.age + ' in ' + D.retire.year + ': savings and pensions about ' + about(D.retire.pots) + ', income about ' + about(D.retire.income) + ' a year'] : [])
     .concat(['', 'What these accounts are:'], D.glossary.map(([, e, , x]) => '· ' + e + ': ' + x))
-    .concat(['', 'Estimates, before tax. Investments can go down as well as up.']);
+    .concat(['', 'Estimates, before tax. Future figures are in today’s money, with prices rising ' + pct(D.infl, 1) + ' a year. Investments can go down as well as up.']);
   return cn.join('\n') + '\n\n' + en.join('\n');
 }
 
@@ -1930,13 +1975,8 @@ function drawReport(D) {
       font('400', 10.5); text(['现在 Now', '1年 1 year', '2年 2 years', '3年 3 years'][j], X(i) + (al === 'left' ? -4 : al === 'right' ? 4 : 0), bot + 16, muted, al);
     });
     y = bot + 44;
-    para('每月预测，包括利息、投资收益和计划中的存款。', ink2, 12, 18);
-    para('Month by month, with interest, growth and planned savings.', muted, 11, 16);
-    if (D.infl > 0) {
-      y += 6;
-      para('按每年 ' + pct(D.infl, 1) + ' 的通胀，三年后的 ' + about(D.y3) + ' 约相当于今天的 ' + about(D.y3Today) + '。', ink2, 12, 18);
-      para('With prices rising ' + pct(D.infl, 1) + ' a year, ' + about(D.y3) + ' in three years is worth about ' + about(D.y3Today) + ' today.', muted, 11, 16);
-    }
+    para('每月预测，按今日币值，包括利息、投资收益和计划中的存款。', ink2, 12, 18);
+    para('Month by month in today’s money, with interest, growth and planned savings.', muted, 11, 16);
     y -= 16;
 
     // Every account, by group.
@@ -1985,17 +2025,21 @@ function drawReport(D) {
         font('400', 11); text(cnDate(d) + ' · ' + enDate(d, true), P, y, muted);
         font('600', 13.5); const vw = text(gbp(nt.amount), W - P, y + 19, ink, 'right');
         font('500', 13.5); text(fit(potName(nt.pot), CW - vw - 12), P, y + 19, ink);
-        font('400', 11); text(fit('然后转入 Then to: ' + potName(nt.to), CW), P, y + 36, ink2);
-        y += 60;
+        y += 36;
+        font('400', 11.5); wrap(unlockCN(nt, D), CW).forEach((l) => { text(l, P, y, ink2); y += 16; });
+        font('400', 10.5); wrap(unlockEN(nt, D), CW).forEach((l) => { text(l, P, y, muted); y += 15; });
+        y += 24;
       });
-      y -= 30;
+      y -= 45;
     }
 
     // Plans: extra pension from pay and the money moves.
-    if (D.pension.length || D.plans.length) {
+    if (D.pension.length || D.plans.length || hasPlan(D)) {
       head('储蓄计划', 'Savings plan');
       y += 20;
-      const rows = (D.pension.length ? [['从工资额外存入养老金', 'Extra pension from pay', gbp(D.pension[0][0]) + '/月', D.pension.map((x2) => x2[1] + '每月 ' + gbp(x2[0])).join('；'), D.pension.map((x2) => gbp(x2[0]) + ' a month ' + x2[2]).join('; ')]] : [])
+      const rows = (hasPlan(D) ? [['投资计划', 'Investment plan', pct(D.marks[D.marks.length - 1].share), '目标：' + marksCN(D) + '。应急资金（' + gbp(D.cushion) + '）以外的储蓄每月按需要投入 ' + potName(D.invest) + (D.investedBy >= 1 ? '，到' + cnDate(parseD(D.marks[D.marks.length - 1].date)) + '共约 ' + about(D.investedBy) : '') + '。',
+        'Investments and pensions reach ' + marksEN(D) + '. Savings above the ' + gbp(D.cushion) + ' emergency cushion go into ' + potName(D.invest) + ' each month as needed' + (D.investedBy >= 1 ? ', about ' + about(D.investedBy) + ' by ' + enDate(parseD(D.marks[D.marks.length - 1].date), true) : '') + '.']] : [])
+        .concat(D.pension.length ? [['从工资额外存入养老金', 'Extra pension from pay', gbp(D.pension[0][0]) + '/月', D.pension.map((x2) => x2[1] + '每月 ' + gbp(x2[0])).join('；'), D.pension.map((x2) => gbp(x2[0]) + ' a month ' + x2[2]).join('; ')]] : [])
         .concat(D.plans.map((m) => [m.title, '', gbp(m.amount), planCN(m, k), planEN(m, k)]));
       rows.forEach(([t1, t2, v, c, e], i) => {
         if (i) rule(y - 19);
@@ -2034,10 +2078,9 @@ function drawReport(D) {
       pair('退休', 'Retire', D.retire.age + '岁 · ' + D.retire.year);
       pair('届时储蓄和养老金', 'Savings and pensions then', '≈ ' + about(D.retire.pots));
       pair('每年收入', 'Income a year', '≈ ' + about(D.retire.income));
-      if (D.infl > 0) { pair('折合' + D.retire.year + '年的英镑', 'In ' + D.retire.year + ' pounds', '≈ ' + about(D.retire.potsLater)); pair('当年每年收入', 'Income a year, ' + D.retire.year + ' pounds', '≈ ' + about(D.retire.incomeLater)); }
       y += 2;
-      para('按今日币值估算' + (D.infl > 0 ? '（假设每年通胀 ' + pct(D.infl, 1) + '，上面最后两行是折合' + D.retire.year + '年的英镑）' : '') + '，税前。收入包括保证养老金、国家养老金，以及每年从储蓄中提取 ' + pct(D.retire.draw, 1) + '。', ink2, 12, 18);
-      para('In today’s money' + (D.infl > 0 ? ', with prices rising ' + pct(D.infl, 1) + ' a year (the last two rows are in ' + D.retire.year + ' pounds)' : '') + ', before tax: the guaranteed pension, the State Pension and ' + pct(D.retire.draw, 1) + ' a year drawn from savings.', muted, 11, 16);
+      para('按今日币值估算，税前。收入包括保证养老金、国家养老金，以及每年从储蓄中提取 ' + pct(D.retire.draw, 1) + '。', ink2, 12, 18);
+      para('In today’s money, before tax: the guaranteed pension, the State Pension and ' + pct(D.retire.draw, 1) + ' a year drawn from savings.', muted, 11, 16);
       y -= 16;
     }
 
@@ -2055,8 +2098,8 @@ function drawReport(D) {
     });
     y -= 10;
     rule(y); y += 24;
-    para('以上为估算，未扣税；投资价值可能上下波动。数字来自' + cnDate(D.date) + '的账户余额。', muted, 11, 16);
-    para('Estimates, before tax, from balances on ' + enDate(D.date) + '. Investments can go down as well as up.', muted, 11, 16);
+    para('以上为估算，未扣税，数字来自' + cnDate(D.date) + '的账户余额。未来的数字按今日币值（假设每年通胀 ' + pct(D.infl, 1) + '）。投资价值可能上下波动。', muted, 11, 16);
+    para('Estimates, before tax, from balances on ' + enDate(D.date) + '. Future figures are in today’s money, with prices rising ' + pct(D.infl, 1) + ' a year. Investments can go down as well as up.', muted, 11, 16);
     return y + 14;
   };
   const probe = document.createElement('canvas');
