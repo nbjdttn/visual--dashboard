@@ -10,6 +10,8 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Forecast, month by month**: every pot projected for 1, 2, 3 or 5 years. Slide your finger along the chart to see the total and the mix for any month. It also shows when each fixed saver or gilt unlocks and what it will be worth.
 - **Forecast, to retirement**: the long-term picture in today's money, with low, central and high cases.
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
+- **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
+- **Share with family**: a summary in Chinese and English, as a picture (good for WeChat) or as text, from the share button on Home or from **More**. It shows totals, the split, the outlook and what matures next, never account numbers.
 - **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
 
 ## Switch on the website (once)
@@ -28,7 +30,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## Each month (about two minutes)
 
-- Tap **Update balances** and type in the figures from your banking apps.
+- Tap **Update balances**. Either type the figures in, or paste them: take a screenshot in each banking app, open it in Photos, tap the Live Text button, then **Copy All**, and paste into the box at the top. The app finds the £ amounts, fills in the pots it recognises and asks once about the rest. It remembers your answers next time.
 - Tick off the month's money moves on **Monthly**.
 - Every month or two, go to **More**, then **Back up to a file**, and save it to iCloud Drive. That backup is how you restore everything on a new phone.
 
@@ -39,6 +41,10 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - Monthly moves count when you set **From** and **To** on them. Your pay counts as **My pay or other new money**.
 - Extra pension from pay goes into your pension pot, following the amounts in Settings.
 - If a bonus rate ends, set **Bonus or offer rate ends on** and **Rate after the offer ends** on that pot.
+
+## A new icon
+
+iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, then **Back up**, and save the file. Then remove the app from your Home Screen, add it again from Safari and tap **Restore**. Removing it also removes the figures stored inside it, which is why the backup comes first.
 
 ## Why it doesn't connect to your bank
 
