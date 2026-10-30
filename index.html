@@ -1013,7 +1013,8 @@ function providerRows() {
   const groups = new Map();
   state.pots.forEach((p) => {
     if (!(p.balance > 0)) return;
-    const key = p.provider.trim().toLowerCase(), g = groups.get(key) || { label: p.provider.trim() || 'No provider set', value: 0 };
+    // A pot with no provider is listed under its own name.
+    const prov = p.provider.trim(), key = prov ? 'p:' + prov.toLowerCase() : 'n:' + p.id, g = groups.get(key) || { label: prov || p.name, value: 0 };
     g.value += p.balance; groups.set(key, g);
   });
   return Array.from(groups.values()).sort((a, b) => b.value - a.value);
