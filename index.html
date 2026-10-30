@@ -238,7 +238,7 @@ body.no-tabs .tabs { display: none; }
 .rows.found > li { padding: 8px 0; min-height: 46px; }
 .pick { flex: none; width: 48%; min-width: 0; font: 500 14px var(--sans); color: var(--ink); background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238D9F96' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 8px center / 16px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 28px 8px 10px; -webkit-appearance: none; appearance: none; }
 .pick.set { border-color: var(--brand); color: var(--brand); }
-.gilt-only { display: grid; gap: 14px; }
+.gilt-only, .mature-only { display: grid; gap: 14px; }
 .share { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 var(--sans); color: var(--ink); background: var(--fill); border-radius: 12px; padding: 14px; max-height: 52vh; overflow: auto; -webkit-user-select: text; user-select: text; }
 .sharepic { display: block; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 8px 28px -12px rgba(0, 0, 0, .35); }
 
@@ -460,6 +460,8 @@ const IC = {
 const TYPES = { cash: 'Easy-access cash', fixed: 'Fixed savings', premium: 'Premium Bonds', gilt: 'Gilts', shares: 'Shares and funds', lisa: 'Lifetime ISA', pension: 'Pension pot' };
 const TYPE_ORDER = ['cash', 'fixed', 'premium', 'gilt', 'shares', 'lisa', 'pension'];
 const GROWTH_TYPES = new Set(['shares', 'lisa', 'pension']);
+// Only fixed savings and gilts mature. Easy-access money, Premium Bonds, investments and pensions don't.
+const MATURES = new Set(['fixed', 'gilt']);
 
 const DEFAULTS = {
   name: '', birthYear: 1990, birthMonth: 1, retireAge: 66,
@@ -1290,7 +1292,7 @@ function vMore() {
     (evs.length ? '<ul class="rows">' + evs.map((e) => '<li class="' + (e.done ? 'done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(e.title) + '" data-act="toggle-event" data-id="' + esc(e.id) + '"' + (e.done ? ' checked' : '') + '><span class="main"><span class="t2">' + esc(e.title) + '</span><span class="s">' + esc(fmtDate(e.date)) + '</span></span><button class="linkbtn quiet" data-act="del-event" data-id="' + esc(e.id) + '" aria-label="Delete this date">Delete</button></li>').join('') + '</ul>' : '<p class="empty">No dates yet.</p>') +
     '</div><button class="btn quiet" data-act="add-event">Add a date</button></section>' +
     '<section class="sec"><h2>Appearance</h2><div class="themes" role="group" aria-label="Appearance">' + THEMES.map(([id, name]) => '<button type="button" class="th" data-act="theme" data-id="' + id + '" aria-pressed="' + (ui.theme === id) + '"><span class="sw-' + id + '"></span>' + name + '</button>').join('') + '</div></section>' +
-    '<section class="sec"><h2>Share with family</h2><div class="panel pad"><p class="note">A summary in Chinese and English, as a picture or as text: your total, how it’s split and what’s coming up. Never account numbers.</p><button class="btn quiet" data-act="share">' + IC.share + 'Share a summary</button></div></section>' +
+    '<section class="sec"><h2>Share with family</h2><div class="panel pad"><p class="note">A full report in Chinese and English, as a long picture, a PDF or text: every account, the next three years, what matures, tax, and what each kind of account is. Never account numbers.</p><button class="btn quiet" data-act="share">' + IC.share + 'Share a summary</button></div></section>' +
     '<section class="sec"><h2>Your data</h2><div class="panel pad"><p class="lockline">' + IC.lock + '<span>Stored only on this phone</span></p>' +
     '<p class="note">Nothing is sent anywhere. Back up now and then to iCloud Drive or Files, and restore that file on a new phone. ' + (state.lastExport ? 'Last backup ' + esc(fmtDate(state.lastExport)) + '.' : 'No backup yet.') + '</p>' +
     '<div class="row-actions"><button class="btn primary" data-act="export">' + IC.download + 'Back up</button><label class="btn quiet">' + IC.upload + 'Restore<input type="file" class="vh" data-act="import-file"></label></div>' +
@@ -1461,8 +1463,8 @@ function openPot(id) {
     field('rateNote', 'About the rate', p.rateNote, 'text', 'e.g. fixed, variable, expected') +
     '<label class="chk-f"><input type="checkbox" class="tick" name="monthly"' + (p.monthly ? ' checked' : '') + '> Pays interest every month</label>' +
     '<label class="chk-f"><input type="checkbox" class="tick" name="taxFree"' + (p.taxFree ? ' checked' : '') + '> Tax-free (ISA, Premium Bonds, pension)</label>' +
-    field('maturity', 'Matures on', p.maturity, 'date') +
-    selectField('thenTo', 'When it matures, the money goes to', p.thenTo || '', [['', 'My main easy-access saver']].concat(others), 'Used for your month-by-month forecast') +
+    '<div class="mature-only"' + (MATURES.has(p.type) ? '' : ' hidden') + '>' + field('maturity', 'Matures on', p.maturity, 'date') +
+    selectField('thenTo', 'When it matures, the money goes to', p.thenTo || '', [['', 'My main easy-access saver']].concat(others), 'Used for your month-by-month forecast') + '</div>' +
     field('offerEnds', 'Bonus or offer rate ends on', p.offerEnds, 'date') +
     field('rateAfter', 'Rate after the offer ends (%)', p.rateAfter == null ? '' : +(p.rateAfter * 100).toFixed(3), 'pct', 'Leave blank if it stays the same') +
     field('cap', 'Best rate only up to (£)', p.cap || '', 'money', 'Leave blank if no limit') +
@@ -1481,6 +1483,7 @@ function openPot(id) {
       cap: num(fd.get('cap')), notes: String(fd.get('notes') || '').trim(),
       coupon: isBlank(fd.get('coupon')) ? null : num(fd.get('coupon')) / 100, nominal: num(fd.get('nominal')), aka: String(fd.get('aka') || '').trim(),
     });
+    if (!MATURES.has(p.type)) { p.maturity = ''; p.thenTo = ''; }
     if (!existing) state.pots.push(p);
     toast('Saved');
   }, { extra });
@@ -1733,148 +1736,374 @@ function learnPasteNames() {
   state.pasteIgnore = Array.from(new Set((state.pasteIgnore || []).filter((l) => !pasteUnignore.includes(l)).concat(pasteSkip))).slice(-60);
 }
 
-/* ---------- share a summary ---------- */
-// A summary for family in Chinese and English: totals, the split and what's coming up, never account numbers. As a
-// picture, which chat apps such as WeChat take, or as text.
+/* ---------- share a report ---------- */
+// A full report for family in Chinese and English: every account, the next three years, what matures, plans, tax
+// and what each kind of account is, never account numbers. As a long picture (chat apps such as WeChat take these),
+// a PDF of the same page, or text.
 const CN_GROUP = { cash: '随时可取的储蓄', fixed: '定期存款和英国国债', invest: '股票基金投资', pension: '养老金' };
 const CN_TYPE = { cash: '活期储蓄', fixed: '定期存款', premium: '有奖债券', gilt: '英国国债', shares: '股票基金', lisa: '终身ISA', pension: '养老金' };
+const RATE_CN = { cash: '年利率', fixed: '年利率', premium: '平均奖金率', gilt: '到期收益率', shares: '预期年回报', lisa: '预期年回报', pension: '预期年回报' };
+const RATE_EN = { cash: 'a year', fixed: 'a year', premium: 'average prize rate', gilt: 'yield to maturity', shares: 'expected a year', lisa: 'expected a year', pension: 'expected a year' };
 const cnDate = (d) => d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+const cnMonth = (k) => +k.slice(0, 4) + '年' + +k.slice(5, 7) + '月';
 const enDate = (d, short) => d.toLocaleDateString('en-GB', { day: 'numeric', month: short ? 'short' : 'long', year: 'numeric' });
+const tyPlain = (y) => y + '–' + String((y + 1) % 100).padStart(2, '0');
 const about = (v) => gbp(Math.round(v / 1000) * 1000);
-let shareText = '', shareFile = null, shareUrl = '', shareMode = 'picture';
+const potCN = (p) => [CN_TYPE[p.type], p.rate ? RATE_CN[p.type] + ' ' + rateTxt(p.rate) : '', p.maturity ? cnDate(parseD(p.maturity)) + '到期' : ''].filter(Boolean).join(' · ');
+const potEN = (p) => [TYPES[p.type], p.rate ? rateTxt(p.rate) + ' ' + RATE_EN[p.type] : '', p.maturity ? 'matures ' + enDate(parseD(p.maturity), true) : ''].filter(Boolean).join(' · ');
+const planCN = (m, k) => (m.start && m.start === m.end ? cnMonth(m.start) + '，一次性' : '每月' + (m.start > k ? '，' + cnMonth(m.start) + '起' : '') + (m.end ? '，至' + cnMonth(m.end) : '')) + ' · ' +
+  (within(m) ? '在 ' + potName(potById(m.from)) + ' 内' : (m.from === 'pay' ? '从工资存入 ' : '从 ' + potName(potById(m.from)) + ' 转入 ') + potName(potById(m.to)));
+const planEN = (m, k) => (m.start && m.start === m.end ? 'One-off, ' + fmtMon(m.start) : 'Every month' + (m.start > k ? ' from ' + fmtMon(m.start) : '') + (m.end ? ' until ' + fmtMon(m.end) : '')) + ' · ' + flowText(m);
+let shareText = '', shareFile = null, sharePdf = null, shareUrl = '', shareMode = 'picture';
+
+// Plain explanations of each kind of account you hold, for family who don't know UK savings.
+function glossary() {
+  const has = (f) => state.pots.some((p) => p.balance > 0 && f(p)), out = [];
+  if (has((p) => p.taxFree && p.type !== 'premium' && p.type !== 'pension')) out.push(['个人储蓄账户', 'ISA', '英国的免税储蓄和投资账户。每人每年可存入 £20,000，账户里的利息和投资收益都免税。', 'A UK tax-free account for savings or investments. Up to £20,000 a year can go in, and the interest and growth inside it are tax-free.']);
+  if (has((p) => p.type === 'premium')) out.push(['有奖债券', 'Premium Bonds', '由英国国家储蓄投资局（NS&I）发行，英国政府担保。不付利息，而是每月抽奖发奖金，奖金免税。每人最多持有 £50,000，随时可以取回。', 'From NS&I and backed by the UK government. Instead of interest there is a monthly prize draw, and prizes are tax-free. Up to £50,000 each, and they can be cashed in at any time.']);
+  if (has((p) => p.type === 'gilt')) out.push(['英国国债', 'Gilts', '英国政府发行的债券，到期时按面值还本（每 £100 面值还 £100）。如果买入价低于面值，涨回面值的部分免资本利得税，只有票息需要交所得税。', 'Bonds issued by the UK government. They repay £100 for each £100 of nominal when they mature. Bought below that, the rise in price is free of Capital Gains Tax, and only the coupons are taxed.']);
+  if (has((p) => p.type === 'fixed')) out.push(['定期存款', 'Fixed savings', '固定利率、固定期限的储蓄，到期前一般不能取出。' + (has((p) => p.type === 'fixed' && /ns&i/i.test(p.provider)) ? 'NS&I 的保证增长债券由英国政府担保。' : ''), 'A fixed rate for a fixed term, and the money usually stays in until it matures.' + (has((p) => p.type === 'fixed' && /ns&i/i.test(p.provider)) ? ' NS&I Guaranteed Growth Bonds are backed by the UK government.' : '')]);
+  if (has((p) => /regular saver/i.test(p.name))) out.push(['零存整取', 'Regular saver', '每月存入一笔钱、利率较高的储蓄账户，通常每月最多存几百英镑。', 'A savings account with a higher rate for money paid in each month, usually up to a few hundred pounds a month.']);
+  if (has((p) => p.type === 'shares')) out.push(['股票基金', 'Shares and funds', '投资于基金，例如全球指数基金。价值会上下波动，但长期来看通常比储蓄增长得快。', 'Investments in funds, such as a global index fund. Their value goes up and down, but over the long run they usually grow faster than savings.']);
+  if (has((p) => p.type === 'lisa')) out.push(['终身ISA', 'Lifetime ISA', '40岁前可以开户，每年最多存 £4,000，政府额外补贴 25%（每年最多 £1,000）。用于首次购房或60岁以后使用，否则提取会被扣 25%。', 'Opened before 40. Up to £4,000 a year goes in and the government adds 25%, up to £1,000. It’s for a first home or for after 60; other withdrawals lose 25%.']);
+  if (has((p) => p.type === 'pension')) out.push(['养老金', 'Pension', '退休储蓄：存入时享受税收减免，投资增长免税。最早57岁可以领取，其中 25% 免税。', 'Savings for retirement, with tax relief going in and tax-free growth inside. It can be taken from age 57, with 25% tax-free.']);
+  out.push(['资金安全', 'How safe it is', 'NS&I 的产品和英国国债由英国政府担保。银行储蓄受金融服务补偿计划（FSCS）保障：自2025年12月起，每人在每家银行最多保障 £120,000。', 'NS&I products and gilts are backed by the UK government. Bank savings are protected by the FSCS: since December 2025, up to £120,000 per person at each bank.']);
+  return out;
+}
 
 function summary() {
-  const S = simulate(Math.max(horizon(), 36)), t = total(), v = groupSums(nowTypes()), ls = lastSnap(), today = parseD(localISO());
+  const s = state.settings, S = simulate(Math.max(horizon(), 36)), v = groupSums(nowTypes()), ls = lastSnap(), ps = prevSnap(), today = parseD(localISO()), k = monthKey();
   const at = (i) => S.months[Math.min(S.months.length - 1, i)], soon = [];
   S.months.forEach((m) => m.notes.forEach((n) => { if (n.kind === 'mature' && parseD(n.pot.maturity) > today) soon.push(n); }));
   soon.sort((a, b) => a.pot.maturity.localeCompare(b.pot.maturity));
-  return { date: ls ? parseD(ls.date) : today, t, groups: GROUPS.filter((g) => v[g.id] >= 1).map((g) => ({ id: g.id, name: g.name, v: v[g.id] })),
-    earn: at(S.off + 1).growth, y1: at(S.off + 12).total, y3: at(S.off + 36).total, soon, pots: state.pots.filter((p) => p.balance >= 1).sort((a, b) => b.balance - a.balance) };
+  const y0 = taxYearStart().getFullYear(), f = forecast(), fin = f.mid[f.mid.length - 1];
+  const tax = [y0, y0 + 1].map((y) => { const F = taxFigures(y); return { y, interest: F.interest, free: sum(Object.values(F.inc.free), (x) => x), tax: F.t ? F.t.tax : null }; });
+  const pension = !state.pots.some((p) => p.type === 'pension') ? [] : [[Number(s.extraPensionMonthly) || 0, '本税务年度', 'this tax year'],
+    [s.pensionSwitchYear > y0 + 1 ? (Number(s.pensionPerYearA) || 0) / 12 : 0, (y0 + 1) + '年4月起', 'from April ' + (y0 + 1)],
+    [(Number(s.pensionPerYearB) || 0) / 12, s.pensionSwitchYear + '年4月起', 'from April ' + s.pensionSwitchYear]].filter((x) => x[0] >= 1);
+  return {
+    date: ls ? parseD(ls.date) : today, t: total(), change: ls && ps ? { v: snapTotal(ls) - snapTotal(ps), since: parseD(ps.date) } : null,
+    earn: at(S.off + 1).growth, taxFree: taxFreeFrac(), y1: at(S.off + 12).total, y2: at(S.off + 24).total, y3: at(S.off + 36).total,
+    path: S.months.slice(S.off, S.off + 37).map((m) => m.total), groups: GROUPS.filter((g) => v[g.id] >= 1).map((g) => ({ id: g.id, name: g.name, types: g.types, v: v[g.id] })),
+    pots: state.pots.filter((p) => p.balance >= 1).sort((a, b) => b.balance - a.balance), providers: providerRows(), soon,
+    plans: state.moves.filter((m) => m.amount > 0 && (linked(m) || within(m)) && (!m.end || m.end >= k)).sort((a, b) => (a.start || '').localeCompare(b.start || '')),
+    pension, tax, retire: f.years > 0 ? { age: s.retireAge, year: s.birthYear + s.retireAge, pots: fin.inv + fin.pot, income: f.income.mid, draw: s.drawRate } : null, glossary: glossary(),
+  };
 }
+
 function summaryText(D) {
-  const cn = ['财务快照（' + cnDate(D.date) + '）', '', '总资产：' + gbp(D.t), '', '资产分布：']
+  const k = monthKey(), byGroup = (line) => D.groups.flatMap((g) => { const ps = D.pots.filter((p) => g.types.includes(p.type)); return ps.length ? [line(g, ps)].concat(ps.map((p) => '· ' + potName(p) + line(null, null, p))) : []; });
+  const cn = ['财务快照（' + cnDate(D.date) + '）', '', '总资产：' + gbp(D.t) + (D.change ? '（较' + cnDate(D.change.since) + ' ' + gbpSigned(D.change.v) + '）' : ''), '每月利息和收益约 ' + gbp(D.earn) + '，免税部分占 ' + pct(D.taxFree), '', '资产分布：']
     .concat(D.groups.map((g) => '· ' + CN_GROUP[g.id] + '：' + gbp(g.v) + '（' + share(g.v / D.t) + '）'))
-    .concat(['', '预计：', '· 每月利息和收益约 ' + gbp(D.earn), '· 一年后约 ' + about(D.y1), '· 三年后约 ' + about(D.y3)])
-    .concat(D.soon.length ? ['', '即将到期：'].concat(D.soon.slice(0, 6).map((n) => '· ' + cnDate(parseD(n.pot.maturity)) + '：' + potName(n.pot) + '（' + CN_TYPE[n.pot.type] + '）到期，约 ' + gbp(n.amount))) : [])
-    .concat(['', '账户明细：'], D.pots.map((p) => '· ' + potName(p) + '（' + CN_TYPE[p.type] + '）：' + gbp(p.balance)))
-    .concat(['', '注：预计数字为估算，未扣税；投资价值可能上下波动。']);
-  const en = ['Money snapshot, ' + enDate(D.date), '', 'Total: ' + gbp(D.t), '', 'How it’s split:']
+    .concat(['', '未来三年（估算）：', '· 一年后约 ' + about(D.y1), '· 两年后约 ' + about(D.y2), '· 三年后约 ' + about(D.y3)])
+    .concat(['', '账户明细（' + D.pots.length + '个）：'], byGroup((g, ps, p) => (g ? '【' + CN_GROUP[g.id] + ' ' + gbp(sum(ps, (x) => x.balance)) + '】' : '：' + gbp(p.balance) + '（' + potCN(p) + '）')))
+    .concat(['', '按机构：'], D.providers.map((r) => '· ' + r.label + '：' + gbp(r.value)))
+    .concat(D.soon.length ? ['', '到期安排：'].concat(D.soon.map((n) => '· ' + cnDate(parseD(n.pot.maturity)) + '：' + potName(n.pot) + ' 到期，约 ' + gbp(n.amount) + '，然后转入 ' + potName(n.to))) : [])
+    .concat(D.pension.length || D.plans.length ? ['', '储蓄计划：'].concat(D.pension.length ? ['· 从工资额外存入养老金：' + D.pension.map((x) => x[1] + '每月 ' + gbp(x[0])).join('；')] : [], D.plans.map((m) => '· ' + m.title + '：' + gbp(m.amount) + '（' + planCN(m, k) + '）')) : [])
+    .concat(['', '税务（估算）：'], D.tax.map((t) => '· ' + tyPlain(t.y) + '：应税利息约 ' + gbp(t.interest) + '，免税收益约 ' + gbp(t.free) + (t.tax !== null ? '，预计税额约 ' + gbp(t.tax) : '')), ['· 2027年4月起，储蓄利息税率升至 24%、44% 和 49%。'])
+    .concat(D.retire ? ['', '长期展望（按今日币值）：', '· ' + D.retire.age + '岁（' + D.retire.year + '年）退休时，储蓄和养老金约 ' + about(D.retire.pots) + '，每年收入约 ' + about(D.retire.income)] : [])
+    .concat(['', '名词解释：'], D.glossary.map(([c, e, x]) => '· ' + c + '（' + e + '）：' + x))
+    .concat(['', '注：以上为估算，未扣税；投资价值可能上下波动。']);
+  const en = ['Money snapshot, ' + enDate(D.date), '', 'Total: ' + gbp(D.t) + (D.change ? ' (' + gbpSigned(D.change.v) + ' since ' + enDate(D.change.since) + ')' : ''), 'Earning about ' + gbp(D.earn) + ' a month in interest and growth. ' + pct(D.taxFree) + ' is tax-free.', '', 'How it’s split:']
     .concat(D.groups.map((g) => '· ' + g.name + ': ' + gbp(g.v) + ' (' + share(g.v / D.t) + ')'))
-    .concat(['', 'Outlook:', '· Earning about ' + gbp(D.earn) + ' a month in interest and growth', '· In a year: about ' + about(D.y1), '· In three years: about ' + about(D.y3)])
-    .concat(D.soon.length ? ['', 'Coming up:'].concat(D.soon.slice(0, 6).map((n) => '· ' + enDate(parseD(n.pot.maturity)) + ': ' + potName(n.pot) + ' matures, about ' + gbp(n.amount))) : [])
-    .concat(['', 'Accounts:'], D.pots.map((p) => '· ' + potName(p) + ': ' + gbp(p.balance)))
-    .concat(['', 'Projections are estimates, before tax. Investments can go down as well as up.']);
+    .concat(['', 'The next three years, estimated:', '· In a year: about ' + about(D.y1), '· In two years: about ' + about(D.y2), '· In three years: about ' + about(D.y3)])
+    .concat(['', 'Every account (' + D.pots.length + '):'], byGroup((g, ps, p) => (g ? '[' + g.name + ', ' + gbp(sum(ps, (x) => x.balance)) + ']' : ': ' + gbp(p.balance) + ' (' + potEN(p) + ')')))
+    .concat(['', 'By provider:'], D.providers.map((r) => '· ' + r.label + ': ' + gbp(r.value)))
+    .concat(D.soon.length ? ['', 'What matures, and where it goes:'].concat(D.soon.map((n) => '· ' + enDate(parseD(n.pot.maturity)) + ': ' + potName(n.pot) + ' matures, about ' + gbp(n.amount) + ', then to ' + potName(n.to))) : [])
+    .concat(D.pension.length || D.plans.length ? ['', 'Savings plan:'].concat(D.pension.length ? ['· Extra pension from pay: ' + D.pension.map((x) => gbp(x[0]) + ' a month ' + x[2]).join('; ')] : [], D.plans.map((m) => '· ' + m.title + ': ' + gbp(m.amount) + ' (' + planEN(m, k) + ')')) : [])
+    .concat(['', 'Tax, estimated:'], D.tax.map((t) => '· ' + tyPlain(t.y) + ': taxable interest about ' + gbp(t.interest) + ', tax-free returns about ' + gbp(t.free) + (t.tax !== null ? ', tax about ' + gbp(t.tax) : '')), ['· From April 2027, savings interest is taxed at 24%, 44% and 49%.'])
+    .concat(D.retire ? ['', 'Looking further ahead, in today’s money:', '· Retiring at ' + D.retire.age + ' in ' + D.retire.year + ': savings and pensions about ' + about(D.retire.pots) + ', income about ' + about(D.retire.income) + ' a year'] : [])
+    .concat(['', 'What these accounts are:'], D.glossary.map(([, e, , x]) => '· ' + e + ': ' + x))
+    .concat(['', 'Estimates, before tax. Investments can go down as well as up.']);
   return cn.join('\n') + '\n\n' + en.join('\n');
 }
 
-// The picture: an ivory card with a dark green header like the app's icon, in the Paper style whatever the app's look.
-function drawCard(D) {
-  const W = 360, P = 22, K = 3, cv = document.createElement('canvas');
-  cv.width = W * K; cv.height = 1000 * K;
-  const x = cv.getContext('2d');
-  x.scale(K, K);
+// The picture: an ivory page with a dark green header like the app's icon, in the Paper style whatever the app's
+// look. It's drawn twice: once to measure its height, then at full size.
+function drawReport(D) {
+  const W = 360, P = 22, CW = W - 2 * P, k = monthKey();
   const SANS = '-apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "WenQuanYi Zen Hei", "Microsoft YaHei", sans-serif';
   const SERIF = 'ui-serif, "New York", Georgia, "Songti SC", serif';
-  const ink = '#1C1F1A', muted = '#656B61', line = '#E6E2D8', cream = '#FBF9F4', soft = 'rgba(251, 249, 244, .76)';
+  const ink = '#1C1F1A', ink2 = '#454A42', muted = '#656B61', line = '#E6E2D8', cream = '#FBF9F4', tile = '#F2EEE4', brand = '#2D6945', soft = 'rgba(251, 249, 244, .76)';
   const ramp = { cash: '#9BB785', fixed: '#699566', invest: '#3D724F', pension: '#1D4E3C' };
-  const font = (w, s, f) => { x.font = w + ' ' + s + 'px ' + (f || SANS); };
-  const text = (s, X, Y, col, align) => { x.fillStyle = col; x.textAlign = align || 'left'; x.fillText(s, X, Y); return x.measureText(s).width; };
-  const fit = (s, w) => { if (x.measureText(s).width <= w) return s; while (s.length > 1 && x.measureText(s + '…').width > w) s = s.slice(0, -1); return s + '…'; };
-  const rule = (Y) => { x.fillStyle = line; x.fillRect(P, Y, W - 2 * P, 1); };
-  const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
-  x.fillStyle = cream; x.fillRect(0, 0, W, 1000);
-  // Header, with the block bar graph from the app's icon.
-  const hg = x.createLinearGradient(0, 0, 0, 170);
-  hg.addColorStop(0, '#12301F'); hg.addColorStop(1, '#07130C');
-  x.fillStyle = hg; x.fillRect(0, 0, W, 170);
-  const glow = x.createRadialGradient(W - 70, 70, 0, W - 70, 70, 150);
-  glow.addColorStop(0, 'rgba(43, 208, 126, .28)'); glow.addColorStop(1, 'rgba(43, 208, 126, 0)');
-  x.fillStyle = glow; x.fillRect(0, 0, W, 170);
-  [0.42, 0.3, 0.6, 0.78, 1].forEach((f, i) => {
-    const bw = 18, X = W - 26 - (4 - i) * 26 - bw, h = 96 * f, Y = 150 - h;
-    const bg = x.createLinearGradient(0, 54, 0, 150);
-    bg.addColorStop(0, 'rgba(180, 247, 207, .9)'); bg.addColorStop(1, 'rgba(28, 143, 87, .55)');
-    rr(X, Y, bw, h, 5); x.fillStyle = bg; x.fill();
-  });
-  font('600', 18); const tw = text('财务快照', P, 40, cream);
-  font('500', 13); text('Money snapshot', P + tw + 9, 40, soft);
-  font('400', 12); text(cnDate(D.date) + ' · ' + enDate(D.date), P, 61, soft);
-  font('600', 42, SERIF); text(gbp(D.t), P, 122, cream);
-  font('500', 12); text('总资产 · Total', P, 147, soft);
-  let y = 170 + 38;
-  const head = (cn, en) => { font('700', 15); const w = text(cn, P, y, ink); font('500', 12); text(en, P + w + 8, y, muted); y += 16; };
-  // The split, as a bar and a row for each group.
-  head('资产分布', 'How it’s split');
-  const n = D.groups.length, gap = 2, avail = W - 2 * P - gap * (n - 1);
-  x.save(); x.beginPath(); x.rect(P, y, W - 2 * P, 10); x.clip();
-  let bx = P;
-  D.groups.forEach((g) => { const w = Math.max(5, avail * g.v / D.t); x.fillStyle = ramp[g.id]; x.fillRect(bx, y, w, 10); bx += w + gap; });
-  x.restore();
-  y += 34;
-  D.groups.forEach((g, i) => {
-    if (i) rule(y - 22);
-    x.beginPath(); x.arc(P + 5, y - 4.5, 5, 0, Math.PI * 2); x.fillStyle = ramp[g.id]; x.fill();
-    font('500', 14); text(CN_GROUP[g.id], P + 18, y, ink);
-    font('400', 11.5); text(g.name, P + 18, y + 16, muted);
-    font('600', 14); text(gbp(g.v), W - P, y, ink, 'right');
-    font('400', 11.5); text(share(g.v / D.t), W - P, y + 16, muted, 'right');
-    y += 44;
-  });
-  // The outlook.
-  y += 14; head('预计', 'Outlook'); y += 12;
-  [['每月收益', 'Earning a month', gbp(D.earn)], ['一年后', 'In a year', '≈ ' + about(D.y1)], ['三年后', 'In three years', '≈ ' + about(D.y3)]].forEach(([c, e, v], i) => {
-    if (i) rule(y - 22);
-    font('500', 14); const w = text(c, P, y, ink);
-    font('400', 11.5); text(e, P + w + 8, y, muted);
-    font('600', 14); text(v, W - P, y, ink, 'right');
-    y += 38;
-  });
-  // What matures next.
-  const next = D.soon.slice(0, 3);
-  if (next.length) {
-    y += 14; head('即将到期', 'Coming up'); y += 10;
-    next.forEach((nt, i) => {
-      if (i) rule(y - 20);
-      const d = parseD(nt.pot.maturity);
-      font('400', 11.5); text(cnDate(d) + ' · ' + enDate(d, true), P, y, muted);
-      font('600', 14); const vw = text(gbp(nt.amount), W - P, y + 19, ink, 'right');
-      font('500', 14); text(fit(potName(nt.pot), W - 2 * P - vw - 14), P, y + 19, ink);
-      y += 50;
+  const paint = (x) => {
+    let y = 0;
+    const font = (w, s, f) => { x.font = w + ' ' + s + 'px ' + (f || SANS); };
+    const text = (s, X, Y, col, align) => { x.fillStyle = col; x.textAlign = align || 'left'; x.fillText(s, X, Y); return x.measureText(s).width; };
+    const fit = (s, w) => { if (x.measureText(s).width <= w) return s; while (s.length > 1 && x.measureText(s + '…').width > w) s = s.slice(0, -1); return s + '…'; };
+    const rule = (Y) => { x.fillStyle = line; x.fillRect(P, Y, CW, 1); };
+    const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+    const dot = (X, Y, r, col) => { x.beginPath(); x.arc(X, Y, r, 0, Math.PI * 2); x.fillStyle = col; x.fill(); };
+    // Lines that fit the page: Chinese breaks between characters, English between words.
+    const wrap = (s, w) => {
+      const out = [];
+      let cur = '';
+      (s.match(/[⺀-鿿＀-￯]|[^\s⺀-鿿＀-￯]+\s*|\s+/g) || []).forEach((tk) => {
+        if (cur && x.measureText(cur + tk).width > w && !/^[，。；：、）！？]/.test(tk)) { out.push(cur.trimEnd()); cur = tk.trimStart(); } else cur += tk;
+      });
+      if (cur.trim()) out.push(cur.trimEnd());
+      return out;
+    };
+    const para = (s, col, size, lh) => { font('400', size); wrap(s, CW).forEach((l) => { text(l, P, y, col); y += lh; }); };
+    const head = (cn, en) => { y += 40; font('700', 16); const w = text(cn, P, y, ink); font('500', 12); text(en, P + w + 8, y, muted); y += 14; };
+    const pair = (cn, en, value) => { font('500', 13.5); text(cn, P, y, ink); font('400', 11); text(en, P, y + 16, muted); font('600', 13.5); text(value, W - P, y, ink, 'right'); y += 40; };
+
+    // Header: the title, the date and the total, with the block bar graph from the app's icon.
+    const hh = D.change ? 194 : 174;
+    x.fillStyle = cream; x.fillRect(0, 0, W, 100000);
+    const hg = x.createLinearGradient(0, 0, 0, hh);
+    hg.addColorStop(0, '#12301F'); hg.addColorStop(1, '#07130C');
+    x.fillStyle = hg; x.fillRect(0, 0, W, hh);
+    const glow = x.createRadialGradient(W - 70, 70, 0, W - 70, 70, 150);
+    glow.addColorStop(0, 'rgba(43, 208, 126, .28)'); glow.addColorStop(1, 'rgba(43, 208, 126, 0)');
+    x.fillStyle = glow; x.fillRect(0, 0, W, hh);
+    [0.42, 0.3, 0.6, 0.78, 1].forEach((f, i) => {
+      const bw = 18, X = W - 26 - (4 - i) * 26 - bw, h = 96 * f, Y = hh - 24 - h;
+      const bg = x.createLinearGradient(0, hh - 120, 0, hh - 24);
+      bg.addColorStop(0, 'rgba(180, 247, 207, .9)'); bg.addColorStop(1, 'rgba(28, 143, 87, .55)');
+      rr(X, Y, bw, h, 5); x.fillStyle = bg; x.fill();
     });
-  }
-  y += 2; rule(y); y += 24;
-  font('400', 11.5); text('预计数字为估算，未扣税；投资价值可能上下波动。', P, y, muted); y += 17;
-  text('Projections are estimates, before tax.', P, y, muted); y += 16;
-  text('Investments can go down as well as up.', P, y, muted); y += 26;
-  const out = document.createElement('canvas');
-  out.width = W * K; out.height = Math.ceil(y * K);
-  out.getContext('2d').drawImage(cv, 0, 0);
-  return out;
+    font('600', 18); const tw = text('财务快照', P, 40, cream);
+    font('500', 13); text('Money snapshot', P + tw + 9, 40, soft);
+    font('400', 12); text(cnDate(D.date) + ' · ' + enDate(D.date), P, 61, soft);
+    font('600', 42, SERIF); text(gbp(D.t), P, 124, cream);
+    font('500', 12); text('总资产 · Total', P, 149, soft);
+    if (D.change) { font('600', 12); text(gbpSigned(D.change.v) + '  较' + cnDate(D.change.since) + ' · since ' + enDate(D.change.since, true), P, 174, '#9FE5BD'); }
+
+    // Four key figures.
+    y = hh + 20;
+    const tiles = [['每月收益', 'A month', gbp(D.earn)], ['免税比例', 'Tax-free', pct(D.taxFree)], ['一年后', 'In a year', '≈ ' + about(D.y1)], ['三年后', 'In 3 years', '≈ ' + about(D.y3)]];
+    const tw2 = (CW - 10) / 2;
+    tiles.forEach(([c, e, v], i) => {
+      const X = P + (i % 2) * (tw2 + 10), Y = y + Math.floor(i / 2) * 70;
+      rr(X, Y, tw2, 62, 10); x.fillStyle = tile; x.fill();
+      font('500', 12); const w = text(c, X + 12, Y + 22, ink2);
+      font('400', 10.5); text(e, X + 12 + w + 6, Y + 22, muted);
+      font('600', 20, SERIF); text(v, X + 12, Y + 49, ink);
+    });
+    y += 132;
+
+    // The split, as a bar and a row for each group.
+    head('资产分布', 'How it’s split');
+    const n = D.groups.length, avail = CW - 2 * (n - 1);
+    x.save(); x.beginPath(); x.rect(P, y, CW, 10); x.clip();
+    let bx = P;
+    D.groups.forEach((g) => { const w = Math.max(5, avail * g.v / D.t); x.fillStyle = ramp[g.id]; x.fillRect(bx, y, w, 10); bx += w + 2; });
+    x.restore();
+    y += 34;
+    D.groups.forEach((g, i) => {
+      if (i) rule(y - 22);
+      dot(P + 5, y - 4.5, 5, ramp[g.id]);
+      font('500', 14); text(CN_GROUP[g.id], P + 18, y, ink);
+      font('400', 11.5); text(g.name, P + 18, y + 16, muted);
+      font('600', 14); text(gbp(g.v), W - P, y, ink, 'right');
+      font('400', 11.5); text(share(g.v / D.t), W - P, y + 16, muted, 'right');
+      y += 44;
+    });
+    y -= 26;
+
+    // The next three years, month by month.
+    head('未来三年', 'The next three years');
+    const vals = D.path, top = y + 26, ch = 118, bot = top + ch;
+    const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.14 || hi * 0.02 || 1;
+    const X = (i) => P + 6 + i / Math.max(1, vals.length - 1) * (CW - 12), Y = (v) => bot - (v - lo + pad) / (hi - lo + 2 * pad) * ch;
+    const curvePath = () => { x.beginPath(); x.moveTo(X(0), Y(vals[0])); for (let i = 1; i < vals.length; i++) x.quadraticCurveTo(X(i - 1), Y(vals[i - 1]), (X(i - 1) + X(i)) / 2, (Y(vals[i - 1]) + Y(vals[i])) / 2); x.lineTo(X(vals.length - 1), Y(vals[vals.length - 1])); };
+    x.fillStyle = line; x.fillRect(P, bot, CW, 1);
+    curvePath(); x.lineTo(X(vals.length - 1), bot); x.lineTo(X(0), bot); x.closePath();
+    const ag = x.createLinearGradient(0, top, 0, bot);
+    ag.addColorStop(0, 'rgba(45, 105, 69, .22)'); ag.addColorStop(1, 'rgba(45, 105, 69, 0)');
+    x.fillStyle = ag; x.fill();
+    curvePath(); x.strokeStyle = brand; x.lineWidth = 2.2; x.lineJoin = 'round'; x.lineCap = 'round'; x.stroke();
+    [0, 12, 24, 36].filter((i) => i < vals.length).forEach((i, j, all) => {
+      const al = j === 0 ? 'left' : j === all.length - 1 ? 'right' : 'center';
+      dot(X(i), Y(vals[i]), 4.5, brand); dot(X(i), Y(vals[i]), 2.4, cream);
+      font('600', 11.5); text(gbpShort(vals[i]), X(i) + (al === 'left' ? -4 : al === 'right' ? 4 : 0), Y(vals[i]) - (j === 0 ? 22 : 11), ink, al);
+      font('400', 10.5); text(['现在 Now', '1年 1 year', '2年 2 years', '3年 3 years'][j], X(i) + (al === 'left' ? -4 : al === 'right' ? 4 : 0), bot + 16, muted, al);
+    });
+    y = bot + 44;
+    para('每月预测，包括利息、投资收益和计划中的存款。', ink2, 12, 18);
+    para('Month by month, with interest, growth and planned savings.', muted, 11, 16);
+    y -= 16;
+
+    // Every account, by group.
+    head('账户明细', 'Every account, ' + D.pots.length);
+    y += 22;
+    D.groups.forEach((g) => {
+      const ps = D.pots.filter((p) => g.types.includes(p.type));
+      rr(P, y - 17, CW, 28, 7); x.fillStyle = tile; x.fill();
+      dot(P + 13, y - 3, 4.5, ramp[g.id]);
+      font('600', 13); const w = text(CN_GROUP[g.id], P + 24, y + 1.5, ink);
+      font('400', 11); text(g.name, P + 24 + w + 7, y + 1.5, muted);
+      font('600', 13); text(gbp(sum(ps, (p) => p.balance)), W - P - 10, y + 1.5, ink, 'right');
+      y += 36;
+      ps.forEach((p, i) => {
+        if (i) rule(y - 19);
+        font('600', 13.5); const vw = text(gbp(p.balance), W - P, y, ink, 'right');
+        font('500', 13.5); text(fit(potName(p), CW - vw - 12), P, y, ink);
+        font('400', 11.5); text(fit(potCN(p), CW), P, y + 18, ink2);
+        font('400', 10.5); text(fit(potEN(p), CW), P, y + 33, muted);
+        y += 56;
+      });
+      y += 10;
+    });
+    y -= 40;
+
+    // Where the money is held.
+    head('按机构', 'By provider');
+    y += 20;
+    const most = D.providers.length ? D.providers[0].value : 1;
+    D.providers.forEach((r) => {
+      font('500', 13.5); text(fit(r.label, CW - 110), P, y, ink);
+      font('600', 13.5); text(gbp(r.value), W - P, y, ink, 'right');
+      rr(P, y + 8, CW, 5, 2.5); x.fillStyle = '#E2ECE3'; x.fill();
+      rr(P, y + 8, Math.max(5, CW * r.value / most), 5, 2.5); x.fillStyle = brand; x.fill();
+      y += 38;
+    });
+    y -= 22;
+
+    // What matures, and where the money goes next.
+    if (D.soon.length) {
+      head('到期安排', 'What matures, and where it goes');
+      y += 20;
+      D.soon.forEach((nt, i) => {
+        if (i) rule(y - 19);
+        const d = parseD(nt.pot.maturity);
+        font('400', 11); text(cnDate(d) + ' · ' + enDate(d, true), P, y, muted);
+        font('600', 13.5); const vw = text(gbp(nt.amount), W - P, y + 19, ink, 'right');
+        font('500', 13.5); text(fit(potName(nt.pot), CW - vw - 12), P, y + 19, ink);
+        font('400', 11); text(fit('然后转入 Then to: ' + potName(nt.to), CW), P, y + 36, ink2);
+        y += 60;
+      });
+      y -= 30;
+    }
+
+    // Plans: extra pension from pay and the money moves.
+    if (D.pension.length || D.plans.length) {
+      head('储蓄计划', 'Savings plan');
+      y += 20;
+      const rows = (D.pension.length ? [['从工资额外存入养老金', 'Extra pension from pay', gbp(D.pension[0][0]) + '/月', D.pension.map((x2) => x2[1] + '每月 ' + gbp(x2[0])).join('；'), D.pension.map((x2) => gbp(x2[0]) + ' a month ' + x2[2]).join('; ')]] : [])
+        .concat(D.plans.map((m) => [m.title, '', gbp(m.amount), planCN(m, k), planEN(m, k)]));
+      rows.forEach(([t1, t2, v, c, e], i) => {
+        if (i) rule(y - 19);
+        font('600', 13.5); const vw = text(v, W - P, y, ink, 'right');
+        font('500', 13.5); wrap(t1, CW - vw - 14).forEach((l) => { text(l, P, y, ink); y += 19; });
+        if (t2) { font('400', 11); text(t2, P, y - 2, muted); y += 15; }
+        font('400', 11.5); wrap(c, CW).forEach((l) => { text(l, P, y, ink2); y += 16; });
+        font('400', 10.5); wrap(e, CW).forEach((l) => { text(l, P, y, muted); y += 15; });
+        y += 22;
+      });
+      y -= 40;
+    }
+
+    // Tax on savings interest, this tax year and next.
+    head('税务', 'Tax, estimated');
+    y += 20;
+    const c1 = W - P - 92;
+    font('600', 11.5); text(tyPlain(D.tax[0].y), c1, y, muted, 'right'); text(tyPlain(D.tax[1].y), W - P, y, muted, 'right');
+    y += 24;
+    [['应税利息', 'Taxable interest', 'interest'], ['免税收益', 'Tax-free returns', 'free'], ['预计税额', 'Estimated tax', 'tax']].forEach(([c, e, key], i) => {
+      if (key === 'tax' && D.tax.every((t) => t.tax === null)) return;
+      if (i) rule(y - 19);
+      font('500', 13.5); text(c, P, y, ink); font('400', 11); text(e, P, y + 16, muted);
+      font('600', 13.5); D.tax.forEach((t, j) => text(t[key] === null ? '—' : gbp(t[key]), j ? W - P : c1, y, ink, 'right'));
+      y += 40;
+    });
+    y += 2;
+    para('2027年4月起，储蓄利息税率升至 24%、44% 和 49%。ISA、有奖债券奖金和国债的价格上涨部分免税。', ink2, 12, 18);
+    para('From April 2027 savings interest is taxed at 24%, 44% and 49%. ISAs, Premium Bond prizes and gilt price gains are tax-free.', muted, 11, 16);
+    y -= 16;
+
+    // The long run, in today's money.
+    if (D.retire) {
+      head('长期展望', 'Looking further ahead');
+      y += 20;
+      pair('退休', 'Retire', D.retire.age + '岁 · ' + D.retire.year);
+      pair('届时储蓄和养老金', 'Savings and pensions then', '≈ ' + about(D.retire.pots));
+      pair('每年收入', 'Income a year', '≈ ' + about(D.retire.income));
+      y += 2;
+      para('按今日币值估算，税前。收入包括保证养老金、国家养老金，以及每年从储蓄中提取 ' + pct(D.retire.draw, 1) + '。', ink2, 12, 18);
+      para('In today’s money, before tax: the guaranteed pension, the State Pension and ' + pct(D.retire.draw, 1) + ' a year drawn from savings.', muted, 11, 16);
+      y -= 16;
+    }
+
+    // What each kind of account is.
+    head('名词解释', 'What these accounts are');
+    y += 22;
+    D.glossary.forEach(([c, e, cx, ex], i) => {
+      if (i) rule(y - 22);
+      font('700', 14); const w = text(c, P, y, ink); font('600', 12); text(e, P + w + 8, y, muted);
+      y += 21;
+      para(cx, ink2, 12.5, 19);
+      y += 2;
+      para(ex, muted, 11, 16);
+      y += 26;
+    });
+    y -= 10;
+    rule(y); y += 24;
+    para('以上为估算，未扣税；投资价值可能上下波动。数字来自' + cnDate(D.date) + '的账户余额。', muted, 11, 16);
+    para('Estimates, before tax, from balances on ' + enDate(D.date) + '. Investments can go down as well as up.', muted, 11, 16);
+    return y + 14;
+  };
+  const probe = document.createElement('canvas');
+  probe.width = probe.height = 8;
+  const H = Math.ceil(paint(probe.getContext('2d')));
+  // Sharp on a phone, but within the size iPhones allow for one picture.
+  const K = Math.min(3, Math.sqrt(15e6 / (W * H)), 16000 / H), cv = document.createElement('canvas');
+  cv.width = Math.round(W * K); cv.height = Math.round(H * K);
+  const x = cv.getContext('2d');
+  x.scale(cv.width / W, cv.height / H);
+  paint(x);
+  return { cv, W, H };
+}
+
+// A one-page PDF holding the picture, written by hand so no library is needed.
+function pdfOf(jpeg, wPx, hPx, wPt, hPt) {
+  const enc = new TextEncoder(), parts = [], offs = [], draw = 'q ' + wPt + ' 0 0 ' + hPt + ' 0 0 cm /Im0 Do Q';
+  let n = 0;
+  const put = (b) => { const u = typeof b === 'string' ? enc.encode(b) : b; parts.push(u); n += u.length; };
+  const obj = (i, body) => { offs[i] = n; put(i + ' 0 obj\n' + body + '\nendobj\n'); };
+  put('%PDF-1.4\n');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + wPt + ' ' + hPt + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+  offs[4] = n;
+  put('4 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + wPx + ' /Height ' + hPx + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n');
+  put(jpeg); put('\nendstream\nendobj\n');
+  obj(5, '<< /Length ' + draw.length + ' >>\nstream\n' + draw + '\nendstream');
+  const xref = n;
+  put('xref\n0 6\n0000000000 65535 f \n' + [1, 2, 3, 4, 5].map((i) => String(offs[i]).padStart(10, '0') + ' 00000 n \n').join('') + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+  return new Blob(parts, { type: 'application/pdf' });
 }
 function makePicture(D) {
-  drawCard(D).toBlob((b) => {
+  const { cv, W, H } = drawReport(D), name = 'money-report-' + localISO(D.date);
+  cv.toBlob((b) => {
     if (!b) return;
     if (shareUrl) URL.revokeObjectURL(shareUrl);
     shareUrl = URL.createObjectURL(b);
-    shareFile = new File([b], 'money-snapshot-' + localISO(D.date) + '.png', { type: 'image/png' });
+    shareFile = new File([b], name + '.png', { type: 'image/png' });
     paintShare();
+    cv.toBlob((j) => {
+      if (j) j.arrayBuffer().then((buf) => { sharePdf = new File([pdfOf(new Uint8Array(buf), cv.width, cv.height, W, H)], name + '.pdf', { type: 'application/pdf' }); paintShare(); });
+    }, 'image/jpeg', 0.9);
   }, 'image/png');
 }
 function paintShare() {
   const box = $('#sharebox');
   if (!box) return;
   $$('#sheet [data-act="share-mode"]').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-id') === shareMode)));
+  const ready = shareMode === 'pdf' ? sharePdf : shareFile;
   box.innerHTML = shareMode === 'text' ? '<pre class="share">' + esc(shareText) + '</pre>'
-    : shareFile ? '<img class="sharepic" src="' + shareUrl + '" alt="Your money snapshot as a picture, in Chinese and English">' : '<p class="note">Drawing the picture…</p>';
+    : ready ? (shareMode === 'pdf' ? '<p class="note">The same long page as a PDF, ' + Math.max(1, Math.round(sharePdf.size / 1024)) + ' KB, for printing or keeping.</p>' : '') + '<img class="sharepic" src="' + shareUrl + '" alt="Your money report as a long picture, in Chinese and English">'
+    : '<p class="note">Drawing the report…</p>';
   const c = $('#sharecopy');
   if (c) c.hidden = shareMode !== 'text';
 }
 function openShare() {
   if (!state.pots.length) { toast('Add your pots first'); return; }
   const D = summary();
-  shareText = summaryText(D); shareFile = null;
-  openSheet('Share with family', '<p class="note">In Chinese and English, with totals and account names but never account numbers.</p>' +
-    seg('share-mode', [['picture', 'Picture'], ['text', 'Text']], shareMode, 'Share as') +
+  shareText = summaryText(D); shareFile = null; sharePdf = null;
+  openSheet('Share with family', '<p class="note">A full report in Chinese and English: every account, the next three years, what matures, your plans, tax, and what each kind of account is. Never account numbers.</p>' +
+    seg('share-mode', [['picture', 'Picture'], ['pdf', 'PDF'], ['text', 'Text']], shareMode, 'Share as') +
     '<div class="row-actions"><button type="button" class="btn primary" data-act="share-go">' + IC.share + 'Share</button><button type="button" class="btn quiet" data-act="share-copy" id="sharecopy">Copy text</button></div><div id="sharebox"></div>', () => {}, { label: 'Done', noCancel: true });
   paintShare();
   makePicture(D);
@@ -1884,15 +2113,16 @@ const copyText = (t) => {
   else toast('Press and hold the text to copy it');
 };
 function shareGo() {
-  const pic = shareMode !== 'text';
-  if (pic && !shareFile) { toast('Still drawing the picture'); return; }
-  const data = pic ? { files: [shareFile] } : { title: 'Money snapshot 财务快照', text: shareText };
-  if (navigator.share && (!pic || (navigator.canShare && navigator.canShare(data)))) {
-    navigator.share(data).catch((err) => { if (!err || err.name !== 'AbortError') toast(pic ? 'Press and hold the picture to save it' : 'Try Copy text instead'); });
-  } else if (pic) {
-    const a = document.createElement('a');
-    a.href = shareUrl; a.download = shareFile.name;
+  const file = shareMode === 'pdf' ? sharePdf : shareMode === 'picture' ? shareFile : null;
+  if (shareMode !== 'text' && !file) { toast('Still drawing the report'); return; }
+  const data = file ? { files: [file] } : { title: 'Money snapshot 财务快照', text: shareText };
+  if (navigator.share && (!file || (navigator.canShare && navigator.canShare(data)))) {
+    navigator.share(data).catch((err) => { if (!err || err.name !== 'AbortError') toast(file ? 'Press and hold the picture to save it' : 'Try Copy text instead'); });
+  } else if (file) {
+    const a = document.createElement('a'), u = URL.createObjectURL(file);
+    a.href = u; a.download = file.name;
     document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 1500);
   } else copyText(shareText);
 }
 
@@ -2035,7 +2265,11 @@ document.addEventListener('change', (e) => {
     el.value = '';
     if (f) importFile(f);
   } else if (el.matches && el.matches('#sheet select.pick')) pickPot(el);
-  else if (el.matches && el.matches('#sheet select[name="type"]')) { const g = $('#sheet .gilt-only'); if (g) g.hidden = el.value !== 'gilt'; }
+  else if (el.matches && el.matches('#sheet select[name="type"]')) {
+    const g = $('#sheet .gilt-only'), m = $('#sheet .mature-only');
+    if (g) g.hidden = el.value !== 'gilt';
+    if (m) m.hidden = !MATURES.has(el.value);
+  }
 });
 // Pasting into the box finds the balances straight away.
 document.addEventListener('paste', (e) => { if (e.target.matches && e.target.matches('#sheet textarea[name="paste"]')) setTimeout(detectBalances, 0); });

@@ -11,7 +11,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Forecast, to retirement**: the long-term picture in today's money, with low, central and high cases.
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
 - **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
-- **Share with family**: a summary in Chinese and English, as a picture (good for WeChat) or as text, from the share button on Home or from **More**. It shows totals, the split, the outlook and what matures next, never account numbers.
+- **Share with family**: a full report in Chinese and English, as a long picture (good for WeChat), a PDF or text, from the share button on Home or from **More**. It covers every account, the next three years, what matures and where the money goes, savings plans, tax, the long-term outlook and a plain explanation of each kind of account. Never account numbers.
 - **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
 
 ## Switch on the website (once)
