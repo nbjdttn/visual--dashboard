@@ -222,6 +222,25 @@ body.no-tabs .tabs { display: none; }
 .bdg.n3 { font-size: 12px; }
 .bdg.n4 { font-size: 10.5px; }
 span.row { cursor: default; }
+/* offers, laid out like a news feed */
+.feed { display: grid; margin: 0 0 12px; border-top: 1px solid var(--line); }
+.story { display: grid; grid-template-columns: minmax(0, 1fr) 84px; grid-template-areas: "main art" "meta meta"; gap: 12px 16px; padding: 18px 0; margin: 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.st-main { grid-area: main; display: grid; gap: 7px; align-content: start; min-width: 0; }
+.st-title { font: 600 20px/1.28 var(--sans); letter-spacing: -0.01em; color: var(--ink); }
+.st-body { font-size: 14.5px; line-height: 1.42; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.st-art { grid-area: art; width: 84px; height: 84px; border-radius: 14px; display: grid; place-items: center; color: #FFF; background: var(--a); background: linear-gradient(145deg, color-mix(in srgb, var(--a) 78%, #FFF), var(--a) 55%, color-mix(in srgb, var(--a) 70%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22); }
+.st-art svg { width: 38px; height: 38px; }
+.st-meta { grid-area: meta; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); }
+.st-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; }
+.st-head .st-art { grid-area: auto; width: 56px; height: 56px; border-radius: 12px; }
+.st-head .st-art svg { width: 28px; height: 28px; }
+.st-head h3 { margin: 0; font: 600 20px/1.28 var(--sans); }
+.st-full { font-size: 16px; line-height: 1.5; -webkit-user-select: text; user-select: text; }
+.src li { margin: 0 0 8px; }
+.src a { color: var(--brand); font-weight: 600; text-decoration: none; }
+.src small { color: var(--muted); }
+.tabs button { position: relative; }
+.tabs button.dot::after { content: ''; position: absolute; top: 1px; left: calc(50% + 8px); width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 2px var(--bg); }
 .titlebtn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
 
 /* passcode and Face ID */
@@ -324,7 +343,7 @@ html.applock body { overflow: hidden; }
 .th .sw-evergreen { background: linear-gradient(135deg, #F6F7F4 50%, #115B3E 50%); }
 .th .sw-midnight { background: linear-gradient(135deg, #0A0D14 50%, #D9B36C 50%); }
 .th .sw-aurora { background: linear-gradient(135deg, #4F46E5, #7C3AED 50%, #DB2777); }
-.th .sw-paper { background: linear-gradient(135deg, #FBF9F4 50%, #2D6945 50%); }
+.th .sw-paper { background: linear-gradient(135deg, #FAF6F0 50%, #6B4A33 50%); }
 
 /* Midnight: private-banking calm, champagne gold on deep navy. Always dark. */
 :root[data-theme="midnight"] {
@@ -395,12 +414,12 @@ html.applock body { overflow: hidden; }
 
 /* Paper: ivory paper, serif figures, forest-green ink and fine rules. Always light. */
 :root[data-theme="paper"] {
-  --bg: #FBF9F4; --surface: #FBF9F4; --ink: #1C1F1A; --ink-2: #454A42; --muted: #656B61; --line: #E6E2D8; --fill: #F0ECE2; --seg-on: #FBF9F4;
-  --brand: #2D6945; --brand-ink: #FBF9F4; --brand-soft: #E2ECE3;
-  --ok: #2D6945; --warn: #8A5A00; --bad: #A23B2C; --info: #4A5C70;
-  --g-cash: #9BB785; --g-fixed: #699566; --g-invest: #3D724F; --g-pension: #1D4E3C;
-  --grid: #EDE9DF; --shadow: none; --scrim: rgba(25, 30, 20, .3); --tabbar: rgba(251, 249, 244, .92);
-  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBF9F4' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
+  --bg: #FAF6F0; --surface: #FAF6F0; --ink: #221A15; --ink-2: #4A3F37; --muted: #6E6259; --line: #E8E0D4; --fill: #F1EAE0; --seg-on: #FAF6F0;
+  --brand: #6B4A33; --brand-ink: #FAF6F0; --brand-soft: #EFE4D6;
+  --ok: #3E6B4A; --warn: #8A5A00; --bad: #A23B2C; --info: #4A5C70;
+  --g-cash: #C9A57C; --g-fixed: #A57A52; --g-invest: #7A5233; --g-pension: #46301F;
+  --grid: #EEE7DC; --shadow: none; --scrim: rgba(30, 20, 12, .3); --tabbar: rgba(250, 246, 240, .92);
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FAF6F0' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 :root[data-theme="paper"] .num, :root[data-theme="paper"] .fig, :root[data-theme="paper"] .fv { font-family: var(--serif); font-weight: 600; letter-spacing: -0.015em; }
@@ -421,13 +440,13 @@ html.applock body { overflow: hidden; }
 :root[data-theme="paper"] .seg button[aria-pressed="true"], :root[data-theme="paper"] .mini button[aria-pressed="true"], :root[data-theme="paper"] .ranges button[aria-pressed="true"] { background: transparent; color: var(--ink); box-shadow: inset 0 -2px 0 var(--brand); }
 :root[data-theme="paper"] .th { background: transparent; box-shadow: inset 0 0 0 1px var(--line); border-radius: 8px; }
 :root[data-theme="paper"] .th[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
-:root[data-theme="paper"] .sheetp, :root[data-theme="paper"] .sheetp > header, :root[data-theme="paper"] .sheetp > footer { background: #FDFCF8; }
+:root[data-theme="paper"] .sheetp, :root[data-theme="paper"] .sheetp > header, :root[data-theme="paper"] .sheetp > footer { background: #FDFAF5; }
 :root[data-theme="paper"] .f input, :root[data-theme="paper"] .f select { background: #FFF; }
 :root[data-theme="paper"] .f textarea, :root[data-theme="paper"] .pick { background-color: #FFF; }
 :root[data-theme="paper"] .f.hit input { background: var(--brand-soft); }
 :root[data-theme="paper"] .icon-btn { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
 :root[data-theme="paper"] .pastebox .btn.quiet { background: #FFF; }
-:root[data-theme="paper"] .msg.ai { background: #F2EEE4; }
+:root[data-theme="paper"] .msg.ai { background: #F3ECE2; }
 :root[data-theme="paper"] .composer textarea { background: #FFF; border-color: var(--line); }
 :root[data-theme="paper"] .prop { background: #FFF; }
 
@@ -460,7 +479,7 @@ html.applock body { overflow: hidden; }
     <button type="button" data-tab="pots"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 10v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4M5 14v4c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6v-4"/></svg>Pots</button>
     <button type="button" data-tab="monthly"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Monthly</button>
     <button type="button" data-tab="forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><path d="M5 16l4-4 3 3 7-7"/><path d="M15 8h4v4"/></svg>Forecast</button>
-    <button type="button" data-tab="tax"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z"/><path d="M9 8h6M9 11.5h6M9 15h3.5"/></svg>Tax</button>
+    <button type="button" data-tab="offers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6l8.2 8.2a1.6 1.6 0 0 1 0 2.3l-6.9 6.9a1.6 1.6 0 0 1-2.3 0z"/><circle cx="8.2" cy="8.2" r="1.6"/></svg>Offers</button>
     <button type="button" data-tab="more"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg>More</button>
   </div>
 </nav>
@@ -910,8 +929,8 @@ function checks() {
   }
   const tf = taxFigures(taxYearStart(now).getFullYear());
   if (tf.t && tf.t.tax >= 1) out.push(tf.t.overBasic > 0
-    ? { lvl: 'warn', t: 'Interest takes you over the higher-rate threshold', d: 'About ' + gbp(tf.t.tax) + ' tax on savings interest this tax year. See Tax for how to stay under it.' }
-    : { lvl: 'info', t: 'About ' + gbp(tf.t.tax) + ' tax on savings interest this tax year', d: 'HMRC usually collects it through your tax code. See Tax for ways to pay less.' });
+    ? { lvl: 'warn', t: 'Interest takes you over the higher-rate threshold', d: 'About ' + gbp(tf.t.tax) + ' tax on savings interest this tax year. See Forecast, under Tax, for how to stay under it.' }
+    : { lvl: 'info', t: 'About ' + gbp(tf.t.tax) + ' tax on savings interest this tax year', d: 'HMRC usually collects it through your tax code. See Forecast, under Tax, for ways to pay less.' });
   const lb = state.lastExport ? days(parseD(state.lastExport), now) : null;
   if (lb === null || lb > 14) out.push({ lvl: 'info', t: 'Save a backup to Files', d: (lb === null ? "You haven't saved one yet." : 'Last saved ' + lb + ' days ago.') + ' It takes a few seconds in More.' });
   const rank = { bad: 0, warn: 1, info: 2, ok: 3 };
@@ -1392,10 +1411,10 @@ function vMonthly() {
 }
 
 function vForecast() {
-  const mode = ui.fc === 'retire' ? 'retire' : 'months';
-  return '<header class="page"><h1>Forecast</h1><p class="sub">In today’s money</p></header>' +
-    seg('fc', [['months', 'Month by month'], ['retire', 'To retirement']], mode, 'Forecast type') +
-    (mode === 'months' ? vMonths() : vRetire());
+  const mode = ui.fc === 'retire' || ui.fc === 'tax' ? ui.fc : 'months';
+  return '<header class="page"><h1>Forecast</h1><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : 'In today’s money') + '</p></header>' +
+    seg('fc', [['months', 'Month by month'], ['retire', 'Retirement'], ['tax', 'Tax']], mode, 'Forecast type') +
+    (mode === 'months' ? vMonths() : mode === 'retire' ? vRetire() : vTax());
 }
 
 function vMonths() {
@@ -1451,7 +1470,8 @@ function vMore() {
     '<section class="sec"><h2>Assistant</h2><div class="panel pad"><p class="note">Claude is how you change things in the app: send screenshots from your banking apps to update your balances, or ask it to change pots, monthly moves, dates or settings. It uses your own Anthropic API key. Nothing is sent until you ask; then your question, your figures and any screenshots go to Anthropic. Changes it suggests wait for you to apply them.</p>' +
       (aiConf().key ? '<p class="lockline">' + IC.spark + '<span>' + esc(aiModel()[1]) + ', key ending ' + esc(aiConf().key.slice(-4)) + '</span></p>' : '') +
       '<div class="row-actions"><button class="btn primary" data-act="assistant">' + IC.spark + 'Open assistant</button><button class="btn quiet" data-act="ai-setup">' + (aiConf().key ? 'Key and model' : 'Add your API key') + '</button></div>' +
-      (aiConf().key ? '<button class="linkbtn quiet" data-act="ai-forget">Remove the key from this phone</button>' : '') + '</div></section>' +
+      (aiConf().key ? selectField('news_every', 'Offers check', String(newsEvery()), NEWS_EVERY.map(([v, l]) => [String(v), l]), 'Claude searches the web for UK savings, switching and card offers. Usually 20p to 50p a check with Opus, less with Sonnet or Haiku.') +
+        '<button class="linkbtn quiet" data-act="ai-forget">Remove the key from this phone</button>' : '') + '</div></section>' +
     '<section class="sec"><h2>Share with family</h2><div class="panel pad"><p class="note">A full report in Chinese and English, as a long picture, a PDF or text: every account, the next three years, what matures, tax, and what each kind of account is. Never account numbers.</p><button class="btn quiet" data-act="share">' + IC.share + 'Share a summary</button></div></section>' +
     '<section class="sec"><h2>Your data</h2><div class="panel pad"><p class="lockline">' + IC.lock + '<span>Stored only on this phone</span></p>' +
     '<p class="note">Saved as you go, with a restore point before each change Claude makes and once a day. Nothing is sent anywhere, except to Anthropic when you use the assistant.</p>' +
@@ -1475,7 +1495,7 @@ function taxBar(t) {
 }
 
 function vTax() {
-  if (!state.pots.length) return '<header class="page"><h1>Tax</h1></header><p class="note">Add your pots first, then the tax on your savings appears here.</p><button class="btn quiet" data-act="go" data-id="pots">Go to Pots</button>';
+  if (!state.pots.length) return '<p class="note">Add your pots first, then the tax on your savings appears here.</p><button class="btn quiet" data-act="go" data-id="pots">Go to Pots</button>';
   const s = state.settings, y0 = taxYearStart().getFullYear(), y = ui.taxYear === 'next' ? y0 + 1 : y0, r = savingsRates(y);
   const F = taxFigures(y), t = F.t, inc = F.inc;
   const items = state.pots.filter((p) => inc.taxable[p.id] > 0.5).map((p) => [potName(p) + (p.type === 'gilt' ? ', coupons' : ''), inc.taxable[p.id], p]).sort((a, b) => b[1] - a[1]);
@@ -1508,8 +1528,7 @@ function vTax() {
     .forEach((p) => tips.push(['Interest arriving in one go', potName(p) + ' pays about ' + gbp(inc.taxable[p.id]) + ' of interest when it matures on ' + fmtDate(p.maturity) + ', and all of it counts in ' + tyLabel(y) + '. Accounts that pay monthly spread interest across tax years.']));
   if (state.pots.some((p) => p.type === 'shares' && !p.taxFree && p.balance > 0)) tips.push(['Shares outside an ISA', 'Dividends over £500 a year and gains over £3,000 are taxed, and they aren’t included here. Moving some into an ISA each year keeps their future growth tax-free.']);
 
-  return '<header class="page"><h1>Tax</h1><p class="sub">Tax on your savings interest, estimated</p></header>' +
-    seg('taxyr', [['this', 'This year, ' + tyLabel(y0)], ['next', 'Next year, ' + tyLabel(y0 + 1)]], y === y0 ? 'this' : 'next', 'Tax year') +
+  return seg('taxyr', [['this', 'This year, ' + tyLabel(y0)], ['next', 'Next year, ' + tyLabel(y0 + 1)]], y === y0 ? 'this' : 'next', 'Tax year') +
     '<section class="hero"><header class="head"><p class="num">' + bigMoney(t ? t.tax : F.interest) + '</p><p class="num-sub">' + esc(t ? 'Estimated tax on your savings interest in ' + tyLabel(y) : 'Taxable interest in ' + tyLabel(y) + '. Tell Claude your taxable pay to work out the tax.') + '</p></header>' +
     (t ? '' : '<button class="btn primary full" data-act="ask" data-id="My taxable pay this tax year is £">' + IC.spark + 'Tell Claude your pay</button>') + '</section>' +
     '<div class="facts">' + fact('Taxable interest', gbpShort(F.interest), tyLabel(y)) + fact('Allowance', t ? gbp(t.psa) : '£1,000', t ? ['basic rate', 'higher rate', 'additional rate'][t.psa === 1000 ? 0 : t.psa === 500 ? 1 : 2] : 'if basic rate') + fact('Tax-free', gbpShort(freeTotal), 'ISAs, bonds, gilt gains') + '</div>' +
@@ -1523,7 +1542,7 @@ function vTax() {
     ' HMRC usually collects the tax through your tax code. If your savings income is over £10,000, you need to send a Self Assessment tax return. This isn’t tax advice.</p>';
 }
 
-const VIEWS = { home: vHome, pots: vPots, monthly: vMonthly, forecast: vForecast, tax: vTax, more: vMore };
+const VIEWS = { home: vHome, pots: vPots, monthly: vMonthly, forecast: vForecast, offers: vOffers, more: vMore };
 let animTimer = null;
 function render(animate) {
   simCache = null; todayCache = null;
@@ -1539,8 +1558,11 @@ function render(animate) {
   }
   document.body.classList.remove('no-tabs');
   let view = location.hash.slice(1);
+  // Tax now lives in Forecast; old links still land there.
+  if (view === 'tax') { ui.fc = 'tax'; saveUi(); history.replaceState(null, '', '#forecast'); view = 'forecast'; }
   if (!VIEWS[view]) view = 'home';
-  $$('.tabs [data-tab]').forEach((a) => { const on = a.getAttribute('data-tab') === view; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (view === 'offers') newsSeen();
+  $$('.tabs [data-tab]').forEach((a) => { a.classList.toggle('dot', a.getAttribute('data-tab') === 'offers' && newsUnseen()); const on = a.getAttribute('data-tab') === view; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   app.innerHTML = (state.example ? exampleBanner() : '') + VIEWS[view]();
 }
 
@@ -1726,8 +1748,8 @@ function drawReport(D) {
   const W = 360, P = 22, CW = W - 2 * P, k = monthKey();
   const SANS = '-apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "WenQuanYi Zen Hei", "Microsoft YaHei", sans-serif';
   const SERIF = 'ui-serif, "New York", Georgia, "Songti SC", serif';
-  const ink = '#1C1F1A', ink2 = '#454A42', muted = '#656B61', line = '#E6E2D8', cream = '#FBF9F4', tile = '#F2EEE4', brand = '#2D6945', soft = 'rgba(251, 249, 244, .76)';
-  const ramp = { cash: '#9BB785', fixed: '#699566', invest: '#3D724F', pension: '#1D4E3C' };
+  const ink = '#221A15', ink2 = '#4A3F37', muted = '#6E6259', line = '#E8E0D4', cream = '#FAF6F0', tile = '#F3ECE2', brand = '#6B4A33', soft = 'rgba(250, 246, 240, .76)';
+  const ramp = { cash: '#C9A57C', fixed: '#A57A52', invest: '#7A5233', pension: '#46301F' };
   const paint = (x) => {
     let y = 0;
     const font = (w, s, f) => { x.font = w + ' ' + s + 'px ' + (f || SANS); };
@@ -1754,15 +1776,15 @@ function drawReport(D) {
     const hh = D.change ? 194 : 174;
     x.fillStyle = cream; x.fillRect(0, 0, W, 100000);
     const hg = x.createLinearGradient(0, 0, 0, hh);
-    hg.addColorStop(0, '#12301F'); hg.addColorStop(1, '#07130C');
+    hg.addColorStop(0, '#3B2D25'); hg.addColorStop(1, '#120D0A');
     x.fillStyle = hg; x.fillRect(0, 0, W, hh);
     const glow = x.createRadialGradient(W - 70, 70, 0, W - 70, 70, 150);
-    glow.addColorStop(0, 'rgba(43, 208, 126, .28)'); glow.addColorStop(1, 'rgba(43, 208, 126, 0)');
+    glow.addColorStop(0, 'rgba(200, 151, 106, .3)'); glow.addColorStop(1, 'rgba(200, 151, 106, 0)');
     x.fillStyle = glow; x.fillRect(0, 0, W, hh);
     [0.42, 0.3, 0.6, 0.78, 1].forEach((f, i) => {
       const bw = 18, X = W - 26 - (4 - i) * 26 - bw, h = 96 * f, Y = hh - 24 - h;
       const bg = x.createLinearGradient(0, hh - 120, 0, hh - 24);
-      bg.addColorStop(0, 'rgba(180, 247, 207, .9)'); bg.addColorStop(1, 'rgba(28, 143, 87, .55)');
+      bg.addColorStop(0, 'rgba(246, 234, 219, .92)'); bg.addColorStop(1, 'rgba(179, 133, 90, .6)');
       rr(X, Y, bw, h, 5); x.fillStyle = bg; x.fill();
     });
     font('600', 18); const tw = text('财务快照', P, 40, cream);
@@ -1770,7 +1792,7 @@ function drawReport(D) {
     font('400', 12); text(cnDate(D.date) + ' · ' + enDate(D.date), P, 61, soft);
     font('600', 42, SERIF); text(gbp(D.t), P, 124, cream);
     font('500', 12); text('总资产 · Total', P, 149, soft);
-    if (D.change) { font('600', 12); text(gbpSigned(D.change.v) + '  较' + cnDate(D.change.since) + ' · since ' + enDate(D.change.since, true), P, 174, '#9FE5BD'); }
+    if (D.change) { font('600', 12); text(gbpSigned(D.change.v) + '  较' + cnDate(D.change.since) + ' · since ' + enDate(D.change.since, true), P, 174, '#E9C9A2'); }
 
     // Four key figures.
     y = hh + 20;
@@ -1813,7 +1835,7 @@ function drawReport(D) {
     x.fillStyle = line; x.fillRect(P, bot, CW, 1);
     curvePath(); x.lineTo(X(vals.length - 1), bot); x.lineTo(X(0), bot); x.closePath();
     const ag = x.createLinearGradient(0, top, 0, bot);
-    ag.addColorStop(0, 'rgba(45, 105, 69, .22)'); ag.addColorStop(1, 'rgba(45, 105, 69, 0)');
+    ag.addColorStop(0, 'rgba(107, 74, 51, .22)'); ag.addColorStop(1, 'rgba(107, 74, 51, 0)');
     x.fillStyle = ag; x.fill();
     curvePath(); x.strokeStyle = brand; x.lineWidth = 2.2; x.lineJoin = 'round'; x.lineCap = 'round'; x.stroke();
     [0, 12, 24, 36].filter((i) => i < vals.length).forEach((i, j, all) => {
@@ -1857,7 +1879,7 @@ function drawReport(D) {
     D.providers.forEach((r) => {
       font('500', 13.5); text(fit(r.label, CW - 110), P, y, ink);
       font('600', 13.5); text(gbp(r.value), W - P, y, ink, 'right');
-      rr(P, y + 8, CW, 5, 2.5); x.fillStyle = '#E2ECE3'; x.fill();
+      rr(P, y + 8, CW, 5, 2.5); x.fillStyle = '#EFE4D6'; x.fill();
       rr(P, y + 8, Math.max(5, CW * r.value / most), 5, 2.5); x.fillStyle = brand; x.fill();
       y += 38;
     });
@@ -2047,7 +2069,7 @@ const aiConf = () => { try { return JSON.parse(localStorage.getItem(AI_KEY) || '
 const aiSave = (c) => { try { if (c) localStorage.setItem(AI_KEY, JSON.stringify(c)); else localStorage.removeItem(AI_KEY); } catch (e) { toast('Could not save on this device'); } };
 const aiModel = () => AI_MODELS.find((m) => m[0] === aiConf().model) || AI_MODELS[0];
 const AI_SYSTEM = 'You are the assistant inside Money Snapshot, a private money tracker on the user\'s iPhone. They live in the UK and amounts are in pounds.\n\n' +
-  'The app has no edit buttons: every change to their figures goes through you. You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; add, change or remove pots, monthly money moves and dates; remove an update from their history; and change any setting, such as their pay for tax, ISA payments, pension plans, retirement age or growth assumptions. You can\'t change how the app itself looks or works.\n\n' +
+  'The app has no edit buttons: every change to their figures goes through you. You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; add, change or remove pots, monthly money moves and dates; remove an update from their history; and change any setting, such as their pay for tax, ISA payments, pension plans, retirement age or growth assumptions. You can\'t change how the app itself looks or works. You can search the web for current rates, offers and rules; keep the user\'s details out of your searches.\n\n' +
   'The app\'s figures come with the user\'s first message. Call get_finances again after the user applies a change, and use get_forecast and get_tax for figures about the future and tax rather than working them out yourself. Forecasts are estimates in today\'s money; tax follows the app\'s rules for England, Wales and Northern Ireland.\n\n' +
   'Changes only happen through the propose tools, and the user approves each one in the app, so never say you have changed something. Match each amount in a screenshot to a pot by name and provider, and use the pot ids from the figures. If you can\'t tell which pot an amount belongs to, ask rather than guess. Amounts that aren\'t balances, such as interest earned, pending payments, totals and changes, aren\'t updates.\n\n' +
   'You explain options and trade-offs but don\'t give regulated financial advice. Keep replies short and plain, and reply in the language the user writes in.';
@@ -2302,12 +2324,12 @@ function aiRunTool(u) {
   return Object.assign({ type: 'tool_result', tool_use_id: u.id, content: typeof out === 'string' ? out : JSON.stringify(out) }, bad ? { is_error: true } : {});
 }
 
-async function aiCall(messages) {
-  const c = aiConf(), m = aiModel(), fallback = m[0] !== 'claude-haiku-5-5';
+async function aiCall(messages, opts) {
+  const o = opts || {}, c = aiConf(), m = aiModel(), fallback = m[0] !== 'claude-haiku-5-5';
   const headers = { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
   // Opus and Sonnet can decline a request; server-side fallback retries it on the model Anthropic recommends.
   if (fallback) headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
-  const body = { model: m[0], max_tokens: 16000, system: AI_SYSTEM, tools: AI_TOOLS, messages, output_config: { effort: 'medium' }, cache_control: { type: 'ephemeral' } };
+  const body = { model: m[0], max_tokens: 16000, system: o.system || AI_SYSTEM, tools: o.tools || AI_TOOLS.concat([webTool(5)]), messages, output_config: { effort: 'medium' }, cache_control: { type: 'ephemeral' } };
   if (fallback) body.fallbacks = 'default';
   let res;
   try { res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) }); } catch (e) { throw new Error('Couldn’t reach Anthropic. Check your connection and try again.'); }
@@ -2319,11 +2341,14 @@ async function aiCall(messages) {
     : res.status === 529 || res.status >= 500 ? 'Claude is busy right now. Try again in a moment.'
     : 'Anthropic said: ' + msg);
 }
-function aiCost(u) {
-  if (!u) return;
+// Dollars for one reply: tokens at the model's prices, and web searches at $10 per thousand.
+function aiUsd(u) {
+  if (!u) return 0;
   const m = aiModel();
-  chat.cost += ((u.input_tokens || 0) * m[3] + (u.cache_creation_input_tokens || 0) * m[3] * 1.25 + (u.cache_read_input_tokens || 0) * m[5] + (u.output_tokens || 0) * m[4]) / 1e6;
+  return ((u.input_tokens || 0) * m[3] + (u.cache_creation_input_tokens || 0) * m[3] * 1.25 + (u.cache_read_input_tokens || 0) * m[5] + (u.output_tokens || 0) * m[4]) / 1e6 +
+    ((u.server_tool_use && u.server_tool_use.web_search_requests) || 0) * 0.01;
 }
+function aiCost(u) { chat.cost += aiUsd(u); }
 // When a declined reply is re-run on another model, only text is kept from before the switch.
 const aiKeep = (content) => { const cut = content.map((b) => b.type).lastIndexOf('fallback'); return content.filter((b, i) => i >= cut || b.type === 'text'); };
 async function aiSend() {
@@ -2354,10 +2379,12 @@ async function aiSend() {
         c.log.push({ kind: 'err', text: 'Claude declined to answer that, so it’s been left out of this chat. Try asking another way.' });
         break;
       }
-      const out = aiKeep(res.content), uses = out.filter((b) => b.type === 'tool_use');
-      if (out.length) c.messages.push({ role: 'assistant', content: out });
+      const out = aiKeep(res.content), uses = out.filter((b) => b.type === 'tool_use'), prev = c.messages[c.messages.length - 1];
+      // A long web search can pause; the turn carries on in the same assistant message.
+      if (out.length) { if (prev && prev.role === 'assistant') prev.content = prev.content.concat(out); else c.messages.push({ role: 'assistant', content: out }); }
       const said = out.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n').trim();
       if (said) c.log.push({ kind: 'ai', text: said });
+      if (res.stop_reason === 'pause_turn') continue;
       if (res.stop_reason !== 'tool_use') {
         // A reply that was cut off may hold a half-written change, which is never run.
         if (uses.length) c.messages.push({ role: 'user', content: uses.map((u) => ({ type: 'tool_result', tool_use_id: u.id, is_error: true, content: 'Not run: the reply was cut off.' })) });
@@ -2422,7 +2449,7 @@ function paintChat() {
   if (!box || !chat) return;
   const m = aiModel();
   box.innerHTML = '<p class="note chatmeta">' + esc(m[1]) + (chat.cost >= 0.005 ? ', about $' + chat.cost.toFixed(2) + ' so far' : '') + '. Your question, your figures and any screenshots go to Anthropic. Changes wait for you to apply them.</p>' +
-    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Send me screenshots from your banking apps and I’ll update your balances. I can also change your pots, monthly moves, dates and settings, or answer questions about your money, forecast and tax.</p></div>') +
+    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Tap the photo button and pick screenshots from your banking apps: they come straight to me and I’ll update your balances. I can also change your pots, monthly moves, dates and settings, look up current offers, or answer questions about your money, forecast and tax.</p></div>') +
     chat.log.map(chatItem).join('') + (chat.busy ? '<div class="msg ai pending">Thinking…</div>' : '');
   const sp = $('#sheet .sheetp');
   if (sp) sp.scrollTop = sp.scrollHeight;
@@ -2477,8 +2504,130 @@ function openAiSetup(then) {
     aiSave(Object.assign({}, c, { key: key || c.key, model: String(fd.get('model') || AI_MODELS[0][0]) }));
     if (aiModel()[0] !== was) chat = null;
     toast('Assistant ready');
+    setTimeout(newsMaybe, 1500);
     if (then) setTimeout(then, 0);
   });
+}
+
+/* ---------- offers check ---------- */
+// Every 15 days by default, Claude searches the web for UK savings, switching and card offers worth knowing about,
+// compares them with your accounts and leaves a short digest on Home. It runs when the app opens once the time has
+// passed, with your own key. Only account types, providers and rates are sent: never balances or names.
+const NEWS_KEY = 'money-snapshot-news';
+const NEWS_EVERY = [[10, 'Every 10 days'], [15, 'Every 15 days'], [30, 'Every month'], [0, 'Off']];
+const newsConf = () => { try { return JSON.parse(localStorage.getItem(NEWS_KEY) || 'null'); } catch (e) { return null; } };
+const newsSave = (n) => { try { localStorage.setItem(NEWS_KEY, JSON.stringify(n)); } catch (e) { /* not essential */ } };
+const newsEvery = () => { const v = aiConf().newsEvery; return v == null ? 15 : Number(v); };
+let newsBusy = false;
+const NEWS_SYSTEM = 'You keep a UK saver up to date with offers worth knowing about. Search the web for what is new or notable in the last few weeks, then write a short digest.\n\n' +
+  'Cover what is worth saying from: the best easy-access, regular saver, fixed-rate and cash ISA rates now; bank switching offers; credit card offers, such as long 0% periods, rewards and sign-up bonuses, and notable new cards; new accounts or apps; and rule changes that matter to savers, such as the ISA allowance, the Personal Savings Allowance or the Premium Bond prize rate.\n\n' +
+  'Compare with the user\'s accounts below and say plainly where they could earn more or should act soon, such as a rate that has fallen or a better home for money that is about to mature. Only mention offers you found in your searches, with the provider, the rate or reward, and any catch, such as minimum deposits, withdrawal limits or closing dates.\n\n' +
+  'Search for the market, never for the user: keep their details out of your searches.\n\n' +
+  'Write 5 to 8 points, one per line. Start each with "- ", then one tag in square brackets, [Savings], [ISA], [Switching], [Cards], [Rules] or [Your accounts], then a short bold headline, a colon and one or two plain sentences. For example: - [Savings] **Easy access now pays 5.1%**: Example Bank pays 5.1% with no notice and no limit on withdrawals. No introduction, no sign-off and no links, because sources are listed separately. This is information, not regulated financial advice.';
+const webTool = (n) => ({ type: aiModel()[0] === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: n, user_location: { type: 'approximate', country: 'GB', timezone: 'Europe/London' } });
+function newsBrief() {
+  const s = state.settings, paid = Number(state.isa[taxYearKey()]) || 0, F = taxFigures(taxYearStart().getFullYear()), n = newsConf();
+  const band = F.t ? ['basic', 'higher', 'additional'][F.t.psa === 1000 ? 0 : F.t.psa === 500 ? 1 : 2] + ' rate' : 'not known';
+  return 'Today is ' + fmtDate(localISO()) + '.' + (n && n.at ? ' The last digest was on ' + fmtDate(localISO(new Date(n.at))) + ', so focus on what has changed since.' : '') +
+    '\n\nTheir accounts (type, provider and rate only):\n' + state.pots.map((p) => '- ' + TYPES[p.type] + ', ' + (p.provider || 'provider not given') + ', ' +
+      (p.rate ? rateTxt(p.rate) + (p.rateNote ? ' ' + p.rateNote : '') : 'no rate set') + (p.maturity ? ', matures ' + fmtDate(p.maturity) : '') + (p.offerEnds ? ', offer rate ends ' + fmtDate(p.offerEnds) : '') + (p.taxFree ? ', tax-free' : '')).join('\n') +
+    '\n\nISA allowance this tax year: ' + gbp(Math.max(0, s.isaAllowance - paid)) + ' left of ' + gbp(s.isaAllowance) + '. Savings interest taxed at the ' + band + '.';
+}
+// Splits the digest into its points, each with its tag, headline, text and the sources cited inside it.
+function newsItems(text, marks) {
+  const re = /^[ \t]*[-•*][ \t]+(?:\[([^\]\n]{1,20})\][ \t]*)?\*\*(.+?)\*\*/gm, found = [];
+  let m;
+  while ((m = re.exec(text))) found.push({ start: m.index, tag: (m[1] || '').trim(), title: m[2].trim().replace(/[:.]$/, '') });
+  return found.map((f, i) => {
+    const end = i + 1 < found.length ? found[i + 1].start : text.length, seen = new Set();
+    const body = text.slice(f.start, end).replace(/^[\s\S]*?\*\*.+?\*\*[ \t]*[:.–-]?[ \t]*/, '').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '$1').replace(/\s+/g, ' ').trim();
+    const sources = marks.filter((k) => k.mid >= f.start && k.mid < end && !seen.has(k.url) && seen.add(k.url)).map((k) => ({ url: k.url, title: k.title }));
+    return { tag: f.tag, title: f.title, body, sources };
+  });
+}
+const newsUnseen = () => { const n = newsConf(); return !!(n && n.items && n.items.length && !n.seen); };
+function newsSeen() { const n = newsConf(); if (n && !n.seen) newsSave(Object.assign(n, { seen: true })); }
+async function newsRun() {
+  if (newsBusy || !state || !aiConf().key) return;
+  newsBusy = true;
+  const was = newsConf() || {}, tried = new Date().toISOString();
+  newsSave(Object.assign({}, was, { tried }));
+  newsPaint();
+  const sys = NEWS_SYSTEM, ask = { role: 'user', content: [{ type: 'text', text: newsBrief() }] };
+  let content = [], cost = 0, error = '';
+  try {
+    // A long search can pause; sending the turn back lets it carry on where it stopped.
+    for (let i = 0; i < 4; i++) {
+      const res = await aiCall(content.length ? [ask, { role: 'assistant', content }] : [ask], { system: sys, tools: [webTool(8)] });
+      cost += aiUsd(res.usage);
+      if (res.stop_reason === 'refusal') throw new Error('Claude couldn’t do this check.');
+      content = content.concat(aiKeep(res.content));
+      if (res.stop_reason !== 'pause_turn') break;
+    }
+    // Where each citation sits in the text, so every point keeps its own sources.
+    let text = '';
+    const marks = [];
+    content.filter((b) => b.type === 'text').forEach((b) => {
+      const mid = text.length + b.text.length / 2;
+      (b.citations || []).forEach((c) => { if (/^https?:\/\//.test(c.url || '')) marks.push({ mid, url: c.url, title: String(c.title || '').slice(0, 120) }); });
+      text += b.text;
+    });
+    const items = newsItems(text, marks);
+    if (!items.length) throw new Error('Claude didn’t find anything to report.');
+    newsSave({ at: new Date().toISOString(), tried, text, items, cost, model: aiModel()[1], seen: false });
+  } catch (e) {
+    error = (e && e.message) || 'Something went wrong.';
+    newsSave(Object.assign({}, was, { tried, error, cost: (was.cost || 0) }));
+  }
+  newsBusy = false;
+  newsPaint();
+  if (!error && location.hash !== '#offers') toast('New offers from Claude: see Offers');
+}
+// Due when the time has passed since the last check; after a failed check, it tries again the next day.
+function newsMaybe() {
+  const every = newsEvery(), n = newsConf();
+  if (!every || !state || state.example || !aiConf().key || newsBusy || navigator.onLine === false) return;
+  const last = n ? Date.parse(n.tried || n.at || 0) || 0 : 0;
+  if (Date.now() - last >= (n && n.error ? 1 : every) * 864e5) newsRun();
+}
+function newsPaint() {
+  if (state) render();
+}
+// Each kind of offer has a colour and a picture, drawn here, like the photos beside articles in a news app.
+const NEWS_TAGS = {
+  savings: ['#6B4A33', '<circle cx="12" cy="12" r="8.5"/><path d="M9 15l6-6"/><circle cx="9.3" cy="9.3" r="1"/><circle cx="14.7" cy="14.7" r="1"/>'],
+  isa: ['#8B6440', '<path d="M3.5 12a8.5 8.5 0 0 1 17 0z"/><path d="M12 12v6a2 2 0 0 0 4 0"/>'],
+  switching: ['#4F6B63', '<path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"/>'],
+  cards: ['#5E5A7A', '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>'],
+  rules: ['#4D5B6E', '<path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/>'],
+  'your accounts': ['#8A5A00', '<path d="M12 4l2.3 4.7 5.2.8-3.8 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1-3.8-3.6 5.2-.8z"/>'],
+};
+const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return url; } };
+const newsTag = (it) => NEWS_TAGS[String(it.tag || '').toLowerCase()] || ['#6E6259', '<path d="M11 3.5l1.7 4.8 4.8 1.7-4.8 1.7L11 16.5l-1.7-4.8L4.5 10l4.8-1.7z"/>'];
+function vOffers() {
+  const n = newsConf(), every = newsEvery(), items = (n && n.items) || [], when = n && n.at ? fmtDate(localISO(new Date(n.at))) : '';
+  const head = '<header class="page"><h1>Offers</h1><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + '</p></header>';
+  if (!aiConf().key) return head + '<p class="note">Add your Anthropic API key and Claude will search the web for offers worth knowing about, and compare them with your accounts.</p><button class="btn primary full" data-act="ai-setup">Add your API key</button>';
+  return head + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error && !items.length ? '<p class="note">The last check didn’t work: ' + esc(n.error) + '</p>' : '') +
+    (items.length ? '<div class="feed">' + items.map((it, i) => {
+      const [col, art] = newsTag(it), src = it.sources[0] ? host(it.sources[0].url) : '';
+      return '<button type="button" class="story" data-act="offer" data-id="' + i + '"><span class="st-main"><span class="st-title">' + esc(it.title) + '</span>' + (it.body ? '<span class="st-body">' + esc(it.body) + '</span>' : '') + '</span>' +
+        '<span class="st-art" style="--a:' + col + '" aria-hidden="true">' + icon(art, 1.6) + '</span>' +
+        '<span class="st-meta"><span>' + esc([it.tag, src].filter(Boolean).join(' · ')) + '</span><span>' + esc(when) + '</span></span></button>';
+    }).join('') + '</div><p class="note">' + (n.model ? 'From ' + esc(n.model) + ', searching the web' : 'Searched on the web') + (n.cost >= 0.005 ? ', about $' + n.cost.toFixed(2) + ' for this check' : '') + '. Information, not financial advice: check the details with the provider.</p>'
+      : newsBusy ? '' : '<p class="note">' + (every ? 'The first check runs the next time the app opens, or now.' : 'Checks are off. You can still check now.') + '</p>') +
+    (newsBusy ? '' : '<button class="btn quiet" data-act="news-run">' + IC.spark + (items.length ? 'Check again now' : 'Check now') + '</button>');
+}
+// One offer in full, like opening an article, with its sources and a way to ask Claude about it.
+function openOffer(i) {
+  const n = newsConf(), it = n && n.items && n.items[Number(i)];
+  if (!it) return;
+  const [col, art] = newsTag(it);
+  openSheet(it.tag || 'Offer', '<div class="st-head"><span class="st-art" style="--a:' + col + '" aria-hidden="true">' + icon(art, 1.6) + '</span><h3>' + esc(it.title) + '</h3></div>' +
+    (it.body ? '<p class="st-full">' + esc(it.body) + '</p>' : '') +
+    (it.sources.length ? '<h3>Sources</h3><ul class="plain src">' + it.sources.map((x) => '<li><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.title || host(x.url)) + '</a> <small>' + esc(host(x.url)) + '</small></li>').join('') + '</ul>' : '') +
+    '<p class="note">Found by Claude on ' + esc(fmtDate(localISO(new Date(n.at)))) + '. Information, not financial advice: check the details with the provider.</p>',
+    () => { setTimeout(() => openAssistant('About “' + it.title + '”: '), 0); }, { label: 'Ask Claude', extra: '<button type="button" class="btn" data-act="close">Done</button>', noCancel: true });
 }
 
 /* ---------- restore points ---------- */
@@ -2648,6 +2797,8 @@ document.addEventListener('click', (e) => {
     case 'assistant': openAssistant(); break;
     case 'ask': openAssistant(id); break;
     case 'rename': openTitle(); break;
+    case 'news-run': newsRun(); break;
+    case 'offer': openOffer(id); break;
     case 'ai-setup': openAiSetup(null); break;
     case 'lock-on': openLockOn(); break;
     case 'lock-now': lock(); break;
@@ -2690,7 +2841,11 @@ document.addEventListener('change', (e) => {
     const f = el.files && el.files[0];
     el.value = '';
     if (f) importFile(f);
-  } else if (el.matches && el.matches('#sheet input[data-act="chat-files"]')) { const fs = el.files; aiAddFiles(fs).then(() => { el.value = ''; }); }
+  } else if (el.matches && el.matches('#sheet input[data-act="chat-files"]')) {
+    const fs = el.files;
+    aiAddFiles(fs).then(() => { el.value = ''; const ta = $('#chatin'); if (chat && chat.files.length && !chat.busy && ta && !ta.value.trim()) aiSend(); });
+  }
+  else if (el.matches && el.matches('#app select[name="news_every"]')) { aiSave(Object.assign({}, aiConf(), { newsEvery: Number(el.value) || 0 })); toast('Saved'); render(); newsMaybe(); }
   else if (el.matches && el.matches('#app select[name="lock_after"]')) { const c = lockConf(); if (c) { c.after = Number(el.value) || 0; lockSave(c); toast('Saved'); } }
 });
 // The question box grows with what you type.
@@ -2911,6 +3066,8 @@ applyTheme();
 lock();
 render(true);
 recover();
+setTimeout(newsMaybe, 1500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(newsMaybe, 1500); });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

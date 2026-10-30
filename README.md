@@ -10,11 +10,12 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Forecast, month by month**: every pot projected for 1, 2, 3 or 5 years. Slide your finger along the chart to see the total and the mix for any month. It also shows when each fixed saver or gilt unlocks and what it will be worth.
 - **Forecast, to retirement**: the long-term picture in today's money, with low, central and high cases.
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
-- **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
+- **Tax** (in **Forecast**): the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
 - **Share with family**: a full report in Chinese and English, as a long picture (good for WeChat), a PDF or text, from the share button on Home or from **More**. It covers every account, the next three years, what matures and where the money goes, savings plans, tax, the long-term outlook and a plain explanation of each kind of account. Never account numbers.
 - **Claude does the updating**: there are no forms to fill in. Send Claude screenshots from your banking apps, or ask it to change pots, monthly moves, dates or settings. Each change shows as a card: tap **Apply**, and **Undo** if you change your mind. It needs your own Anthropic API key (see below).
 - **Face ID and passcode** (optional): the app locks when it opens and after time away. Face ID unlocks it, and a 6-digit passcode does if Face ID doesn't work.
-- **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
+- **Offers**: a tab of UK savings rates, switching offers, credit card deals and rule changes that Claude finds on the web every 15 days, compared with your accounts. Each one is its own card: tap it to read it with its sources, or to ask Claude about it. A dot on the tab means there's something new. Only account types, providers and rates are sent, never balances or names. It usually costs 20p to 50p a check. Change how often (10 days, 15 days, a month or off) in **More**, under **Assistant**.
+- **Appearance**: Paper by default, in warm browns, with Evergreen, Midnight and Aurora under **More**. Tap the title on Home to rename it.
 
 ## Switch on the website (once)
 
@@ -33,7 +34,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 ## Each month (about two minutes)
 
 - Take a screenshot in each banking app whose balance has changed. Fixed savers and bonds change little, and the app adds their interest by itself.
-- Tap the Claude button (✦) at the top right of Home, add the screenshots and send. Check the card Claude shows and tap **Apply**.
+- Tap the Claude button (✦) at the top right of Home, then the photo button, and pick the screenshots. They go to Claude straight away. Check the card Claude shows and tap **Apply**.
 - Tick off the month's money moves on **Monthly**.
 - Every couple of weeks, go to **More**, then **Back up**, and save the file to iCloud Drive. The app reminds you.
 
