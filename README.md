@@ -69,7 +69,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## A new icon
 
-iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, then **Back up**, and save the file. Then remove the app from your Home Screen, add it again from Safari and tap **Restore**. Removing it also removes the figures stored inside it, which is why the backup comes first. Your passcode, Face ID and API key aren't in the backup, so set them up again afterwards.
+iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, then **Back up**, and save the file. Then remove the app from your Home Screen, add it again from Safari, open it and tap **Import my starting file**, then choose your backup. Removing it also removes the figures stored inside it, which is why the backup comes first. Your passcode, Face ID and API key aren't in the backup, so set them up again afterwards.
 
 ## Why it doesn't connect to your bank
 
