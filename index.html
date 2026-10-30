@@ -7,8 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>Money Snapshot</title>
 <meta name="description" content="A private money tracker that keeps everything on your device.">
-<meta name="theme-color" content="#F6F7F4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B110E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F7F4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -28,6 +27,9 @@
   --scrim: rgba(10, 20, 15, .38); --tabbar: rgba(246, 247, 244, .86);
   --serif: ui-serif, "New York", "Iowan Old Style", Georgia, "DejaVu Serif", serif;
   --sans: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --round: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
+  --wash: var(--brand);
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -38,6 +40,7 @@
     --g-cash: #9CE8BF; --g-fixed: #5EC4A6; --g-invest: #339C92; --g-pension: #087578;
     --grid: #1E2823; --shadow: none;
     --scrim: rgba(0, 0, 0, .6); --tabbar: rgba(11, 17, 14, .84);
+    --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23062017' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
@@ -166,10 +169,7 @@ button { font: inherit; color: inherit; }
 .ranges button { flex: 1; border: 0; background: none; padding: 8px 0; border-radius: 9px; font: 600 14px/1.2 var(--sans); color: var(--muted); cursor: pointer; }
 .ranges button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand); }
 .tick { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; margin: 0; border-radius: 50%; border: 2px solid var(--muted); flex: none; background: var(--surface); cursor: pointer; transition: background-color .15s, border-color .15s; }
-.tick:checked { border-color: var(--brand); background: var(--brand) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E") center / 14px no-repeat; }
-@media (prefers-color-scheme: dark) {
-  .tick:checked { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23062017' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E"); }
-}
+.tick:checked { border-color: var(--brand); background: var(--brand) var(--tick) center / 14px no-repeat; }
 .rows > li.mv { padding: 0; }
 .mv.done .t { color: var(--muted); text-decoration: line-through; }
 
@@ -225,6 +225,116 @@ body.no-tabs .tabs { display: none; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 99px; font-size: 14px; font-weight: 600; z-index: 30; max-width: calc(100% - 32px); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .4); }
 .toast[hidden] { display: none; }
 
+/* ---------- styles: Midnight, Aurora and Paper. Evergreen is the default above. ---------- */
+.cur { font-size: .56em; vertical-align: .62em; margin-right: .04em; font-weight: inherit; opacity: .85; }
+.legend .lg-main { background: var(--brand); }
+.legend .lg-pen { background: var(--g-invest); }
+.legend .lg-band { background: var(--brand); opacity: .25; height: 10px; width: 14px; border-radius: 3px; }
+.themes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.th { display: grid; justify-items: center; gap: 8px; padding: 12px 4px 10px; border-radius: 16px; border: 0; background: var(--surface); box-shadow: var(--shadow); font: 600 13px var(--sans); color: var(--ink-2); cursor: pointer; }
+.th span { width: 44px; height: 44px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); }
+.th[aria-pressed="true"] { color: var(--ink); box-shadow: 0 0 0 2px var(--brand); }
+.th .sw-evergreen { background: linear-gradient(135deg, #F6F7F4 50%, #115B3E 50%); }
+.th .sw-midnight { background: linear-gradient(135deg, #0A0D14 50%, #D9B36C 50%); }
+.th .sw-aurora { background: linear-gradient(135deg, #4F46E5, #7C3AED 50%, #DB2777); }
+.th .sw-paper { background: linear-gradient(135deg, #FFF1E5 50%, #990F3D 50%); }
+
+/* Midnight: private-banking calm, champagne gold on deep navy. Always dark. */
+:root[data-theme="midnight"] {
+  --bg: #0A0D14; --surface: #121725; --ink: #F2ECE0; --ink-2: #CFC8BA; --muted: #9198A8; --line: rgba(217, 179, 108, .13); --fill: #1A2031; --seg-on: #2A3247;
+  --brand: #D9B36C; --brand-ink: #1A1408; --brand-soft: rgba(217, 179, 108, .14);
+  --ok: #8FD3A8; --warn: #F0B45A; --bad: #F28B82; --info: #A9B8F0;
+  --g-cash: #EDDEA5; --g-fixed: #DAB568; --g-invest: #C1893C; --g-pension: #9D6228;
+  --grid: rgba(255, 255, 255, .06); --shadow: none; --scrim: rgba(0, 0, 0, .62); --tabbar: rgba(10, 13, 20, .82);
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A1408' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
+:root[data-theme="midnight"] body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(760px 460px at 92% -6%, rgba(217, 179, 108, .17), transparent 62%), radial-gradient(620px 520px at -12% 38%, rgba(70, 92, 160, .14), transparent 62%); }
+:root[data-theme="midnight"] .num { font-size: 52px; font-weight: 300; letter-spacing: -0.035em; }
+:root[data-theme="midnight"] .fig, :root[data-theme="midnight"] .fv { font-weight: 300; }
+:root[data-theme="midnight"] .page h1, :root[data-theme="midnight"] .sec > h2, :root[data-theme="midnight"] .who, :root[data-theme="midnight"] .welcome h1 { font-weight: 500; }
+:root[data-theme="midnight"] .panel, :root[data-theme="midnight"] .facts, :root[data-theme="midnight"] .th { background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .01)), var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme="midnight"] .th[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--brand); }
+:root[data-theme="midnight"] .chart .ln:not(.pen) { filter: url(#glow); }
+:root[data-theme="midnight"] .btn.primary { background: linear-gradient(180deg, #E8CB8E, #C99D50); color: var(--brand-ink); }
+:root[data-theme="midnight"] .btn.quiet, :root[data-theme="midnight"] .btn { box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme="midnight"] .btn.primary { box-shadow: 0 10px 24px -12px rgba(217, 179, 108, .6); }
+
+/* Aurora: a vivid gradient card on soft lavender, with frosted-glass panels. */
+:root[data-theme="aurora"] {
+  --bg: #F4F3FA; --surface: rgba(255, 255, 255, .74); --ink: #17142B; --ink-2: #3E3A5C; --muted: #625F7E; --line: rgba(60, 50, 140, .1); --fill: rgba(91, 75, 219, .08); --seg-on: #FFFFFF;
+  --brand: #5B4BDB; --brand-ink: #FFFFFF; --brand-soft: #E9E6FF;
+  --ok: #1B7A4E; --warn: #9A5B00; --bad: #B3261E; --info: #4A5BD6;
+  --g-cash: #ADA0EB; --g-fixed: #8578DE; --g-invest: #5B50C8; --g-pension: #333398;
+  --grid: rgba(60, 50, 140, .08); --shadow: 0 1px 2px rgba(40, 30, 100, .05), 0 10px 26px -14px rgba(40, 30, 100, .22); --scrim: rgba(20, 15, 50, .35); --tabbar: rgba(244, 243, 250, .76);
+  --serif: var(--sans);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="aurora"] {
+    --bg: #0E0B1F; --surface: rgba(32, 28, 62, .72); --ink: #EEEAFE; --ink-2: #CFCAEA; --muted: #A19DC0; --line: rgba(255, 255, 255, .08); --fill: rgba(169, 155, 255, .1); --seg-on: #3A3466;
+    --brand: #A99BFF; --brand-ink: #120F2A; --brand-soft: rgba(169, 155, 255, .16);
+    --ok: #8FD3A8; --warn: #F0B45A; --bad: #F28B82; --info: #A9B8F0;
+    --g-cash: #D8D0FF; --g-fixed: #ACA5F9; --g-invest: #7F7CE9; --g-pension: #555CCB;
+    --grid: rgba(255, 255, 255, .07); --shadow: none; --scrim: rgba(0, 0, 0, .6); --tabbar: rgba(14, 11, 31, .76);
+    --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23120F2A' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+}
+:root[data-theme="aurora"] body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(520px 420px at 0% 0%, rgba(124, 92, 255, .24), transparent 66%), radial-gradient(480px 380px at 100% 14%, rgba(0, 194, 255, .17), transparent 66%), radial-gradient(560px 440px at 60% 104%, rgba(236, 72, 153, .14), transparent 66%); }
+:root[data-theme="aurora"] .page h1, :root[data-theme="aurora"] .sec > h2, :root[data-theme="aurora"] .who, :root[data-theme="aurora"] .welcome h1, :root[data-theme="aurora"] .sheetp > header h2, :root[data-theme="aurora"] .sheetp h3 { font-weight: 700; letter-spacing: -0.02em; }
+:root[data-theme="aurora"] .num, :root[data-theme="aurora"] .fig, :root[data-theme="aurora"] .fv { font-family: var(--round); font-weight: 700; }
+:root[data-theme="aurora"] .panel, :root[data-theme="aurora"] .facts, :root[data-theme="aurora"] .th { -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, .6); }
+@media (prefers-color-scheme: dark) { :root[data-theme="aurora"] .panel, :root[data-theme="aurora"] .facts, :root[data-theme="aurora"] .th { box-shadow: inset 0 0 0 1px var(--line); } }
+:root[data-theme="aurora"] .th[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--brand); }
+:root[data-theme="aurora"] .btn.primary { background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #fff; box-shadow: 0 10px 22px -12px rgba(91, 33, 182, .7); }
+:root[data-theme="aurora"] .hero { position: relative; overflow: hidden; isolation: isolate; padding: 18px 18px 16px; border-radius: 28px; color: #fff; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #DB2777 100%); box-shadow: 0 24px 44px -22px rgba(91, 33, 182, .75); --wash: #fff; --brand: #fff; }
+:root[data-theme="aurora"] .hero::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(420px 260px at 92% -12%, rgba(255, 255, 255, .3), transparent 62%), linear-gradient(180deg, rgba(255, 255, 255, .1), transparent 45%); }
+:root[data-theme="aurora"] .hero .who small, :root[data-theme="aurora"] .hero .num-sub, :root[data-theme="aurora"] .hero .axisrow, :root[data-theme="aurora"] .hero .legend { color: rgba(255, 255, 255, .8); }
+:root[data-theme="aurora"] .hero .num-sub .up, :root[data-theme="aurora"] .hero .num-sub .down { color: #fff; }
+:root[data-theme="aurora"] .hero .chart .grid { stroke: rgba(255, 255, 255, .16); }
+:root[data-theme="aurora"] .hero .chart .tick { fill: rgba(255, 255, 255, .75); }
+:root[data-theme="aurora"] .hero .chart .ln.pen { stroke: rgba(255, 255, 255, .55); }
+:root[data-theme="aurora"] .hero .chart .band { fill: #fff; opacity: .16; }
+:root[data-theme="aurora"] .hero .chart .now, :root[data-theme="aurora"] .hero .chart .end, :root[data-theme="aurora"] .hero .chart .cursor circle { fill: #fff; stroke: rgba(79, 70, 229, .55); }
+:root[data-theme="aurora"] .hero .chart .mk { fill: #7C3AED; stroke: #fff; }
+:root[data-theme="aurora"] .hero .chart .cursor line { stroke: rgba(255, 255, 255, .75); }
+:root[data-theme="aurora"] .hero .legend .lg-pen { background: rgba(255, 255, 255, .55); }
+:root[data-theme="aurora"] .hero .btn.primary { background: #fff; color: #4F46E5; box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .35); }
+:root[data-theme="aurora"] .hero .ranges button { color: rgba(255, 255, 255, .78); }
+:root[data-theme="aurora"] .hero .ranges button[aria-pressed="true"] { background: rgba(255, 255, 255, .22); color: #fff; }
+
+/* Paper: the look of a financial newspaper. Serif figures, claret ink, fine rules. Always light. */
+:root[data-theme="paper"] {
+  --bg: #FFF1E5; --surface: #FFF1E5; --ink: #1D1A18; --ink-2: #4A4340; --muted: #6B615C; --line: #E6D2C1; --fill: #F7E3D2; --seg-on: #FFF1E5;
+  --brand: #990F3D; --brand-ink: #FFF1E5; --brand-soft: #F2D3D3;
+  --ok: #0A6B4F; --warn: #8A4F00; --bad: #B3261E; --info: #0D5C8A;
+  --g-cash: #6FBAB9; --g-fixed: #3B969A; --g-invest: #03707C; --g-pension: #004B5B;
+  --grid: #EBD9CA; --shadow: none; --scrim: rgba(40, 20, 10, .3); --tabbar: rgba(255, 241, 229, .92);
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFF1E5' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+:root[data-theme="paper"] .num, :root[data-theme="paper"] .fig, :root[data-theme="paper"] .fv { font-family: var(--serif); font-weight: 600; letter-spacing: -0.015em; }
+:root[data-theme="paper"] .num { font-size: 50px; }
+:root[data-theme="paper"] .page h1, :root[data-theme="paper"] .welcome h1 { font-weight: 700; }
+:root[data-theme="paper"] .sec > h2 { border-top: 2px solid var(--ink); padding-top: 12px; font-weight: 700; }
+:root[data-theme="paper"] .panel, :root[data-theme="paper"] .facts { background: transparent; border-radius: 0; box-shadow: none; padding-left: 0; padding-right: 0; border-bottom: 1px solid var(--line); }
+:root[data-theme="paper"] .facts { border-top: 1px solid var(--line); }
+:root[data-theme="paper"] .facts > div:first-child { padding-left: 0; }
+:root[data-theme="paper"] .mixbar { border-radius: 2px; }
+:root[data-theme="paper"] .chart .ln { stroke-width: 2; }
+:root[data-theme="paper"] .btn { border-radius: 6px; box-shadow: none; background: transparent; box-shadow: inset 0 0 0 1px var(--ink); }
+:root[data-theme="paper"] .btn.primary { background: var(--ink); color: var(--bg); box-shadow: none; }
+:root[data-theme="paper"] .btn.quiet { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme="paper"] .btn.ghost { box-shadow: none; }
+:root[data-theme="paper"] .seg, :root[data-theme="paper"] .mini { background: transparent; border-radius: 0; padding: 0; box-shadow: inset 0 -1px 0 var(--line); }
+:root[data-theme="paper"] .seg button, :root[data-theme="paper"] .mini button, :root[data-theme="paper"] .ranges button { border-radius: 0; }
+:root[data-theme="paper"] .seg button[aria-pressed="true"], :root[data-theme="paper"] .mini button[aria-pressed="true"], :root[data-theme="paper"] .ranges button[aria-pressed="true"] { background: transparent; color: var(--ink); box-shadow: inset 0 -2px 0 var(--brand); }
+:root[data-theme="paper"] .th { background: transparent; box-shadow: inset 0 0 0 1px var(--line); border-radius: 8px; }
+:root[data-theme="paper"] .th[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
+:root[data-theme="paper"] .sheetp, :root[data-theme="paper"] .sheetp > header, :root[data-theme="paper"] .sheetp > footer { background: #FFF6EE; }
+:root[data-theme="paper"] .f input, :root[data-theme="paper"] .f select { background: #FFF; }
+
 @media (prefers-reduced-motion: no-preference) {
   .sheetp { animation: rise .3s cubic-bezier(.2, .8, .2, 1); }
   .scrim { animation: fade .2s ease-out; }
@@ -259,6 +369,7 @@ body.no-tabs .tabs { display: none; }
 </nav>
 
 <div id="sheet" hidden></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="glow" filterUnits="userSpaceOnUse" x="-40" y="-40" width="440" height="320"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 
 <script>
 (() => {
@@ -281,6 +392,8 @@ const gbpShort = (v) => {
   if (a >= 1e4) return sign + '£' + Math.round(a / 1e3) + 'k';
   return gbp(v);
 };
+// The big figures set the pound sign small and raised.
+const bigMoney = (v) => { const n = Math.round(Number(v) || 0); return (n < 0 ? '−' : '') + '<span class="cur">£</span>' + money0.format(Math.abs(n)).replace('£', ''); };
 const pct = (v, d = 0) => (Number(v || 0) * 100).toFixed(d).replace(/\.0+$/, '') + '%';
 const share = (v) => (v > 0 && v < 0.005 ? '<1%' : pct(v));
 const rateTxt = (v) => (Math.round(Number(v || 0) * 10000) / 100) + '%';
@@ -378,9 +491,18 @@ function save() {
 }
 
 // View choices, such as which split or forecast range is showing. Kept apart from your figures.
-const ui = { split: 'type', fc: 'months', range: 36, allMonths: false };
+const ui = { split: 'type', fc: 'months', range: 36, theme: 'evergreen', allMonths: false };
 try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}'), { allMonths: false }); } catch (e) { /* defaults are fine */ }
-const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ split: ui.split, fc: ui.fc, range: ui.range })); } catch (e) { /* not essential */ } };
+const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ split: ui.split, fc: ui.fc, range: ui.range, theme: ui.theme })); } catch (e) { /* not essential */ } };
+
+const THEMES = [['evergreen', 'Evergreen'], ['midnight', 'Midnight'], ['aurora', 'Aurora'], ['paper', 'Paper']];
+function applyTheme() {
+  if (!THEMES.some(([id]) => id === ui.theme)) ui.theme = 'evergreen';
+  document.documentElement.setAttribute('data-theme', ui.theme);
+  const meta = $('meta[name="theme-color"]'), bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  if (meta && bg) meta.setAttribute('content', bg);
+}
+if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', applyTheme); }
 
 /* ---------- figures ---------- */
 const total = () => sum(state.pots, (p) => p.balance);
@@ -681,7 +803,7 @@ function curve(P) {
   return segs;
 }
 const chartSvg = (id, W, H, label, inner) => '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart" data-chart="' + id + '" tabindex="0" role="img" aria-label="' + esc(label) + '">' + inner + '<g class="cursor"></g></svg>';
-const wash = (id) => '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--brand);stop-opacity:.2"/><stop offset="1" style="stop-color:var(--brand);stop-opacity:0"/></linearGradient></defs>';
+const wash = (id) => '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--wash);stop-opacity:.2"/><stop offset="1" style="stop-color:var(--wash);stop-opacity:0"/></linearGradient></defs>';
 function guides(rg, y, x0, x1) {
   let out = '';
   for (let v = rg.lo; v <= rg.hi + 1e-6; v += rg.step) out += '<line x1="' + x0 + '" x2="' + (x1 + 4) + '" y1="' + f1(y(v)) + '" y2="' + f1(y(v)) + '" class="grid"/><text x="' + (x1 + 8) + '" y="' + f1(y(v)) + '" dy=".32em" class="tick">' + esc(gbpShort(v)) + '</text>';
@@ -706,8 +828,8 @@ function heroChart(S, num, sub) {
   const tn = parseD(localISO()).getTime();
   const lbl = (t) => new Date(t).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
   CH.hero = { W, H, T, B, n: all.length, xs: P.map((p) => p[0]), ys: P.map((p) => p[1]),
-    show: (i) => { $('#hv').textContent = gbp(all[i].v); $('#hs').textContent = fmtDate(localISO(new Date(all[i].t))) + (all[i].rec ? ', recorded' : ', projected'); },
-    reset: () => { $('#hv').textContent = num; $('#hs').innerHTML = sub; } };
+    show: (i) => { $('#hv').innerHTML = bigMoney(all[i].v); $('#hs').textContent = fmtDate(localISO(new Date(all[i].t))) + (all[i].rec ? ', recorded' : ', projected'); },
+    reset: () => { $('#hv').innerHTML = num; $('#hs').innerHTML = sub; } };
   return '<div class="chartbox">' + chartSvg('hero', W, H, 'Your total, as recorded and then projected for the next 12 months',
     wash('hg') + '<path d="' + at0(P[0]) + segs.join('') + 'L' + f1(e[0]) + ',' + H + 'L' + f1(P[0][0]) + ',' + H + 'Z" fill="url(#hg)" class="fade"/>' +
     (j > 0 ? '<path d="' + at0(P[0]) + segs.slice(0, j).join('') + '" class="ln draw" pathLength="1"/>' : '') +
@@ -733,7 +855,7 @@ function projChart(rows, S) {
     return '<text x="' + f1(x(i)) + '" y="' + (H - 4) + '" text-anchor="middle" class="tick">' + esc(lbl) + '</text>';
   }).join('');
   const marks = rows.map((r, i) => (r.notes.some((z) => z.kind === 'mature') ? '<circle cx="' + f1(P[i][0]) + '" cy="' + f1(P[i][1]) + '" r="4" class="mk fade"/>' : '')).join('');
-  const show = (i) => { const r = rows[i]; $('#fv').textContent = gbp(r.total); $('#fs').innerHTML = projSub(r, S); $('#fmt').textContent = 'Mix in ' + fmtMonth(r.k); paintMix('fmix', groupSums(r.types), r.total); };
+  const show = (i) => { const r = rows[i]; $('#fv').innerHTML = bigMoney(r.total); $('#fs').innerHTML = projSub(r, S); $('#fmt').textContent = 'Mix in ' + fmtMonth(r.k); paintMix('fmix', groupSums(r.types), r.total); };
   CH.proj = { W, H, T, B, n, xs: P.map((p) => p[0]), ys: P.map((p) => p[1]), show, reset: () => show(n - 1) };
   return '<div class="chartbox">' + chartSvg('proj', W, H, 'Projected total, month by month', wash('pg') + guides(rg, y, L, W - R) +
     '<path d="' + at0(P[0]) + segs.join('') + 'L' + f1(e[0]) + ',' + (H - B) + 'L' + f1(P[0][0]) + ',' + (H - B) + 'Z" fill="url(#pg)" class="fade"/>' +
@@ -754,7 +876,7 @@ function retireChart(ser) {
   const every = a1 - a0 > 24 ? 10 : 5;
   let xt = '';
   for (let a = Math.ceil(a0 / every) * every; a <= a1 + 0.01; a += every) if (x(a) > 10 && x(a) < W - R - 8) xt += '<text x="' + f1(x(a)) + '" y="' + (H - 4) + '" text-anchor="middle" class="tick">' + a + '</text>';
-  const show = (i) => { $('#rv').textContent = gbp(ser[i].mid); $('#rs').textContent = retireText(ser[i]); };
+  const show = (i) => { $('#rv').innerHTML = bigMoney(ser[i].mid); $('#rs').textContent = retireText(ser[i]); };
   CH.retire = { W, H, T, B, n: ser.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(ser.length - 1) };
   return '<div class="chartbox">' + chartSvg('retire', W, H, 'Forecast by age, in today’s money', guides(rg, y, L, W - R) +
     '<path d="' + band + '" class="band fade"/><path d="' + at0(Pp[0]) + curve(Pp).join('') + '" class="ln pen draw" pathLength="1"/>' +
@@ -773,7 +895,7 @@ function histChart() {
   const x = (t) => L + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (W - L - R), y = (v) => T + (1 - (v - rg.lo) / (rg.hi - rg.lo)) * (H - T - B);
   const P = pts.map((p) => [x(p.t), y(p.v)]), segs = curve(P), e = P[P.length - 1];
   const lbl = (t) => new Date(t).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-  const show = (i) => { $('#xv').textContent = gbp(pts[i].v); $('#xs').textContent = histText(i); };
+  const show = (i) => { $('#xv').innerHTML = bigMoney(pts[i].v); $('#xs').textContent = histText(i); };
   CH.hist = { W, H, T, B, n: pts.length, xs: P.map((p) => p[0]), ys: P.map((p) => p[1]), show, reset: () => show(pts.length - 1) };
   return chartSvg('hist', W, H, 'Your total at each update', wash('xg') + guides(rg, y, L, W - R) +
     '<path d="' + at0(P[0]) + segs.join('') + 'L' + f1(e[0]) + ',' + (H - B) + 'L' + f1(P[0][0]) + ',' + (H - B) + 'Z" fill="url(#xg)" class="fade"/>' +
@@ -878,7 +1000,7 @@ function vHome() {
   if (ls && ps) { const ch = snapTotal(ls) - snapTotal(ps); bits.push('<span class="' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span> since ' + esc(shortDate(ps.date))); }
   if (since > 0 && Math.round(S.nowTotal - t) !== 0) bits.push((bits.length ? 'about ' : 'About ') + gbp(S.nowTotal) + ' today');
   const sub = bits.join(', ') || (ls ? 'Updated ' + esc(fmtDate(ls.date)) : 'No balances recorded yet');
-  const num = gbp(t);
+  const num = bigMoney(t);
   return '<section class="hero"><header class="head"><div class="who"><span>' + esc(s.name ? s.name + '’s money' : 'Your money') + '</span>' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + '</div>' +
     '<p class="num" id="hv">' + num + '</p><p class="num-sub" id="hs">' + sub + '</p></header>' +
     (t > 0 ? heroChart(S, num, sub) : '') +
@@ -981,7 +1103,7 @@ function vMonths() {
   const unlocks = [];
   S.months.forEach((m) => m.notes.forEach((z) => { if (z.kind === 'mature' && parseD(z.pot.maturity) > parseD(localISO())) unlocks.push(z); }));
   unlocks.sort((a, b) => a.pot.maturity.localeCompare(b.pot.maturity));
-  return '<section class="hero"><header class="head"><p class="num" id="fv">' + gbp(end.total) + '</p><p class="num-sub" id="fs">' + projSub(end, S) + '</p></header>' +
+  return '<section class="hero"><header class="head"><p class="num" id="fv">' + bigMoney(end.total) + '</p><p class="num-sub" id="fs">' + projSub(end, S) + '</p></header>' +
     projChart(rows, S) +
     seg('range', [[12, '1Y', '1 year'], [24, '2Y', '2 years'], [36, '3Y', '3 years'], [60, '5Y', '5 years']], range, 'How far ahead', 'ranges') + '</section>' +
     '<section class="sec"><h2 id="fmt">Mix in ' + esc(fmtMonth(end.k)) + '</h2><div class="panel pad">' + mixBlock('fmix', groupSums(end.types), end.total) + '</div></section>' +
@@ -995,8 +1117,8 @@ function vRetire() {
   const tot = (r) => r.inv + r.pot;
   const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]) }));
   const last = ser[ser.length - 1];
-  return '<section class="hero"><header class="head"><p class="num" id="rv">' + gbp(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last)) + '</p></header>' +
-    (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i style="background:var(--brand)"></i>Everything</span><span><i style="background:var(--g-invest)"></i>Pension pot</span><span><i class="area" style="background:var(--brand)"></i>Low to high</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
+  return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last)) + '</p></header>' +
+    (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
     '<section class="sec"><h2>At ' + esc(s.retireAge) + '</h2><div class="panel"><ul class="rows">' + row('Savings and investments', gbp(end.inv)) + row('Pension pot', gbp(end.pot)) + row('Guaranteed pension', gbp(f.db) + ' a year') + row('Guaranteed lump sum', gbp(f.dbLump)) + '</ul></div></section>' +
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
     '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.</p></section>' +
@@ -1008,7 +1130,7 @@ function vMore() {
   const evs = state.events.slice().sort((a, b) => a.date.localeCompare(b.date));
   return '<header class="page"><h1>More</h1></header>' +
     '<section class="sec"><h2>History</h2>' +
-    (n ? '<div class="panel pad"><div><p class="fig" id="xv">' + gbp(snapTotal(state.snapshots[n - 1])) + '</p><p class="note" id="xs">' + esc(histText(n - 1)) + '</p></div>' + histChart() + '</div>' +
+    (n ? '<div class="panel pad"><div><p class="fig" id="xv">' + bigMoney(snapTotal(state.snapshots[n - 1])) + '</p><p class="note" id="xs">' + esc(histText(n - 1)) + '</p></div>' + histChart() + '</div>' +
       '<div class="panel"><ul class="rows">' + snaps.slice(0, 36).map((s, i) => {
         const prev = snaps[i + 1], t = snapTotal(s), ch = prev ? t - snapTotal(prev) : null;
         return '<li><span class="main"><span class="t2">' + esc(fmtDate(s.date)) + '</span></span><span class="end"><span class="v">' + gbp(t) + '</span>' + (ch !== null ? '<span class="vs ' + (ch >= 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span>' : '') + '</span><button class="linkbtn quiet" data-act="del-snap" data-id="' + esc(s.date) + '" aria-label="Delete the update from ' + esc(fmtDate(s.date)) + '">Delete</button></li>';
@@ -1016,6 +1138,7 @@ function vMore() {
     '<section class="sec"><h2>Dates</h2><div class="panel">' +
     (evs.length ? '<ul class="rows">' + evs.map((e) => '<li class="' + (e.done ? 'done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(e.title) + '" data-act="toggle-event" data-id="' + esc(e.id) + '"' + (e.done ? ' checked' : '') + '><span class="main"><span class="t2">' + esc(e.title) + '</span><span class="s">' + esc(fmtDate(e.date)) + '</span></span><button class="linkbtn quiet" data-act="del-event" data-id="' + esc(e.id) + '" aria-label="Delete this date">Delete</button></li>').join('') + '</ul>' : '<p class="empty">No dates yet.</p>') +
     '</div><button class="btn quiet" data-act="add-event">Add a date</button></section>' +
+    '<section class="sec"><h2>Appearance</h2><div class="themes" role="group" aria-label="Appearance">' + THEMES.map(([id, name]) => '<button type="button" class="th" data-act="theme" data-id="' + id + '" aria-pressed="' + (ui.theme === id) + '"><span class="sw-' + id + '"></span>' + name + '</button>').join('') + '</div></section>' +
     '<section class="sec"><h2>Your data</h2><div class="panel pad"><p class="lockline">' + IC.lock + '<span>Stored only on this phone</span></p>' +
     '<p class="note">Nothing is sent anywhere. Back up now and then to iCloud Drive or Files, and restore that file on a new phone. ' + (state.lastExport ? 'Last backup ' + esc(fmtDate(state.lastExport)) + '.' : 'No backup yet.') + '</p>' +
     '<div class="row-actions"><button class="btn primary" data-act="export">' + IC.download + 'Back up</button><label class="btn quiet">' + IC.upload + 'Restore<input type="file" class="vh" data-act="import-file"></label></div>' +
@@ -1331,6 +1454,7 @@ document.addEventListener('click', (e) => {
       break;
     }
     case 'split': ui.split = id; saveUi(); render(); break;
+    case 'theme': ui.theme = id; saveUi(); applyTheme(); render(); break;
     case 'fc': ui.fc = id; saveUi(); render(true); break;
     case 'range': ui.range = Number(id) || 36; ui.allMonths = false; saveUi(); render(true); break;
     case 'month': openMonth(id); break;
@@ -1389,6 +1513,7 @@ function toast(msg) {
 }
 
 /* ---------- start ---------- */
+applyTheme();
 render(true);
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
