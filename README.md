@@ -2,7 +2,7 @@
 
 A private money dashboard for your iPhone. It shows all your pots in one place, projects them month by month, and tells you what to do next. It runs as a web app you add to your Home Screen.
 
-**Your figures never live here.** This repository only holds the empty app. Your balances are stored inside the app on your phone, and the app's security policy stops it sending data to any other website. Never upload your starting file or a backup (`*.json`) to this repository. The `.gitignore` file blocks the usual names, but please don't rely on it.
+**Your figures never live here.** This repository only holds the empty app. Your balances are stored inside the app on your phone, and the app's security policy stops it sending data to any other website. The one exception is Anthropic, and only when you use the optional assistant. Never upload your starting file or a backup (`*.json`) to this repository. The `.gitignore` file blocks the usual names, but please don't rely on it.
 
 ## What it does
 
@@ -12,6 +12,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
 - **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
 - **Share with family**: a full report in Chinese and English, as a long picture (good for WeChat), a PDF or text, from the share button on Home or from **More**. It covers every account, the next three years, what matures and where the money goes, savings plans, tax, the long-term outlook and a plain explanation of each kind of account. Never account numbers.
+- **Assistant** (optional): ask Claude about your money, or give it screenshots from your banking apps and it reads the balances for you. Nothing changes until you tap **Apply**. It needs your own Anthropic API key (see below).
 - **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
 
 ## Switch on the website (once)
@@ -30,9 +31,20 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## Each month (about two minutes)
 
-- Tap **Update balances**. Either type the figures in, or paste them: take a screenshot in each banking app, open it in Photos, tap the Live Text button, then **Copy All**, and paste into the box at the top. The app finds the £ amounts, fills in the pots it recognises and asks once about the rest. It remembers your answers next time.
+- Tap **Update balances**. Either type the figures in, or paste them: take a screenshot in each banking app, open it in Photos, tap the Live Text button, then **Copy All**, and paste into the box at the top. The app finds the £ amounts, fills in the pots it recognises and asks once about the rest. It remembers your answers next time. If you've set up the assistant, you can tap **Let Claude read the screenshots** instead.
 - Tick off the month's money moves on **Monthly**.
 - Every month or two, go to **More**, then **Back up to a file**, and save it to iCloud Drive. That backup is how you restore everything on a new phone.
+
+## The assistant (optional)
+
+1. Create an API key in the Claude Console at **platform.claude.com**, under **API keys**. Add some credit there; you can also set a monthly spending limit.
+2. In the app, go to **More**, then **Assistant**, then **Add your API key**, and paste it. Paste it only into the app, never into a chat, email or file.
+3. Tap the sparkle button on Home. Ask a question, or attach screenshots and say "update my balances".
+
+- **What's sent, and when**: nothing until you send a message. Then your question, the app's figures and any screenshots go to Anthropic, and nowhere else.
+- **Your key** stays on this phone. It's stored apart from your figures, so it's never in a backup or a family report. **Remove the key from this phone** (under **More**, then **Assistant**) deletes it. If you think someone has seen it, delete it in the Claude Console too.
+- **Nothing changes by itself**: Claude can read your figures, forecast and tax estimate. Anything it wants to change (a balance, a rate, a new pot or a setting) appears as a card, and only **Apply** saves it.
+- **Cost**: Anthropic charges your account for what you use. Most questions cost a few pence, a little more with screenshots, and the chat shows a running estimate. Claude Opus 5.5 is the default. Sonnet 5.5 and Haiku 5.5 are cheaper and are under **Key and model**; changing model starts a new chat.
 
 ## How the month-by-month forecast works
 

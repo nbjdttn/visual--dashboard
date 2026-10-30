@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Money Snapshot</title>
 <meta name="description" content="A private money tracker that keeps everything on your device.">
@@ -207,6 +207,9 @@ body.no-tabs .tabs { display: none; }
 .sheetp .x { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--fill); border: 0; font-size: 20px; line-height: 1; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
 .sheetp .body { display: grid; gap: 14px; }
 .sheetp .body > *, .pastebox > * { min-width: 0; }
+/* Sheets never grow wider than the screen, whatever they hold. */
+.sheetp, .sheetp .body, .chatlog { grid-template-columns: minmax(0, 1fr); }
+.sheetp > *, .chatlog > * { min-width: 0; }
 .sheetp h3 { display: flex; align-items: center; gap: 9px; font: 600 17px/1.3 var(--serif); margin-top: 8px; }
 .sheetp h3 small { margin-left: auto; font: 500 14px var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
 .sheetp > footer { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; padding: 12px 0 calc(14px + env(safe-area-inset-bottom, 0px)); }
@@ -227,6 +230,7 @@ body.no-tabs .tabs { display: none; }
 .toast[hidden] { display: none; }
 
 /* tax, pasting and sharing */
+.who-l { display: grid; gap: 2px; min-width: 0; }
 .who-r { display: inline-flex; align-items: center; gap: 10px; }
 .icon-btn { flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--fill); color: var(--brand); display: grid; place-items: center; cursor: pointer; }
 .icon-btn svg { width: 18px; height: 18px; }
@@ -239,6 +243,34 @@ body.no-tabs .tabs { display: none; }
 .pick { flex: none; width: 48%; min-width: 0; font: 500 14px var(--sans); color: var(--ink); background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238D9F96' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 8px center / 16px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 28px 8px 10px; -webkit-appearance: none; appearance: none; }
 .pick.set { border-color: var(--brand); color: var(--brand); }
 .gilt-only, .mature-only { display: grid; gap: 14px; }
+/* assistant */
+.sheetp > header .linkbtn { margin-left: auto; }
+.sheetp.chat { min-height: 70vh; grid-template-rows: auto 1fr auto; }
+.sheetp.chat > footer { flex-wrap: nowrap; align-items: flex-end; }
+.sheetp.chat > footer .spacer { display: none; }
+.sheetp.chat > footer .btn.primary { border-radius: 99px; padding: 11px 18px; }
+.sheetp.chat > footer .btn.primary:disabled { opacity: .45; }
+.chatlog { display: grid; gap: 12px; align-content: start; padding-bottom: 6px; }
+.chatmeta { text-align: center; font-size: 12.5px; }
+.msg { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.msg p + p, .msg p + ul, .msg ul + p { margin-top: 8px; }
+.msg ul { margin: 0; padding-left: 18px; }
+.msg.me { justify-self: end; background: var(--brand); color: var(--brand-ink); border-bottom-right-radius: 5px; }
+.msg.ai { justify-self: start; background: var(--fill); border-bottom-left-radius: 5px; }
+.msg.err { justify-self: start; color: var(--bad); padding-left: 2px; }
+.msg .imgs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.msg .imgs img, .thumbs img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; display: block; }
+.pending { color: var(--muted); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+.prop { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 14px; display: grid; gap: 8px; background: var(--surface); }
+.prop .rows > li { padding: 8px 0; min-height: 0; }
+.prop .v { white-space: normal; max-width: 52%; }
+.prop.done { opacity: .72; }
+.composer { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.composer .crow { display: flex; gap: 8px; align-items: flex-end; }
+.composer textarea { flex: 1; min-width: 0; font: 16px/1.4 var(--sans); color: var(--ink); background: var(--fill); border: 1px solid transparent; border-radius: 18px; padding: 8px 14px; resize: none; max-height: 120px; outline: none; }
+.composer textarea:focus { border-color: var(--brand); background: var(--surface); }
+.thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .share { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 var(--sans); color: var(--ink); background: var(--fill); border-radius: 12px; padding: 14px; max-height: 52vh; overflow: auto; -webkit-user-select: text; user-select: text; }
 .sharepic { display: block; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 8px 28px -12px rgba(0, 0, 0, .35); }
 
@@ -357,6 +389,9 @@ body.no-tabs .tabs { display: none; }
 :root[data-theme="paper"] .f.hit input { background: var(--brand-soft); }
 :root[data-theme="paper"] .icon-btn { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
 :root[data-theme="paper"] .pastebox .btn.quiet { background: #FFF; }
+:root[data-theme="paper"] .msg.ai { background: #F2EEE4; }
+:root[data-theme="paper"] .composer textarea { background: #FFF; border-color: var(--line); }
+:root[data-theme="paper"] .prop { background: #FFF; }
 
 @media (prefers-reduced-motion: no-preference) {
   .sheetp { animation: rise .3s cubic-bezier(.2, .8, .2, 1); }
@@ -453,6 +488,8 @@ const IC = {
   upload: icon('<path d="M12 15V4M7 9l5-5 5 5M5 19.5h14"/>'),
   sliders: icon('<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
   trash: icon('<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>'),
+  spark: icon('<path d="M11 3.5l1.7 4.8 4.8 1.7-4.8 1.7L11 16.5l-1.7-4.8L4.5 10l4.8-1.7z"/><path d="M18 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'),
+  photo: icon('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8.5 8"/>'),
   share: icon('<path d="M12 14.5V3.8M8.2 7.4L12 3.6l3.8 3.8"/><path d="M8 10.5H6.8a1.3 1.3 0 0 0-1.3 1.3v7.4a1.3 1.3 0 0 0 1.3 1.3h10.4a1.3 1.3 0 0 0 1.3-1.3v-7.4a1.3 1.3 0 0 0-1.3-1.3H16"/>'),
 };
 
@@ -1192,7 +1229,7 @@ function vHome() {
   if (since > 0 && Math.round(S.nowTotal - t) !== 0) bits.push((bits.length ? 'about ' : 'About ') + gbp(S.nowTotal) + ' today');
   const sub = bits.join(', ') || (ls ? 'Across ' + state.pots.length + ' pot' + (state.pots.length === 1 ? '' : 's') : 'No balances recorded yet');
   const num = bigMoney(t);
-  return '<section class="hero"><header class="head"><div class="who"><span>' + esc(s.name ? s.name + '’s money' : 'Your money') + '</span><span class="who-r">' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + (t > 0 ? '<button type="button" class="icon-btn" data-act="share" aria-label="Share a summary with family">' + IC.share + '</button>' : '') + '</span></div>' +
+  return '<section class="hero"><header class="head"><div class="who"><span class="who-l"><span>' + esc(s.name ? s.name + '’s money' : 'Your money') + '</span>' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + '</span><span class="who-r"><button type="button" class="icon-btn" data-act="assistant" aria-label="Ask the assistant">' + IC.spark + '</button>' + (t > 0 ? '<button type="button" class="icon-btn" data-act="share" aria-label="Share a summary with family">' + IC.share + '</button>' : '') + '</span></div>' +
     '<p class="num" id="hv">' + num + '</p><p class="num-sub" id="hs">' + sub + '</p></header>' +
     (t > 0 ? heroChart(S, num, sub) : '') +
     '<button class="btn primary full" data-act="update">Update balances</button></section>' +
@@ -1337,9 +1374,13 @@ function vMore() {
     (evs.length ? '<ul class="rows">' + evs.map((e) => '<li class="' + (e.done ? 'done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(e.title) + '" data-act="toggle-event" data-id="' + esc(e.id) + '"' + (e.done ? ' checked' : '') + '><span class="main"><span class="t2">' + esc(e.title) + '</span><span class="s">' + esc(fmtDate(e.date)) + '</span></span><button class="linkbtn quiet" data-act="del-event" data-id="' + esc(e.id) + '" aria-label="Delete this date">Delete</button></li>').join('') + '</ul>' : '<p class="empty">No dates yet.</p>') +
     '</div><button class="btn quiet" data-act="add-event">Add a date</button></section>' +
     '<section class="sec"><h2>Appearance</h2><div class="themes" role="group" aria-label="Appearance">' + THEMES.map(([id, name]) => '<button type="button" class="th" data-act="theme" data-id="' + id + '" aria-pressed="' + (ui.theme === id) + '"><span class="sw-' + id + '"></span>' + name + '</button>').join('') + '</div></section>' +
+    '<section class="sec"><h2>Assistant</h2><div class="panel pad"><p class="note">Ask Claude about your money, or let it read screenshots from your banking apps and update your balances. It uses your own Anthropic API key. Nothing is sent until you ask; then your question, your figures and any screenshots go to Anthropic. Changes it suggests wait for you to apply them.</p>' +
+      (aiConf().key ? '<p class="lockline">' + IC.spark + '<span>' + esc(aiModel()[1]) + ', key ending ' + esc(aiConf().key.slice(-4)) + '</span></p>' : '') +
+      '<div class="row-actions"><button class="btn primary" data-act="assistant">' + IC.spark + 'Open assistant</button><button class="btn quiet" data-act="ai-setup">' + (aiConf().key ? 'Key and model' : 'Add your API key') + '</button></div>' +
+      (aiConf().key ? '<button class="linkbtn quiet" data-act="ai-forget">Remove the key from this phone</button>' : '') + '</div></section>' +
     '<section class="sec"><h2>Share with family</h2><div class="panel pad"><p class="note">A full report in Chinese and English, as a long picture, a PDF or text: every account, the next three years, what matures, tax, and what each kind of account is. Never account numbers.</p><button class="btn quiet" data-act="share">' + IC.share + 'Share a summary</button></div></section>' +
     '<section class="sec"><h2>Your data</h2><div class="panel pad"><p class="lockline">' + IC.lock + '<span>Stored only on this phone</span></p>' +
-    '<p class="note">Nothing is sent anywhere. Back up now and then to iCloud Drive or Files, and restore that file on a new phone. ' + (state.lastExport ? 'Last backup ' + esc(fmtDate(state.lastExport)) + '.' : 'No backup yet.') + '</p>' +
+    '<p class="note">Nothing is sent anywhere, except to Anthropic when you use the assistant. Back up now and then to iCloud Drive or Files, and restore that file on a new phone. ' + (state.lastExport ? 'Last backup ' + esc(fmtDate(state.lastExport)) + '.' : 'No backup yet.') + '</p>' +
     '<div class="row-actions"><button class="btn primary" data-act="export">' + IC.download + 'Back up</button><label class="btn quiet">' + IC.upload + 'Restore<input type="file" class="vh" data-act="import-file"></label></div>' +
     '<div class="row-actions"><button class="btn quiet" data-act="edit-settings">' + IC.sliders + 'Settings</button><button class="btn quiet danger" data-act="wipe">' + IC.trash + 'Delete all</button></div></div></section>';
 }
@@ -1432,7 +1473,7 @@ const sheet = $('#sheet');
 let onSheetSave = null;
 function openSheet(title, body, onSave, opts = {}) {
   endScrub();
-  sheet.innerHTML = '<div class="scrim" data-act="close"></div><form class="sheetp" novalidate><header><h2>' + esc(title) + '</h2><button type="button" class="x" data-act="close" aria-label="Close">×</button></header><div class="body">' + body + '</div><footer>' + (opts.extra || '') + '<span class="spacer"></span>' + (opts.noCancel ? '' : '<button type="button" class="btn" data-act="close">Cancel</button>') + '<button type="submit" class="btn ' + (opts.danger ? 'danger' : 'primary') + '">' + esc(opts.label || 'Save') + '</button></footer></form>';
+  sheet.innerHTML = '<div class="scrim" data-act="close"></div><form class="sheetp' + (opts.cls ? ' ' + opts.cls : '') + '" novalidate><header><h2>' + esc(title) + '</h2>' + (opts.head || '') + '<button type="button" class="x" data-act="close" aria-label="Close">×</button></header><div class="body">' + body + '</div><footer>' + (opts.extra || '') + '<span class="spacer"></span>' + (opts.noCancel ? '' : '<button type="button" class="btn" data-act="close">Cancel</button>') + '<button type="submit" class="btn ' + (opts.danger ? 'danger' : 'primary') + '">' + esc(opts.label || 'Save') + '</button></footer></form>';
   sheet.hidden = false;
   onSheetSave = onSave;
   document.body.classList.add('locked');
@@ -1481,7 +1522,8 @@ function openUpdate() {
   pasteRows = []; pasteLearn = {}; pasteSkip = []; pasteUnignore = [];
   const body = '<div class="pastebox"><label class="f"><span>Paste from your banking apps<small>In Photos, open a screenshot of a banking app, tap the Live Text button, then Copy All. Paste it here and the app fills in the balances it finds.</small></span>' +
     '<textarea name="paste" rows="3" placeholder="Paste text here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></label>' +
-    '<div class="row-actions"><button type="button" class="btn quiet" data-act="paste-clip">Paste</button><button type="button" class="btn quiet" data-act="detect">Find balances</button></div><div id="found" hidden></div></div>' +
+    '<div class="row-actions"><button type="button" class="btn quiet" data-act="paste-clip">Paste</button><button type="button" class="btn quiet" data-act="detect">Find balances</button></div><div id="found" hidden></div>' +
+    (aiConf().key ? '<button type="button" class="btn quiet full" data-act="assistant-shots">' + IC.spark + 'Let Claude read the screenshots</button>' : '<button type="button" class="linkbtn" data-act="ai-setup">Or let Claude read screenshots: set up the assistant</button>') + '</div>' +
     '<p class="note">Or type each balance as it is today. Leave a box as it is if nothing changed.</p>' +
     '<label class="f"><span>Date</span><input type="date" name="date" value="' + localISO() + '"></label>' +
     state.pots.map((p) => '<label class="f row"><span>' + esc(p.name) + '<small>' + esc(p.provider || TYPES[p.type]) + (ls && ls.balances[p.id] !== undefined ? ', last ' + gbp(ls.balances[p.id]) : '') + '</small></span><input name="b_' + esc(p.id) + '" inputmode="decimal" value="' + esc(String(Math.round(p.balance * 100) / 100)) + '" autocomplete="off"></label>').join('');
@@ -2184,6 +2226,373 @@ function shareGo() {
   } else copyText(shareText);
 }
 
+/* ---------- assistant ---------- */
+// Claude inside the app, with your own Anthropic API key. Nothing is sent until you ask it something; then your
+// question, your figures and any screenshots go to Anthropic's API. Changes it suggests wait for you to apply them.
+// The key is kept apart from your figures, so it never goes into a backup.
+const AI_KEY = 'money-snapshot-ai';
+// [id, name, what it's for, $ per million input tokens, output, cache reads]
+const AI_MODELS = [
+  ['claude-opus-5-5', 'Claude Opus 5.5', 'most capable', 4, 20, 0.2],
+  ['claude-sonnet-5-5', 'Claude Sonnet 5.5', 'faster, half the price', 2, 10, 0.2],
+  ['claude-haiku-5-5', 'Claude Haiku 5.5', 'cheapest, for simple updates', 0.1, 0.5, 0.01],
+];
+const aiConf = () => { try { return JSON.parse(localStorage.getItem(AI_KEY) || '{}') || {}; } catch (e) { return {}; } };
+const aiSave = (c) => { try { if (c) localStorage.setItem(AI_KEY, JSON.stringify(c)); else localStorage.removeItem(AI_KEY); } catch (e) { toast('Could not save on this device'); } };
+const aiModel = () => AI_MODELS.find((m) => m[0] === aiConf().model) || AI_MODELS[0];
+const AI_SYSTEM = 'You are the assistant inside Money Snapshot, a private money tracker on the user\'s iPhone. They live in the UK and amounts are in pounds.\n\n' +
+  'You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; and propose changes to pots and settings, such as a new rate, a maturity date, their pay or a new pot.\n\n' +
+  'The app\'s figures come with the user\'s first message. Call get_finances again after the user applies a change, and use get_forecast and get_tax for figures about the future and tax rather than working them out yourself. Forecasts are estimates in today\'s money; tax follows the app\'s rules for England, Wales and Northern Ireland.\n\n' +
+  'Changes only happen through the propose tools, and the user approves each one in the app, so never say you have changed something. Match each amount in a screenshot to a pot by name and provider, and use the pot ids from the figures. If you can\'t tell which pot an amount belongs to, ask rather than guess. Amounts that aren\'t balances, such as interest earned, pending payments, totals and changes, aren\'t updates.\n\n' +
+  'You explain options and trade-offs but don\'t give regulated financial advice. Keep replies short and plain, and reply in the language the user writes in.';
+const AI_TOOLS = [
+  { name: 'get_finances', description: 'Get the current pots (ids, balances, rates, maturities), monthly moves, plan and settings. Call it when figures may have changed since the conversation started, for example after the user applied a proposal.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false } },
+  { name: 'get_forecast', description: 'Get the month-by-month forecast in today\'s money: totals, the mix by group, what matures and where it goes, how much the investing plan puts in each year, and the retirement forecast. Call it for any question about the future.',
+    input_schema: { type: 'object', properties: { months: { type: 'integer', description: 'How many months ahead, 1 to 120. Default 36.' } }, additionalProperties: false } },
+  { name: 'get_tax', description: 'Get the estimated tax on savings interest for this tax year or next: taxable interest by pot, the allowance, the rate bands and the tax. Call it for tax questions.',
+    input_schema: { type: 'object', properties: { year: { type: 'string', enum: ['this', 'next'] } }, required: ['year'], additionalProperties: false } },
+  { name: 'propose_balance_updates', description: 'Propose new balances for existing pots, for example read from banking-app screenshots. The user sees the old and new balances and taps Apply.',
+    input_schema: { type: 'object', properties: {
+      date: { type: 'string', description: 'Date of the balances, YYYY-MM-DD. Leave out for today.' },
+      updates: { type: 'array', items: { type: 'object', properties: {
+        pot_id: { type: 'string' }, balance: { type: 'number', description: 'New balance in pounds' },
+        source: { type: 'string', description: 'Where the figure came from, such as the label in the screenshot' } }, required: ['pot_id', 'balance'], additionalProperties: false } } },
+    required: ['updates'], additionalProperties: false } },
+  { name: 'propose_pot_changes', description: 'Propose changes to existing pots, such as the rate, a maturity date, when an offer rate ends, the provider, a gilt\'s coupon or where maturing money goes. Include only the fields that change. The user taps Apply.',
+    input_schema: { type: 'object', properties: { changes: { type: 'array', items: { type: 'object', properties: {
+      pot_id: { type: 'string' }, name: { type: 'string' }, provider: { type: 'string' }, type: { type: 'string', enum: TYPE_ORDER },
+      rate_percent: { type: 'number', description: 'Interest or expected return a year, in percent, such as 4.5' }, rate_note: { type: 'string', description: 'Such as fixed, variable or expected' },
+      monthly_interest: { type: 'boolean' }, tax_free: { type: 'boolean' },
+      maturity: { type: 'string', description: 'YYYY-MM-DD, or an empty string to clear. Only fixed savings and gilts mature.' },
+      offer_ends: { type: 'string', description: 'YYYY-MM-DD when a bonus rate ends, or empty' }, rate_after_percent: { type: 'number', description: 'Rate after the offer ends, in percent' },
+      cap: { type: 'number', description: 'Best rate only up to this many pounds; 0 for no limit' },
+      coupon_percent: { type: 'number', description: 'A gilt\'s coupon, such as 0.125 for 0⅛%' }, nominal: { type: 'number', description: 'A gilt\'s nominal, what it repays' },
+      then_to: { type: 'string', description: 'Pot id that the money goes to when this pot matures, or empty for the main saver' }, notes: { type: 'string' } },
+      required: ['pot_id'], additionalProperties: false } } }, required: ['changes'], additionalProperties: false } },
+  { name: 'propose_new_pot', description: 'Propose adding a new pot: a savings account, ISA, bond, gilt, investment account or pension. The user taps Apply.',
+    input_schema: { type: 'object', properties: {
+      name: { type: 'string' }, provider: { type: 'string' }, type: { type: 'string', enum: TYPE_ORDER }, balance: { type: 'number' },
+      rate_percent: { type: 'number' }, rate_note: { type: 'string' }, monthly_interest: { type: 'boolean' }, tax_free: { type: 'boolean' },
+      maturity: { type: 'string', description: 'YYYY-MM-DD, for fixed savings and gilts' }, cap: { type: 'number' }, notes: { type: 'string' } },
+    required: ['name', 'type', 'balance'], additionalProperties: false } },
+  { name: 'propose_settings_changes', description: 'Propose changes to settings: taxable pay, interest already received this tax year, inflation, take-home pay, fixed costs, emergency months, extra pension from pay, the investing target, or ISA money paid in this tax year. Include only what changes. The user taps Apply.',
+    input_schema: { type: 'object', properties: {
+      taxable_pay_this_year: { type: 'number' }, taxable_pay_next_year: { type: 'number' },
+      interest_received_so_far: { type: 'number', description: 'Interest paid to them since 6 April, outside ISAs, including gilt coupons' },
+      inflation_percent: { type: 'number' }, take_home: { type: 'number', description: 'Take-home pay a month' }, fixed_costs: { type: 'number', description: 'Fixed costs a month' },
+      emergency_months: { type: 'number' }, extra_pension_monthly: { type: 'number' },
+      target_invest_percent: { type: 'number', description: 'Target share in investments and pensions, in percent' }, target_invest_by: { type: 'string', description: 'YYYY-MM-DD' },
+      isa_paid_this_year: { type: 'number' } }, additionalProperties: false } },
+];
+let chat = null;
+const newChat = () => ({ messages: [], log: [], props: [], files: [], notes: [], busy: false, cost: 0 });
+
+// What Claude sees about your money. Pot ids let its proposals name the right pot.
+function aiFinances() {
+  const s = state.settings, ls = lastSnap(), y0 = taxYearStart().getFullYear(), pc = (v) => +(Number(v || 0) * 100).toFixed(3);
+  return {
+    today: localISO(), last_update: ls ? ls.date : null, total: Math.round(total() * 100) / 100, tax_year: tyPlain(y0),
+    pots: state.pots.map((p) => Object.assign({ id: p.id, name: p.name, provider: p.provider, type: p.type, type_name: TYPES[p.type], balance: p.balance,
+      rate_percent: pc(p.rate), rate_note: p.rateNote || null, monthly_interest: p.monthly, tax_free: p.taxFree, maturity: p.maturity || null,
+      offer_ends: p.offerEnds || null, rate_after_percent: p.rateAfter == null ? null : pc(p.rateAfter), cap: p.cap || null, then_to: p.thenTo || null,
+      also_called: p.aka || null, notes: p.notes || null }, p.type === 'gilt' ? { coupon_percent: giltTerms(p).coupon == null ? null : pc(giltTerms(p).coupon), nominal: giltTerms(p).nominal || null } : {})),
+    monthly_moves: state.moves.map((m) => ({ title: m.title, amount: m.amount, from: m.from === 'pay' ? 'pay' : m.from ? potName(potById(m.from) || { name: m.from, provider: '' }) : null,
+      to: m.to ? potName(potById(m.to) || { name: m.to, provider: '' }) : null, start: m.start || null, end: m.end || null })),
+    settings: { born: s.birthYear, retire_at: s.retireAge, take_home: s.takeHome, fixed_costs: s.fixedCosts, emergency_months: s.emergencyMonths, extra_pension_monthly: s.extraPensionMonthly,
+      taxable_pay_this_year: payFor(y0) || null, taxable_pay_next_year: payFor(y0 + 1) || null, interest_received_so_far: s.interestSoFar, inflation_percent: pc(inflation()),
+      investing_plan: planMarks(s).map((m) => ({ by: m.date, share_percent: pc(m.share) })), isa_allowance: s.isaAllowance, isa_paid_this_year: Number(state.isa[taxYearKey()]) || 0 },
+  };
+}
+function aiForecast(n) {
+  const k = Math.max(1, Math.min(120, Math.round(Number(n)) || 36)), S = simulate(Math.max(horizon(), k)), M = inToday(S), rows = M.slice(S.off, S.off + k + 1);
+  const r0 = Math.round, step = k > 36 ? 6 : k > 12 ? 3 : 1, f = forecast(), invested = {};
+  rows.slice(1).forEach((m) => m.notes.forEach((nt) => { if (nt.kind === 'invest') invested[m.k.slice(0, 4)] = r0((invested[m.k.slice(0, 4)] || 0) + nt.amount); }));
+  const at = (i) => { const r = f.mid[i]; return r ? r0(r.inv + r.pot) : null; }, last = f.mid.length - 1;
+  return {
+    in_todays_money: true, inflation_percent: inflation() * 100,
+    months: rows.filter((m, i) => i % step === 0 || i === rows.length - 1).map((m) => { const g = groupSums(m.types); return { month: m.k, total: r0(m.total), easy_access: r0(g.cash), fixed_and_gilts: r0(g.fixed), investments: r0(g.invest), pension: r0(g.pension) }; }),
+    maturing: rows.flatMap((m) => m.notes.filter((nt) => nt.kind === 'mature').map((nt) => ({ date: nt.pot.maturity, pot: potName(nt.pot), amount: r0(nt.amount), then_to: potName(nt.to) }))),
+    plan_invested_by_year: invested,
+    retirement: f.years > 0 ? { at_age: state.settings.retireAge, savings_and_pensions: at(last), low: r0(f.lo[last].inv + f.lo[last].pot), high: r0(f.hi[last].inv + f.hi[last].pot),
+      income_a_year: r0(f.income.mid), income_low: r0(f.income.lo), income_high: r0(f.income.hi), guaranteed_pension_a_year: r0(f.db) } : null,
+  };
+}
+function aiTax(which) {
+  const y0 = taxYearStart().getFullYear(), y = which === 'next' ? y0 + 1 : y0, F = taxFigures(y), r0 = Math.round;
+  return {
+    tax_year: tyPlain(y), savings_rates_percent: savingsRates(y).map((x) => Math.round(x * 100)), taxable_pay: F.pay || null, taxable_interest: r0(F.interest),
+    earlier_this_tax_year: y === y0 && F.early.span ? { amount: r0(F.early.amount), users_own_figure: F.early.own } : null,
+    by_pot: state.pots.filter((p) => F.inc.taxable[p.id] > 0.5).map((p) => ({ pot: potName(p), taxable: r0(F.inc.taxable[p.id]) })),
+    tax_free_returns: r0(sum(Object.values(F.inc.free), (v) => v)),
+    tax: F.t ? { estimated_tax: r0(F.t.tax), personal_savings_allowance: F.t.psa, over_higher_rate_threshold_by: r0(F.t.overBasic), below_higher_rate_threshold_by: r0(F.t.roomBasic),
+      bands: F.t.parts.map(([amt, rate]) => ({ amount: r0(amt), rate_percent: Math.round(rate * 100) })) } : 'Not estimated: add taxable pay first.',
+  };
+}
+
+// Proposals: checked here, shown as a card, and only changed when the user taps Apply.
+const isDay = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(parseD(v));
+const money = (v, what) => { const n = Number(v); if (!Number.isFinite(n) || n < 0) throw new Error(what + ' must be a number of pounds, 0 or more.'); return Math.round(n * 100) / 100; };
+const percent = (v, what) => { const n = Number(v); if (!Number.isFinite(n) || n < 0 || n > 100) throw new Error(what + ' must be a percentage between 0 and 100.'); return n / 100; };
+const dayOrBlank = (v, what) => { if (v === '' || v == null) return ''; if (!isDay(v)) throw new Error(what + ' must be a date as YYYY-MM-DD.'); return String(v); };
+const potOf = (id) => { const p = potById(id); if (!p) throw new Error('There is no pot with id "' + id + '". Use the ids from get_finances.'); return p; };
+const POT_FIELDS = {
+  name: ['name', 'Name', (v) => String(v).trim(), (v) => v], provider: ['provider', 'Provider', (v) => String(v).trim(), (v) => v || 'none'],
+  type: ['type', 'Type', (v) => { if (!TYPES[v]) throw new Error('Unknown type ' + v); return v; }, (v) => TYPES[v]],
+  rate_percent: ['rate', 'Rate', (v) => percent(v, 'The rate'), rateTxt], rate_note: ['rateNote', 'About the rate', (v) => String(v).trim(), (v) => v || 'none'],
+  monthly_interest: ['monthly', 'Pays interest monthly', (v) => !!v, (v) => (v ? 'yes' : 'no')], tax_free: ['taxFree', 'Tax-free', (v) => !!v, (v) => (v ? 'yes' : 'no')],
+  maturity: ['maturity', 'Matures on', (v) => dayOrBlank(v, 'The maturity'), (v) => (v ? fmtDate(v) : 'none')], offer_ends: ['offerEnds', 'Offer rate ends', (v) => dayOrBlank(v, 'The offer end'), (v) => (v ? fmtDate(v) : 'none')],
+  rate_after_percent: ['rateAfter', 'Rate after the offer', (v) => (v === null ? null : percent(v, 'The rate after the offer')), (v) => (v == null ? 'same' : rateTxt(v))],
+  cap: ['cap', 'Best rate only up to', (v) => money(v, 'The cap'), (v) => (v ? gbp(v) : 'no limit')],
+  coupon_percent: ['coupon', 'Coupon', (v) => percent(v, 'The coupon'), (v) => (v == null ? 'not set' : +(v * 100).toFixed(3) + '%')], nominal: ['nominal', 'Nominal', (v) => money(v, 'The nominal'), (v) => (v ? gbp(v) : 'not set')],
+  then_to: ['thenTo', 'When it matures, to', (v) => (v ? potOf(v).id : ''), (v) => (v ? potName(potById(v)) : 'main saver')], notes: ['notes', 'Notes', (v) => String(v).trim(), (v) => v || 'none'],
+};
+const SET_FIELDS = {
+  taxable_pay_this_year: ['Taxable pay, this tax year', (s, v) => { s.taxPayNext = payFor(taxYearStart().getFullYear() + 1) === payFor(taxYearStart().getFullYear()) ? 0 : payFor(taxYearStart().getFullYear() + 1); s.taxPayThis = v; s.taxYearOf = taxYearStart().getFullYear(); }, () => payFor(taxYearStart().getFullYear()), gbp, money],
+  taxable_pay_next_year: ['Taxable pay, next tax year', (s, v) => { s.taxPayThis = payFor(taxYearStart().getFullYear()); s.taxYearOf = taxYearStart().getFullYear(); s.taxPayNext = v; }, () => payFor(taxYearStart().getFullYear() + 1), gbp, money],
+  interest_received_so_far: ['Interest received since 6 April', (s, v) => { s.interestSoFar = v; s.interestSoFarTo = localISO(); }, (s) => s.interestSoFar, (v) => (v == null ? 'estimated' : gbp(v)), money],
+  inflation_percent: ['Inflation a year', (s, v) => { s.inflation = v; }, (s) => s.inflation, (v) => pct(v, 1), percent],
+  take_home: ['Take-home pay a month', (s, v) => { s.takeHome = v; }, (s) => s.takeHome, gbp, money],
+  fixed_costs: ['Fixed costs a month', (s, v) => { s.fixedCosts = v; }, (s) => s.fixedCosts, gbp, money],
+  emergency_months: ['Emergency cash, months', (s, v) => { s.emergencyMonths = Math.round(v); }, (s) => s.emergencyMonths, (v) => String(v), (v) => { const n = Number(v); if (!(n >= 0 && n <= 36)) throw new Error('Emergency months must be 0 to 36.'); return n; }],
+  extra_pension_monthly: ['Extra pension from pay a month', (s, v) => { s.extraPensionMonthly = v; }, (s) => s.extraPensionMonthly, gbp, money],
+  target_invest_percent: ['Target in investments and pensions', (s, v) => { s.targetShares = v; }, (s) => s.targetShares, (v) => pct(v), percent],
+  target_invest_by: ['Reach the target by', (s, v) => { s.targetSharesBy = v; }, (s) => s.targetSharesBy, (v) => (v ? fmtDate(v) : 'not set'), (v) => { if (!isDay(v)) throw new Error('The target date must be YYYY-MM-DD.'); return String(v); }],
+  isa_paid_this_year: ['ISA paid in this tax year', (s, v) => { state.isa[taxYearKey()] = v; }, () => Number(state.isa[taxYearKey()]) || 0, gbp, money],
+};
+function aiPropose(name, x) {
+  let title, rows, apply;
+  if (name === 'propose_balance_updates') {
+    const date = isDay(x.date) ? x.date : localISO(), ups = (x.updates || []).map((u) => ({ p: potOf(u.pot_id), b: money(u.balance, 'A balance'), src: String(u.source || '').trim() }));
+    if (!ups.length) throw new Error('No updates were given.');
+    title = 'Update ' + ups.length + ' balance' + (ups.length === 1 ? '' : 's') + ', ' + fmtDate(date);
+    rows = ups.map((u) => [potName(u.p), u.src ? 'From “' + u.src + '”' : '', gbp2(u.p.balance) + ' → ' + gbp2(u.b)]);
+    apply = () => {
+      const now = ups.map((u) => { const q = potById(u.p.id); if (!q) throw new Error(u.p.name + ' has been deleted'); return q; });
+      now.forEach((q, i) => { q.balance = ups[i].b; });
+      const balances = {};
+      state.pots.forEach((p) => { balances[p.id] = p.balance; });
+      state.snapshots = state.snapshots.filter((s) => s.date !== date).concat([{ date, balances }]).sort((a, b) => a.date.localeCompare(b.date));
+    };
+  } else if (name === 'propose_pot_changes') {
+    const all = (x.changes || []).map((c) => {
+      const p = potOf(c.pot_id), sets = Object.keys(c).filter((k) => k !== 'pot_id').map((k) => { const f = POT_FIELDS[k]; if (!f) throw new Error('Unknown field ' + k); return [f, f[2](c[k])]; });
+      if (!sets.length) throw new Error('No changes were given for ' + p.name + '.');
+      const ty = c.type || p.type;
+      if ((c.maturity || c.then_to) && !MATURES.has(ty)) throw new Error(p.name + ' is ' + TYPES[ty] + ', which has no maturity date. Only fixed savings and gilts mature.');
+      return { p, sets };
+    });
+    if (!all.length) throw new Error('No changes were given.');
+    title = 'Change ' + all.length + ' pot' + (all.length === 1 ? '' : 's');
+    rows = all.flatMap(({ p, sets }) => sets.map(([f, v]) => [potName(p), f[1], f[3](p[f[0]]) + ' → ' + f[3](v)]));
+    apply = () => {
+      const now = all.map(({ p }) => { const q = potById(p.id); if (!q) throw new Error(p.name + ' has been deleted'); return q; });
+      now.forEach((q, i) => {
+        all[i].sets.forEach(([f, v]) => { q[f[0]] = v; });
+        if (!MATURES.has(q.type)) { q.maturity = ''; q.thenTo = ''; }
+      });
+    };
+  } else if (name === 'propose_new_pot') {
+    const name2 = String(x.name || '').trim();
+    if (!name2) throw new Error('The new pot needs a name.');
+    if (!TYPES[x.type]) throw new Error('Unknown type ' + x.type);
+    const p = { id: uid(), name: name2, provider: String(x.provider || '').trim(), type: x.type, balance: money(x.balance, 'The balance'), rate: x.rate_percent == null ? 0 : percent(x.rate_percent, 'The rate'),
+      rateNote: String(x.rate_note || ''), monthly: !!x.monthly_interest, maturity: MATURES.has(x.type) ? dayOrBlank(x.maturity, 'The maturity') : '', offerEnds: '', cap: x.cap ? money(x.cap, 'The cap') : 0,
+      taxFree: !!x.tax_free, notes: String(x.notes || ''), rateAfter: null, thenTo: '', coupon: null, nominal: 0, aka: '' };
+    title = 'Add a pot';
+    rows = [[potName(p), TYPES[p.type] + (p.rate ? ', ' + rateTxt(p.rate) : '') + (p.maturity ? ', matures ' + fmtDate(p.maturity) : '') + (p.taxFree ? ', tax-free' : ''), gbp2(p.balance)]];
+    apply = () => { state.pots.push(p); };
+  } else {
+    const s = state.settings, sets = Object.keys(x).map((k) => { const f = SET_FIELDS[k]; if (!f) throw new Error('Unknown setting ' + k); return [f, f[4](x[k], f[0])]; });
+    if (!sets.length) throw new Error('No changes were given.');
+    title = 'Change ' + sets.length + ' setting' + (sets.length === 1 ? '' : 's');
+    rows = sets.map(([f, v]) => [f[0], '', f[3](f[2](s)) + ' → ' + f[3](v)]);
+    apply = () => sets.forEach(([f, v]) => f[1](state.settings, v));
+  }
+  const id = chat.props.length;
+  chat.props.push({ title, rows, apply, status: 'open' });
+  chat.log.push({ kind: 'prop', id });
+  return 'Shown to the user as proposal ' + (id + 1) + ' with an Apply button. They can see the details, so don\'t repeat them.';
+}
+function aiRunTool(u) {
+  let out, bad = false;
+  try {
+    const x = u.input || {};
+    if (u.name === 'get_finances') out = aiFinances();
+    else if (u.name === 'get_forecast') out = aiForecast(x.months);
+    else if (u.name === 'get_tax') out = aiTax(x.year);
+    else if (/^propose_/.test(u.name) && AI_TOOLS.some((t) => t.name === u.name)) out = aiPropose(u.name, x);
+    else throw new Error('Unknown tool ' + u.name);
+  } catch (e) { out = (e && e.message) || String(e); bad = true; }
+  return Object.assign({ type: 'tool_result', tool_use_id: u.id, content: typeof out === 'string' ? out : JSON.stringify(out) }, bad ? { is_error: true } : {});
+}
+
+async function aiCall(messages) {
+  const c = aiConf(), m = aiModel(), fallback = m[0] !== 'claude-haiku-5-5';
+  const headers = { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
+  // Opus and Sonnet can decline a request; server-side fallback retries it on the model Anthropic recommends.
+  if (fallback) headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
+  const body = { model: m[0], max_tokens: 16000, system: AI_SYSTEM, tools: AI_TOOLS, messages, output_config: { effort: 'medium' }, cache_control: { type: 'ephemeral' } };
+  if (fallback) body.fallbacks = 'default';
+  let res;
+  try { res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) }); } catch (e) { throw new Error('Couldn’t reach Anthropic. Check your connection and try again.'); }
+  const data = await res.json().catch(() => null);
+  if (res.ok && data) return data;
+  const msg = data && data.error && data.error.message ? data.error.message : 'HTTP ' + res.status;
+  throw new Error(res.status === 401 ? 'Anthropic didn’t accept the API key. Check it in More, under Assistant.'
+    : res.status === 429 ? 'Too many requests for now. Wait a minute and try again.'
+    : res.status === 529 || res.status >= 500 ? 'Claude is busy right now. Try again in a moment.'
+    : 'Anthropic said: ' + msg);
+}
+function aiCost(u) {
+  if (!u) return;
+  const m = aiModel();
+  chat.cost += ((u.input_tokens || 0) * m[3] + (u.cache_creation_input_tokens || 0) * m[3] * 1.25 + (u.cache_read_input_tokens || 0) * m[5] + (u.output_tokens || 0) * m[4]) / 1e6;
+}
+// When a declined reply is re-run on another model, only text is kept from before the switch.
+const aiKeep = (content) => { const cut = content.map((b) => b.type).lastIndexOf('fallback'); return content.filter((b, i) => i >= cut || b.type === 'text'); };
+async function aiSend() {
+  if (!chat || chat.busy) return;
+  const c = chat, ta = $('#chatin'), q = ta ? ta.value.trim() : '';
+  if (!q && !c.files.length) { toast('Type a question or add screenshots'); return; }
+  const question = q || 'Please read these screenshots and update my balances.', content = [];
+  if (!c.messages.length) content.push({ type: 'text', text: 'Figures from the app:\n' + JSON.stringify(aiFinances()) });
+  if (c.notes.length) content.push({ type: 'text', text: c.notes.join('\n') });
+  c.files.forEach((f) => content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.data } }));
+  content.push({ type: 'text', text: question });
+  c.log.push({ kind: 'me', text: question, imgs: c.files.map((f) => f.thumb) });
+  // The history only ever grows: a message that failed to send gets the next one added to it.
+  const before = c.messages.slice(), notes = c.notes, last = before[before.length - 1], lastContent = last && last.content;
+  if (last && last.role === 'user') last.content = last.content.concat(content); else c.messages.push({ role: 'user', content });
+  c.notes = []; c.files = [];
+  if (ta) { ta.value = ''; ta.style.height = ''; }
+  c.busy = true; paintFiles(); paintChat();
+  try {
+    for (let i = 0; ; i++) {
+      if (i === 8) { c.log.push({ kind: 'err', text: 'That took too many steps. Ask again to carry on.' }); break; }
+      const res = await aiCall(c.messages);
+      if (chat !== c) return; // a new chat was started meanwhile
+      aiCost(res.usage);
+      // A declined question is taken back out, so it doesn't colour what comes next.
+      if (res.stop_reason === 'refusal') {
+        c.messages = before; if (last) last.content = lastContent; c.notes = notes.concat(c.notes);
+        c.log.push({ kind: 'err', text: 'Claude declined to answer that, so it’s been left out of this chat. Try asking another way.' });
+        break;
+      }
+      const out = aiKeep(res.content), uses = out.filter((b) => b.type === 'tool_use');
+      if (out.length) c.messages.push({ role: 'assistant', content: out });
+      const said = out.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n').trim();
+      if (said) c.log.push({ kind: 'ai', text: said });
+      if (res.stop_reason !== 'tool_use') {
+        // A reply that was cut off may hold a half-written change, which is never run.
+        if (uses.length) c.messages.push({ role: 'user', content: uses.map((u) => ({ type: 'tool_result', tool_use_id: u.id, is_error: true, content: 'Not run: the reply was cut off.' })) });
+        if (res.stop_reason === 'max_tokens') c.log.push({ kind: 'err', text: 'That answer was too long and got cut off. Try asking for less at once.' });
+        if (res.stop_reason === 'model_context_window_exceeded') c.log.push({ kind: 'err', text: 'This chat has got too long. Tap New chat to start a fresh one.' });
+        break;
+      }
+      if (!uses.length) break;
+      c.messages.push({ role: 'user', content: uses.map(aiRunTool) });
+      paintChat();
+    }
+  } catch (e) { if (chat !== c) return; c.log.push({ kind: 'err', text: e.message }); }
+  c.busy = false;
+  paintChat();
+}
+
+// Screenshots are shrunk to 1568 pixels on the long side, the size Claude reads best, before they're sent.
+function aiImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1568 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve({ data: c.toDataURL('image/jpeg', 0.85).split(',')[1], thumb: c.toDataURL('image/jpeg', 0.4) });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Couldn’t read that picture')); };
+    img.src = url;
+  });
+}
+async function aiAddFiles(list) {
+  const files = Array.from(list || []).slice(0, Math.max(0, 8 - chat.files.length));
+  for (const f of files) { try { chat.files.push(await aiImage(f)); } catch (e) { toast(e.message); } }
+  if ((list || []).length > files.length) toast('Up to 8 screenshots at a time');
+  paintFiles();
+}
+function paintFiles() {
+  const box = $('#chatfiles');
+  if (!box || !chat) return;
+  box.hidden = !chat.files.length;
+  box.innerHTML = chat.files.map((f) => '<img src="' + f.thumb + '" alt="Screenshot to send">').join('') + (chat.files.length ? '<button type="button" class="linkbtn quiet" data-act="chat-unfile">Remove</button>' : '');
+}
+// Replies may use a little Markdown: paragraphs, bullet lists and bold.
+const mdLite = (t) => esc(t).split(/\n{2,}/).map((para) => {
+  const lines = para.split('\n');
+  if (lines.every((l) => /^\s*[-•*]\s+/.test(l))) return '<ul>' + lines.map((l) => '<li>' + l.replace(/^\s*[-•*]\s+/, '') + '</li>').join('') + '</ul>';
+  return '<p>' + lines.join('<br>') + '</p>';
+}).join('').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+function chatItem(it) {
+  if (it.kind === 'me') return '<div class="msg me">' + (it.imgs.length ? '<div class="imgs">' + it.imgs.map((s) => '<img src="' + s + '" alt="Screenshot">').join('') + '</div>' : '') + esc(it.text) + '</div>';
+  if (it.kind === 'ai') return '<div class="msg ai">' + mdLite(it.text) + '</div>';
+  if (it.kind === 'err') return '<div class="msg err">' + esc(it.text) + '</div>';
+  const p = chat.props[it.id];
+  return '<div class="prop' + (p.status === 'open' ? '' : ' done') + '"><p class="t">' + esc(p.title) + '</p><ul class="rows">' +
+    p.rows.map(([a, b, c]) => '<li><span class="main"><span class="t2">' + esc(a) + '</span>' + (b ? '<span class="s">' + esc(b) + '</span>' : '') + '</span><span class="v">' + esc(c) + '</span></li>').join('') + '</ul>' +
+    (p.status === 'open' ? '<div class="row-actions"><button type="button" class="btn primary" data-act="prop-apply" data-id="' + it.id + '">Apply</button><button type="button" class="btn quiet" data-act="prop-skip" data-id="' + it.id + '">Not now</button></div>'
+      : '<p class="note">' + (p.status === 'applied' ? 'Applied.' : 'Not applied.') + '</p>') + '</div>';
+}
+function paintChat() {
+  const box = $('#chatlog');
+  if (!box || !chat) return;
+  const m = aiModel();
+  box.innerHTML = '<p class="note chatmeta">' + esc(m[1]) + (chat.cost >= 0.005 ? ', about $' + chat.cost.toFixed(2) + ' so far' : '') + '. Your question, your figures and any screenshots go to Anthropic. Changes wait for you to apply them.</p>' +
+    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Add screenshots from your banking apps and I’ll update your balances, or ask me anything about your money, forecast or tax.</p></div>') +
+    chat.log.map(chatItem).join('') + (chat.busy ? '<div class="msg ai pending">Thinking…</div>' : '');
+  const sp = $('#sheet .sheetp');
+  if (sp) sp.scrollTop = sp.scrollHeight;
+  const send = $('#sheet button[type="submit"]');
+  if (send) send.disabled = chat.busy;
+}
+function aiDecide(id, ok) {
+  const p = chat && chat.props[id];
+  if (!p || p.status !== 'open') return;
+  if (ok) {
+    if (!state) { toast('Add your figures first'); return; }
+    try { p.apply(); } catch (e) { toast(e.message); return; }
+    save(); render();
+    toast('Applied');
+  }
+  p.status = ok ? 'applied' : 'skipped';
+  chat.notes.push('(The user ' + (ok ? 'applied' : 'chose not to apply') + ' proposal ' + (id + 1) + ': ' + p.title + '.)');
+  paintChat();
+}
+function openAssistant(pick) {
+  if (!aiConf().key) { openAiSetup(() => openAssistant(pick)); return; }
+  if (!chat) chat = newChat();
+  openSheet('Assistant', '<div id="chatlog" class="chatlog" role="log" aria-live="polite"></div>', () => { aiSend(); return false; }, {
+    cls: 'chat', label: 'Send', noCancel: true, head: '<button type="button" class="linkbtn" data-act="chat-new">New chat</button>',
+    extra: '<div class="composer"><div id="chatfiles" class="thumbs" hidden></div><div class="crow"><label class="icon-btn" aria-label="Add screenshots">' + IC.photo +
+      '<input type="file" accept="image/*" multiple class="vh" data-act="chat-files"></label><textarea id="chatin" name="q" rows="1" placeholder="Ask, or add screenshots" autocomplete="off"></textarea></div></div>' });
+  paintChat(); paintFiles();
+  if (pick) { const f = $('#sheet input[data-act="chat-files"]'); if (f) f.click(); }
+}
+function openAiSetup(then) {
+  const c = aiConf();
+  openSheet('Assistant', '<p class="note">The assistant is Claude, from Anthropic. Create an API key in the Claude Console (platform.claude.com) under API keys, and paste it here. It stays on this phone and isn’t included in backups. Anthropic bills your account for each question: usually a few pence, a little more with screenshots.</p>' +
+    '<label class="f"><span>Anthropic API key' + (c.key ? '<small>Saved, ending ' + esc(c.key.slice(-4)) + '. Leave blank to keep it.</small>' : '') + '</span><input name="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…"></label>' +
+    selectField('model', 'Model', aiModel()[0], AI_MODELS.map((m) => [m[0], m[1] + ', ' + m[2]]), 'Per million tokens: ' + AI_MODELS.map((m) => m[1].replace('Claude ', '') + ' $' + m[3] + ' in, $' + m[4] + ' out').join('; ')), (fd) => {
+    const key = String(fd.get('key') || '').trim();
+    if (!key && !c.key) { toast('Paste your API key'); return false; }
+    if (key && !/^sk-ant-/.test(key)) { toast('That doesn’t look like an Anthropic API key'); return false; }
+    const was = aiModel()[0];
+    aiSave(Object.assign({}, c, { key: key || c.key, model: String(fd.get('model') || AI_MODELS[0][0]) }));
+    if (aiModel()[0] !== was) chat = null;
+    toast('Assistant ready');
+    if (then) setTimeout(then, 0);
+  });
+}
+
 /* ---------- backup ---------- */
 async function exportData() {
   const name = 'money-backup-' + localISO() + '.json';
@@ -2288,6 +2697,14 @@ document.addEventListener('click', (e) => {
     case 'share-mode': shareMode = id; paintShare(); break;
     case 'share-go': shareGo(); break;
     case 'share-copy': copyText(shareText); break;
+    case 'assistant': openAssistant(false); break;
+    case 'assistant-shots': closeSheet(); openAssistant(true); break;
+    case 'ai-setup': openAiSetup(null); break;
+    case 'ai-forget': confirmSheet('Remove the API key?', 'The assistant stops working on this phone until you add a key again. Your figures aren’t affected.', 'Remove', () => { aiSave(null); chat = null; toast('Key removed'); }); break;
+    case 'chat-new': chat = newChat(); paintChat(); paintFiles(); break;
+    case 'chat-unfile': if (chat) { chat.files = []; paintFiles(); } break;
+    case 'prop-apply': aiDecide(Number(id), true); break;
+    case 'prop-skip': aiDecide(Number(id), false); break;
     case 'fc': ui.fc = id; saveUi(); render(true); break;
     case 'range': ui.range = Number(id) || 36; ui.allMonths = false; saveUi(); render(true); break;
     case 'month': openMonth(id); break;
@@ -2322,7 +2739,8 @@ document.addEventListener('change', (e) => {
     const f = el.files && el.files[0];
     el.value = '';
     if (f) importFile(f);
-  } else if (el.matches && el.matches('#sheet select.pick')) pickPot(el);
+  } else if (el.matches && el.matches('#sheet input[data-act="chat-files"]')) { const fs = el.files; aiAddFiles(fs).then(() => { el.value = ''; }); }
+  else if (el.matches && el.matches('#sheet select.pick')) pickPot(el);
   else if (el.matches && el.matches('#sheet select[name="type"]')) {
     const g = $('#sheet .gilt-only'), m = $('#sheet .mature-only');
     if (g) g.hidden = el.value !== 'gilt';
@@ -2330,6 +2748,8 @@ document.addEventListener('change', (e) => {
   }
 });
 // Pasting into the box finds the balances straight away.
+// The question box grows with what you type.
+document.addEventListener('input', (e) => { const t = e.target; if (t.id === 'chatin') { t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; } });
 document.addEventListener('paste', (e) => { if (e.target.matches && e.target.matches('#sheet textarea[name="paste"]')) setTimeout(detectBalances, 0); });
 window.addEventListener('hashchange', () => { render(true); window.scrollTo(0, 0); });
 document.addEventListener('keydown', (e) => {
