@@ -13,6 +13,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Tax**: the tax on your savings interest for this tax year and next, where the interest comes from, and ways to pay less. Add your taxable pay once and it works out your band, your Personal Savings Allowance and the tax. Gilts count only their coupons, which the app reads from a gilt's name or notes (such as "0⅜% Treasury Gilt 2030"). It uses the rules for England, Wales and Northern Ireland, with savings tax at 24%, 44% and 49% from 6 April 2027. It's an estimate, not tax advice.
 - **Share with family**: a full report in Chinese and English, as a long picture (good for WeChat), a PDF or text, from the share button on Home or from **More**. It covers every account, the next three years, what matures and where the money goes, savings plans, tax, the long-term outlook and a plain explanation of each kind of account. Never account numbers.
 - **Assistant** (optional): ask Claude about your money, or give it screenshots from your banking apps and it reads the balances for you. Nothing changes until you tap **Apply**. It needs your own Anthropic API key (see below).
+- **Face ID and passcode** (optional): the app locks when it opens and after time away. Face ID unlocks it, and a 6-digit passcode does if Face ID doesn't work.
 - **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
 
 ## Switch on the website (once)
@@ -34,6 +35,17 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - Tap **Update balances**. Either type the figures in, or paste them: take a screenshot in each banking app, open it in Photos, tap the Live Text button, then **Copy All**, and paste into the box at the top. The app finds the £ amounts, fills in the pots it recognises and asks once about the rest. It remembers your answers next time. If you've set up the assistant, you can tap **Let Claude read the screenshots** instead.
 - Tick off the month's money moves on **Monthly**.
 - Every month or two, go to **More**, then **Back up to a file**, and save it to iCloud Drive. That backup is how you restore everything on a new phone.
+
+## Face ID and passcode (optional)
+
+1. Go to **More**, then **Face ID and passcode**, then **Turn on Face ID**.
+2. Choose a 6-digit passcode and enter it twice. It's for when Face ID doesn't work, so don't use your bank card PIN.
+3. Tap **Turn on Face ID**. Your iPhone offers to save a passkey for the app: that's how Face ID works for web apps. Allow it.
+
+- **Opening the app**: Face ID unlocks it. If Face ID fails or you cancel it, tap **Use passcode** and type your passcode.
+- **When it locks**: when the app opens, and when you come back after a minute away. Change this under **Ask for it**, or tap **Lock now**.
+- **If you forget the passcode**: tap **Forgot passcode?**. With Face ID, you can choose a new passcode. Without it, the only way in is to delete the figures on this phone and restore your backup file.
+- **What it protects**: it stops anyone who picks up your phone from opening Money Snapshot. Only a scrambled (hashed) version of the passcode is stored. The passcode, Face ID and your API key aren't in backups, so on a new phone you set them up again.
 
 ## The assistant (optional)
 
@@ -57,7 +69,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## A new icon
 
-iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, then **Back up**, and save the file. Then remove the app from your Home Screen, add it again from Safari and tap **Restore**. Removing it also removes the figures stored inside it, which is why the backup comes first.
+iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, then **Back up**, and save the file. Then remove the app from your Home Screen, add it again from Safari and tap **Restore**. Removing it also removes the figures stored inside it, which is why the backup comes first. Your passcode, Face ID and API key aren't in the backup, so set them up again afterwards.
 
 ## Why it doesn't connect to your bank
 
