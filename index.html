@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>Money Snapshot</title>
 <meta name="description" content="A private money tracker that keeps everything on your device.">
-<meta name="theme-color" content="#F6F7F4">
+<meta name="theme-color" content="#FFF8F2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -237,7 +237,7 @@ body.no-tabs .tabs { display: none; }
 .th .sw-evergreen { background: linear-gradient(135deg, #F6F7F4 50%, #115B3E 50%); }
 .th .sw-midnight { background: linear-gradient(135deg, #0A0D14 50%, #D9B36C 50%); }
 .th .sw-aurora { background: linear-gradient(135deg, #4F46E5, #7C3AED 50%, #DB2777); }
-.th .sw-paper { background: linear-gradient(135deg, #FFF1E5 50%, #990F3D 50%); }
+.th .sw-paper { background: linear-gradient(135deg, #FFF8F2 50%, #990F3D 50%); }
 
 /* Midnight: private-banking calm, champagne gold on deep navy. Always dark. */
 :root[data-theme="midnight"] {
@@ -306,12 +306,12 @@ body.no-tabs .tabs { display: none; }
 
 /* Paper: the look of a financial newspaper. Serif figures, claret ink, fine rules. Always light. */
 :root[data-theme="paper"] {
-  --bg: #FFF1E5; --surface: #FFF1E5; --ink: #1D1A18; --ink-2: #4A4340; --muted: #6B615C; --line: #E6D2C1; --fill: #F7E3D2; --seg-on: #FFF1E5;
-  --brand: #990F3D; --brand-ink: #FFF1E5; --brand-soft: #F2D3D3;
+  --bg: #FFF8F2; --surface: #FFF8F2; --ink: #1D1A18; --ink-2: #4A4340; --muted: #6B615C; --line: #EEDDD0; --fill: #F8EBE0; --seg-on: #FFF8F2;
+  --brand: #990F3D; --brand-ink: #FFF8F2; --brand-soft: #F6DCDC;
   --ok: #0A6B4F; --warn: #8A4F00; --bad: #B3261E; --info: #0D5C8A;
   --g-cash: #6FBAB9; --g-fixed: #3B969A; --g-invest: #03707C; --g-pension: #004B5B;
-  --grid: #EBD9CA; --shadow: none; --scrim: rgba(40, 20, 10, .3); --tabbar: rgba(255, 241, 229, .92);
-  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFF1E5' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
+  --grid: #F0E3D8; --shadow: none; --scrim: rgba(40, 20, 10, .3); --tabbar: rgba(255, 248, 242, .92);
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFF8F2' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-8.5'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 :root[data-theme="paper"] .num, :root[data-theme="paper"] .fig, :root[data-theme="paper"] .fv { font-family: var(--serif); font-weight: 600; letter-spacing: -0.015em; }
@@ -332,7 +332,7 @@ body.no-tabs .tabs { display: none; }
 :root[data-theme="paper"] .seg button[aria-pressed="true"], :root[data-theme="paper"] .mini button[aria-pressed="true"], :root[data-theme="paper"] .ranges button[aria-pressed="true"] { background: transparent; color: var(--ink); box-shadow: inset 0 -2px 0 var(--brand); }
 :root[data-theme="paper"] .th { background: transparent; box-shadow: inset 0 0 0 1px var(--line); border-radius: 8px; }
 :root[data-theme="paper"] .th[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
-:root[data-theme="paper"] .sheetp, :root[data-theme="paper"] .sheetp > header, :root[data-theme="paper"] .sheetp > footer { background: #FFF6EE; }
+:root[data-theme="paper"] .sheetp, :root[data-theme="paper"] .sheetp > header, :root[data-theme="paper"] .sheetp > footer { background: #FFFCF9; }
 :root[data-theme="paper"] .f input, :root[data-theme="paper"] .f select { background: #FFF; }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -491,13 +491,13 @@ function save() {
 }
 
 // View choices, such as which split or forecast range is showing. Kept apart from your figures.
-const ui = { split: 'type', fc: 'months', range: 36, theme: 'evergreen', allMonths: false };
+const ui = { split: 'type', fc: 'months', range: 36, theme: 'paper', allMonths: false };
 try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}'), { allMonths: false }); } catch (e) { /* defaults are fine */ }
 const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ split: ui.split, fc: ui.fc, range: ui.range, theme: ui.theme })); } catch (e) { /* not essential */ } };
 
-const THEMES = [['evergreen', 'Evergreen'], ['midnight', 'Midnight'], ['aurora', 'Aurora'], ['paper', 'Paper']];
+const THEMES = [['paper', 'Paper'], ['evergreen', 'Evergreen'], ['midnight', 'Midnight'], ['aurora', 'Aurora']];
 function applyTheme() {
-  if (!THEMES.some(([id]) => id === ui.theme)) ui.theme = 'evergreen';
+  if (!THEMES.some(([id]) => id === ui.theme)) ui.theme = 'paper';
   document.documentElement.setAttribute('data-theme', ui.theme);
   const meta = $('meta[name="theme-color"]'), bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   if (meta && bg) meta.setAttribute('content', bg);
@@ -953,7 +953,7 @@ document.addEventListener('focusout', (e) => { if (scrub && e.target === scrub.s
 
 /* ---------- view parts ---------- */
 const exampleBanner = () => '<div class="banner"><span>These are example figures, not yours.</span><button class="linkbtn" data-act="clear-example">Clear</button></div>';
-const ICON = '<svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#115B3E"/><rect x="15" y="35" width="9" height="15" rx="2.5" fill="#9CE8BF"/><rect x="27.5" y="27" width="9" height="23" rx="2.5" fill="#DDF5E7"/><rect x="40" y="18" width="9" height="32" rx="2.5" fill="#fff"/></svg>';
+const ICON = '<svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#990F3D"/><rect x="15" y="35" width="9" height="15" rx="2.5" fill="#F6D6C8"/><rect x="27.5" y="27" width="9" height="23" rx="2.5" fill="#FCEADE"/><rect x="40" y="18" width="9" height="32" rx="2.5" fill="#FFF8F2"/></svg>';
 const seg = (act, opts, on, label, cls) => '<div class="' + (cls || 'seg') + '" role="group" aria-label="' + esc(label) + '">' + opts.map(([v, l, aria]) => '<button type="button" data-act="' + act + '" data-id="' + v + '" aria-pressed="' + (String(v) === String(on)) + '"' + (aria ? ' aria-label="' + esc(aria) + '"' : '') + '>' + esc(l) + '</button>').join('') + '</div>';
 const fact = (label, value, note) => '<div><p class="fl">' + esc(label) + '</p><p class="fv">' + esc(value) + '</p><p class="fs">' + esc(note) + '</p></div>';
 const row = (label, value, strong) => '<li><span class="main"><span class="' + (strong ? 't' : 't2') + '">' + esc(label) + '</span></span><span class="v' + (strong ? '' : ' plain') + '">' + esc(value) + '</span></li>';

@@ -10,7 +10,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Forecast, month by month**: every pot projected for 1, 2, 3 or 5 years. Slide your finger along the chart to see the total and the mix for any month. It also shows when each fixed saver or gilt unlocks and what it will be worth.
 - **Forecast, to retirement**: the long-term picture in today's money, with low, central and high cases.
 - **Pots** and **Monthly**: your accounts, this month's money moves to tick off, interest and your ISA allowance.
-- **Appearance**: four styles under **More**: Evergreen, Midnight, Aurora and Paper.
+- **Appearance**: Paper by default, with Evergreen, Midnight and Aurora under **More**.
 
 ## Switch on the website (once)
 
