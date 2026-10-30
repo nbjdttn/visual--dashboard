@@ -1,0 +1,6 @@
+# Your figures stay on your phone. Never commit a starting file or a backup.
+*.json
+!manifest.webmanifest
+my-money*
+money-backup*
+.DS_Store
