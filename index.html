@@ -523,7 +523,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 03:05';
+const VERSION = '31 Oct 2026, 11:30';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1192,10 +1192,10 @@ const retireText = (d) => 'At ' + Math.round(d.age) + ', in today’s money. Ran
 function retireChart(ser) {
   const W = 340, H = 200, T = 10, B = 22, L = 2, R = 46;
   const a0 = ser[0].age, a1 = ser[ser.length - 1].age;
-  const rg = niceRange(0, Math.max.apply(null, ser.map((d) => d.hi)), 4);
+  const rg = niceRange(0, Math.max.apply(null, ser.map((d) => Math.max(d.hi, d.alt || 0))), 4);
   const x = (a) => L + (a - a0) / (a1 - a0) * (W - L - R), y = (v) => T + (1 - (v - rg.lo) / (rg.hi - rg.lo)) * (H - T - B);
   const pts = (k) => ser.map((d) => [x(d.age), y(d[k])]);
-  const Pm = pts('mid'), Pp = pts('pot'), Ph = pts('hi'), Pl = pts('lo').reverse(), Pa = pts('alt'), e = Pm[Pm.length - 1];
+  const Pm = pts('mid'), Pp = pts('pot'), Ph = pts('hi'), Pl = pts('lo').reverse(), Pa = ser[0].alt == null ? null : pts('alt'), e = Pm[Pm.length - 1];
   const band = at0(Ph[0]) + curve(Ph).join('') + 'L' + f1(Pl[0][0]) + ',' + f1(Pl[0][1]) + curve(Pl).join('') + 'Z';
   const every = a1 - a0 > 24 ? 10 : 5;
   let xt = '';
@@ -1204,7 +1204,7 @@ function retireChart(ser) {
   CH.retire = { W, H, T, B, n: ser.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(ser.length - 1) };
   return '<div class="chartbox">' + chartSvg('retire', W, H, 'Forecast by age, in today’s money', guides(rg, y, L, W - R) +
     '<path d="' + band + '" class="band fade"/><path d="' + at0(Pp[0]) + curve(Pp).join('') + '" class="ln pen draw" pathLength="1"/>' +
-    '<path d="' + at0(Pa[0]) + curve(Pa).join('') + '" class="ln alt fade"/>' +
+    (Pa ? '<path d="' + at0(Pa[0]) + curve(Pa).join('') + '" class="ln alt fade"/>' : '') +
     '<path d="' + at0(Pm[0]) + curve(Pm).join('') + '" class="ln draw" pathLength="1"/><circle cx="' + f1(e[0]) + '" cy="' + f1(e[1]) + '" r="4.5" class="end fade"/>' + xt) + '</div>';
 }
 
@@ -1481,18 +1481,42 @@ function vMonths() {
     '<div class="row-actions"><button class="btn quiet" data-act="table">Every month</button><button class="btn quiet" data-act="how">How this works</button></div>';
 }
 
+// Shares, and pensions invested in them, fall 40% in a year, as in 2008, once your money is at the mix. How much that
+// knocks off, and how many years to get back to where it was, growing at the app's average rates with no new money:
+// in pounds on your statements, and after inflation.
+function crashTest(share) {
+  const s = state.settings, pot = sum(state.pots.filter((p) => p.type === 'pension'), (p) => p.balance), inv = total() - pot;
+  const risky = inv * share + pot, safe = inv * (1 - share), before = risky + safe;
+  const back = (infl) => {
+    const rs = (1 + s.sharesMid) * (1 + infl) - 1, rc = (1 + s.safeMid) * (1 + infl) - 1;
+    for (let t = 1; t <= 40; t++) if (risky * 0.6 * Math.pow(1 + rs, t) + safe * Math.pow(1 + rc, t) >= before) return t;
+    return null;
+  };
+  return { fall: risky * 0.4, frac: before > 0 ? risky * 0.4 / before : 0, statements: back(inflation()), real: back(0) };
+}
+const yrs = (n) => (n == null ? 'over 40 years' : n + ' year' + (n === 1 ? '' : 's'));
+function crashSection(f, mixes) {
+  if (!(total() > 0)) return '';
+  return '<section class="sec"><h2>If shares fell like 2008</h2><div class="panel"><ul class="rows">' + mixes.map(([label, share]) => {
+    const c = crashTest(share);
+    return '<li><span class="main"><span class="t2">' + esc(label + ', ' + pct(share) + ' in shares') + '</span><span class="s">Back in about ' + esc(yrs(c.statements)) + ' on your statements, ' + esc(yrs(c.real)) + ' after inflation</span></span><span class="end"><span class="v">−' + gbp(c.fall) + '</span><span class="vs down">' + pct(c.frac) + '</span></span></li>';
+  }).join('') + '</ul></div><p class="note">If shares, and pensions invested in them, fell 40%, about as much as from late 2007 to early 2009, once your money is at that mix. After the fall, everything grows at the average rates above and no new money goes in, so saving more gets you back sooner. Markets have often recovered faster: world shares, with dividends, took from a few months (2020) to about six years (after 2000) to regain their old highs. One country on its own can take far longer: Japan’s share prices took 34 years to pass their 1989 peak.</p></section>';
+}
 function vRetire() {
   const s = state.settings, f = forecast(), end = f.mid[f.mid.length - 1];
   const tot = (r) => r.inv + r.pot;
-  const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]), alt: tot(f.cautious[i]) }));
-  const last = ser[ser.length - 1], gap = last.mid - last.alt, gapIncome = f.income.mid - f.income.cautious;
+  // The comparison line and section only show when the other mix differs from the plan.
+  const other = Math.abs(f.cautiousShare - f.target) >= 0.01, kind = f.cautiousShare < f.target ? 'Cautious' : 'Bolder';
+  const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]), alt: other ? tot(f.cautious[i]) : null }));
+  const last = ser[ser.length - 1], gap = other ? last.mid - last.alt : 0, gapIncome = f.income.mid - f.income.cautious;
   return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last)) + '</p></header>' +
-    (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-alt"></i>Cautious, ' + pct(f.cautiousShare) + ' in shares</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
-    (ser.length > 1 ? '<section class="sec"><h2>Your plan or a cautious mix</h2><div class="facts two">' +
+    (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span>' + (other ? '<span><i class="lg-alt"></i>' + kind + ', ' + pct(f.cautiousShare) + ' in shares</span>' : '') + '</div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
+    (ser.length > 1 && other ? '<section class="sec"><h2>Your plan or ' + (kind === 'Cautious' ? 'a cautious' : 'a bolder') + ' mix</h2><div class="facts two">' +
       fact('Your plan, ' + pct(f.target) + ' in shares', gbpShort(last.mid), 'at ' + s.retireAge + ', ' + gbpShort(f.income.mid) + ' a year') +
-      fact('Cautious, ' + pct(f.cautiousShare) + ' in shares', gbpShort(last.alt), 'at ' + s.retireAge + ', ' + gbpShort(f.income.cautious) + ' a year') + '</div>' +
-      '<p class="note">' + esc(Math.abs(gap) < 500 ? 'Both mixes end up about the same.' : 'Keeping only ' + pct(f.cautiousShare) + ' in stocks and shares, with the rest in gilts and savings, leaves about ' + gbp(Math.abs(gap)) + (gap > 0 ? ' less' : ' more') + ' at ' + s.retireAge + ', or ' + gbp(Math.abs(gapIncome)) + ' a year ' + (gap > 0 ? 'less' : 'more') + ' income, in today’s money. In return, it swings far less from year to year.') +
+      fact(kind + ', ' + pct(f.cautiousShare) + ' in shares', gbpShort(last.alt), 'at ' + s.retireAge + ', ' + gbpShort(f.income.cautious) + ' a year') + '</div>' +
+      '<p class="note">' + esc(Math.abs(gap) < 500 ? 'Both mixes end up about the same.' : (kind === 'Cautious' ? 'Keeping only ' : 'Putting ') + pct(f.cautiousShare) + ' in stocks and shares, with the rest in gilts and savings, leaves about ' + gbp(Math.abs(gap)) + (gap > 0 ? ' less' : ' more') + ' at ' + s.retireAge + ', or ' + gbp(Math.abs(gapIncome)) + ' a year ' + (gap > 0 ? 'less' : 'more') + ' income, in today’s money. ' + (kind === 'Cautious' ? 'In return, it swings far less from year to year.' : 'In return, it swings far more from year to year.')) +
       ' Shares are assumed to grow ' + pct(s.sharesMid, 1) + ' a year above inflation, and gilts and savings ' + pct(s.safeMid, 1) + '.</p></section>' : '') +
+    crashSection(f, other ? [['Your plan', f.target], [kind, f.cautiousShare]] : [['Your plan', f.target]]) +
     '<section class="sec"><h2>At ' + esc(s.retireAge) + '</h2><div class="panel"><ul class="rows">' + row('Savings and investments', gbp(end.inv)) + row('Pension pot', gbp(end.pot)) + row('Guaranteed pension', gbp(f.db) + ' a year') + row('Guaranteed lump sum', gbp(f.dbLump)) + '</ul></div></section>' +
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
     '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.' +
@@ -1690,7 +1714,8 @@ function openHowRetire() {
     'Cash, gilts and Premium Bonds grow ' + pct(s.safeMid, 1) + ' a year above inflation (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + ').',
     'You add ' + gbp(s.newSavingsPerYear) + ' a year from pay.',
     'Your money moves towards ' + pct(s.targetShares) + ' in shares' + (s.targetSharesBy ? ' by ' + fmtDate(s.targetSharesBy) : '') + '.',
-    'The dashed line is a cautious mix for comparison: the same money and savings, moving towards ' + pct(s.cautiousShares == null ? 0.2 : s.cautiousShares) + ' in shares instead, with the rest in gilts and savings.',
+    'The dashed line compares another mix: the same money and savings, moving towards ' + pct(s.cautiousShares == null ? 0.2 : s.cautiousShares) + ' in shares instead, with the rest in gilts and savings. It hides when that is your plan.',
+    'The 2008 test drops shares, and pension pots, by 40% at once when your money is at the mix. It then counts the years until your money is back where it was, at the average rates and with no new savings: on your statements, and after inflation.',
     'The guaranteed pension grows by ' + gbp(s.dbAccrual) + ' a year until age ' + s.leaveDbAge + '.',
     'Extra pension contributions: ' + gbp(s.pensionThisYear) + ' this tax year, ' + gbp(s.pensionPerYearA) + ' a year until ' + s.pensionSwitchYear + ', then ' + gbp(s.pensionPerYearB) + '.',
   ];
@@ -2191,8 +2216,7 @@ function aiFinances() {
       start: m.start || null, end: m.end || null, note: m.note || null, done_this_month: doneSet(monthKey()).has(m.id) })),
     dates: state.events.map((e) => ({ id: e.id, date: e.date, title: e.title, done: !!e.done })),
     history: state.snapshots.slice(-24).map((x) => ({ date: x.date, total: Math.round(snapTotal(x)) })),
-    settings: Object.assign(Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => { const v = f[2](s); return [k, v == null || v === '' ? null : f[5] === 'pct' ? pc(v) : v]; })),
-      { investing_plan: planMarks(s).map((m) => ({ by: m.date, share_percent: pc(m.share) })) }),
+    settings: Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => { const v = f[2](s); return [k, v == null || v === '' ? null : f[5] === 'pct' ? pc(v) : v]; })),
   };
 }
 function aiForecast(n) {
@@ -2257,6 +2281,14 @@ const SET_FIELDS = {
   interest_received_so_far: ['Interest received since 6 April', (s, v) => { s.interestSoFar = v; s.interestSoFarTo = localISO(); }, (s) => s.interestSoFar, (v) => (v == null ? 'estimated' : gbp(v)), money, 'money'],
   isa_paid_this_year: ['ISA paid in this tax year', (s, v) => { state.isa[taxYearKey()] = v; }, () => Number(state.isa[taxYearKey()]) || 0, gbp, money, 'money'],
 };
+SET_FIELDS.investing_plan = ['Investing plan: share in investments and pensions by each date',
+  (s, v) => { s.planPath = v.slice(0, -1).map((x) => ({ date: x.by, share: x.share })); s.targetShares = v[v.length - 1].share; s.targetSharesBy = v[v.length - 1].by; },
+  (s) => planMarks(s).map((m) => ({ by: m.date, share_percent: +(m.share * 100).toFixed(1) })),
+  (v) => (v && v.length ? v.map((x) => pct(x.share !== undefined ? x.share : x.share_percent / 100) + ' by ' + fmtDate(x.by)).join(', ') : 'none'),
+  (v) => {
+    if (!Array.isArray(v) || !v.length) throw new Error('Give the plan as one or more steps, each with a date and a share.');
+    return v.map((x) => { if (!x || !isDay(x.by)) throw new Error('Each step needs a date as YYYY-MM-DD.'); return { by: String(x.by), share: percent(x.share_percent, 'Each share') }; }).sort((a, b) => a.by.localeCompare(b.by));
+  }, 'plan'];
 SETTINGS_FORM.forEach(([g, fields]) => fields.forEach(([k, label, kind]) => {
   const what = g + ': ' + label.replace(/ \((£|%)\)$/, '');
   const whole = (v) => { const n = Math.round(Number(v)); if (!Number.isFinite(n) || n < 0) throw new Error(what + ' must be a whole number.'); return n; };
@@ -2264,9 +2296,9 @@ SETTINGS_FORM.forEach(([g, fields]) => fields.forEach(([k, label, kind]) => {
     kind === 'money' ? gbp : kind === 'pct' ? (v) => pct(v, 1) : kind === 'date' ? (v) => (v ? fmtDate(v) : 'not set') : kind === 'text' ? (v) => v || 'none' : (v) => String(v),
     kind === 'money' ? money : kind === 'pct' ? percent : kind === 'date' ? (v) => dayOrBlank(v, what) : kind === 'text' ? (v) => String(v).trim() : whole, kind];
 }));
-AI_TOOLS.find((t) => t.name === 'propose_settings_changes').input_schema.properties = Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => [k, {
-  type: f[5] === 'int' ? 'integer' : f[5] === 'text' || f[5] === 'date' ? 'string' : 'number',
-  description: f[0] + (f[5] === 'money' ? ', in pounds' : f[5] === 'pct' ? ', in percent' : f[5] === 'date' ? ', YYYY-MM-DD' : '') }]));
+AI_TOOLS.find((t) => t.name === 'propose_settings_changes').input_schema.properties = Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => [k, f[5] === 'plan'
+  ? { type: 'array', description: f[0] + '. To change the plan, give every step, ending with the target; this replaces the whole plan.', items: { type: 'object', properties: { by: { type: 'string', description: 'YYYY-MM-DD' }, share_percent: { type: 'number' } }, required: ['by', 'share_percent'], additionalProperties: false } }
+  : { type: f[5] === 'int' ? 'integer' : f[5] === 'text' || f[5] === 'date' ? 'string' : 'number', description: f[0] + (f[5] === 'money' ? ', in pounds' : f[5] === 'pct' ? ', in percent' : f[5] === 'date' ? ', YYYY-MM-DD' : '') }]));
 function aiPropose(name, x) {
   let title, rows, apply;
   if (name === 'propose_balance_updates') {
