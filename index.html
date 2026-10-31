@@ -538,7 +538,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 23:40';
+const VERSION = '1 Nov 2026, 00:30';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -2317,7 +2317,7 @@ SET_FIELDS.investing_plan = ['Investing plan: share in investments and pensions 
     return v.map((x) => { if (!x || !isDay(x.by)) throw new Error('Each step needs a date as YYYY-MM-DD.'); return { by: String(x.by), share: percent(x.share_percent, 'Each share') }; }).sort((a, b) => a.by.localeCompare(b.by));
   }, 'plan'];
 SET_FIELDS.tracked_funds = ['Funds compared on the Funds page',
-  (s, v) => { s.funds = v; setTimeout(() => { if (fundRows().some((f) => f.missing)) fundsRun(); }, 800); },
+  (s, v) => { s.funds = v; setTimeout(() => { if (fundRows().some(fundNeeds)) fundsRun(); }, 800); },
   () => fundList().map((f) => ({ name: f.name, isin: isinOf(f.isin) || null })),
   (v) => (v && v.length ? v.map((f) => f.name).join(', ') : 'none'),
   (v) => {
@@ -2859,14 +2859,19 @@ const fundStake = () => {
 };
 const FUND_LIST = [
   { name: 'HSBC FTSE All-World Index C Acc', isin: 'GB00BMJJJF91' },
-  { name: 'Vanguard FTSE Global All Cap Index Acc', isin: 'GB00BD3RZ582' },
-  { name: 'Vanguard LifeStrategy 100% Equity A Acc', isin: 'GB00B41XG308' },
   { name: 'Fidelity Index World P Acc', isin: 'GB00BJS8SJ34' },
+  { name: 'Vanguard FTSE All-World UCITS ETF (USD) Accumulating', isin: 'IE00BK5BQT80' },
+  { name: 'Amundi Prime All Country World UCITS ETF Acc', isin: '' },
 ];
 // Figures found on 31 October 2026, shown until Claude's first check: total returns in pounds after each fund's
 // charge, from AJ Bell's annual returns and the HSBC and Fidelity factsheets.
 const FUND_SEED_AT = '2026-10-31';
 const FUND_SEED = {
+  // Charges only, until Claude's first check: Vanguard's cut from 28 July 2026, and Amundi's on the London Stock Exchange.
+  IE00BK5BQT80: { name: 'Vanguard FTSE All-World UCITS ETF (USD) Accumulating', short: 'Vanguard All-World', isin: 'IE00BK5BQT80', shares: 1, ocf: 0.0014, holds: 'Large and mid-sized companies in developed and emerging markets (an ETF)',
+    years: {}, trailing: null, url: 'https://www.vanguard.co.uk/uk-fund-directory/product/etf/equity/9679/ftse-all-world-ucits', source: 'Vanguard' },
+  'n:amundi prime all country world ucits etf acc': { name: 'Amundi Prime All Country World UCITS ETF Acc', short: 'Amundi All-World', isin: '', shares: 1, ocf: 0.0007, holds: 'Large and mid-sized companies in developed and emerging markets (an ETF)',
+    years: {}, trailing: null, url: 'https://www.londonstockexchange.com/discover/news-and-insights/amundi-reaffirms-commitment-uk-market-etfs-available-lse', source: 'London Stock Exchange' },
   GB00BMJJJF91: { name: 'HSBC FTSE All-World Index C Acc', short: 'HSBC All-World', isin: 'GB00BMJJJF91', shares: 1, ocf: 0.0013, holds: 'About 3,400 large and mid-sized companies in developed and emerging markets',
     years: { 2020: 0.1263, 2021: 0.2012, 2022: -0.0782, 2023: 0.1541, 2024: 0.194, 2025: 0.1448 }, trailing: { to: '2026-08-31', y1: 0.2147, y3: 0.1789, y5: 0.1145 },
     url: 'https://www.ajbell.co.uk/market-research/sub/FUND:BMJJJF9/charts-performance', source: 'AJ Bell' },
@@ -2887,6 +2892,7 @@ const isinOf = (v) => { const s = String(v || '').trim().toUpperCase(); return /
 const fundKey = (f) => isinOf(f.isin) || 'n:' + String(f.name || '').toLowerCase().replace(/[^a-z0-9%]+/g, ' ').trim();
 const fundShort = (name) => String(name || '').replace(/\b(Index|Fund|Acc|Accumulation|Inc|Income|Class|Shares?|GBP|FTSE|UCITS|ETF|Equity|[A-Z])\b/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ') || clip(name, 20);
 const fundList = () => (state && Array.isArray(state.settings.funds) && state.settings.funds.length ? state.settings.funds : FUND_LIST);
+const fundNeeds = (f) => f.missing || !Object.keys(f.years || {}).length;
 const retPct = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) * 100).toFixed(1) + '%';
 // What's known about each fund on the list: Claude's last check, else the figures that come with the app.
 function fundRows() {
@@ -2942,19 +2948,18 @@ const fanText = (L, p) => L.cheap.f.short + (p.t === 0 ? ' now' : ' in ' + (L.y0
 // The stake in the cheapest fund, year by year to retirement: the central case with the low to high range around it.
 function fundFan(L) {
   const W = 340, H = 170, T = 10, B = 22, X0 = 2, R = 46, n = L.n, f = L.cheap.f, net = (k) => fundGrowth(f, k) - (Number(f.ocf) || 0);
-  const fall = L.cheap.crash.fall;
   const A = L.stake.amount, pts = Array.from({ length: n + 1 }, (_, t) => ({ t, lo: A * Math.pow(1 + net('Low'), t), mid: A * Math.pow(1 + net('Mid'), t), hi: A * Math.pow(1 + net('High'), t),
-    cr: t === 0 ? A : A * (1 - fall) * Math.pow(1 + net('Mid'), t - 1), sf: A * Math.pow(1 + state.settings.safeMid, t) }));
+    sf: A * Math.pow(1 + state.settings.safeMid, t) }));
   const rg = niceRange(0, pts[n].hi, 4);
   const x = (t) => X0 + (t / n) * (W - X0 - R), y = (v) => T + (1 - (v - rg.lo) / (rg.hi - rg.lo)) * (H - T - B);
-  const P = (k) => pts.map((p) => [x(p.t), y(p[k])]), Pm = P('mid'), Ph = P('hi'), Pl = P('lo').reverse(), Pc = P('cr'), Ps = P('sf'), e = Pm[n];
+  const P = (k) => pts.map((p) => [x(p.t), y(p[k])]), Pm = P('mid'), Ph = P('hi'), Pl = P('lo').reverse(), Ps = P('sf'), e = Pm[n];
   const band = at0(Ph[0]) + curve(Ph).join('') + 'L' + f1(Pl[0][0]) + ',' + f1(Pl[0][1]) + curve(Pl).join('') + 'Z';
   const every = n > 24 ? 10 : 5;
   let xt = '';
   for (let yr = Math.ceil((L.y0 + 1) / every) * every; yr <= L.y0 + n; yr += every) if (x(yr - L.y0) > 14 && x(yr - L.y0) < W - R - 12) xt += '<text x="' + f1(x(yr - L.y0)) + '" y="' + (H - 4) + '" text-anchor="middle" class="tick">' + yr + '</text>';
   const show = (i) => { $('#ffv').innerHTML = bigMoney(pts[i].mid); $('#ffs').textContent = fanText(L, pts[i]); };
   CH.ffan = { W, H, T, B, n: pts.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(n) };
-  return '<div class="chartbox">' + chartSvg('ffan', W, H, 'Long-term forecast for ' + f.short, guides(rg, y, X0, W - R) + '<path d="' + band + '" class="band fade"/>' + '<path d="' + at0(Ps[0]) + curve(Ps).join('') + '" class="ln pen fade"/>' + '<path d="' + at0(Pc[0]) + curve(Pc).join('') + '" class="ln alt fade"/>' +
+  return '<div class="chartbox">' + chartSvg('ffan', W, H, 'Long-term forecast for ' + f.short, guides(rg, y, X0, W - R) + '<path d="' + band + '" class="band fade"/>' + '<path d="' + at0(Ps[0]) + curve(Ps).join('') + '" class="ln pen fade"/>' +
     '<path d="' + at0(Pm[0]) + curve(Pm).join('') + '" class="ln draw" pathLength="1"/><circle cx="' + f1(e[0]) + '" cy="' + f1(e[1]) + '" r="4.5" class="end fade"/>' + xt) + '</div>';
 }
 const fundTable = (head, rows) => '<div class="panel ftab"><table class="ftable"><thead><tr><th>Fund</th>' + head.map((h) => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -2976,7 +2981,7 @@ function vFunds() {
     offersSeg('funds') +
     (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web…</p>' : c && c.error ? '<p class="note warnline">The last check didn’t work: ' + esc(c.error) + '</p>' : c && c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
     '<section class="sec"><h2>Long term' + (L.stake.mine ? '<small>' + gbp(L.stake.amount) + ' invested</small>' : '') + '</h2><div class="panel pad"><div><p class="fnum" id="ffv">' + bigMoney(L.cheap.mid) + '</p><p class="num-sub" id="ffs">' + esc(fanText(L, { t: L.n, lo: L.cheap.lo, hi: L.cheap.hi })) + '</p></div>' + fundFan(L) +
-      '<div class="legend"><span><i class="lg-main"></i>Central</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-alt"></i>A 2008-style fall first</span><span><i class="lg-pen"></i>Gilts and savings</span></div>' +
+      '<div class="legend"><span><i class="lg-main"></i>Central</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-pen"></i>Gilts and savings</span></div>' +
       '<ul class="rows">' + L.funds.map((x) => '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc((fundMix(x.f) < 1 ? pct(fundMix(x.f)) + ' in shares · ' : '') + (x.f.ocf != null ? pct(x.f.ocf, 2) + ' a year, about ' + gbp(x.fees) + ' in charges' : 'Charge not known yet')) + '</span></span><span class="end"><span class="v">' + gbp(x.mid) + '</span><span class="vs">' + esc(gbpShort(x.lo) + ' to ' + gbpShort(x.hi)) + '</span></span></li>').join('') +
       '<li class="ref"><span class="main"><span class="t2">Gilts and savings</span><span class="s">' + esc('For comparison: ' + pct(s.safeMid, 1) + ' a year above inflation (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + '), no fund charge') + '</span></span><span class="end"><span class="v">' + gbp(L.safe.mid) + '</span><span class="vs">' + esc(gbpShort(L.safe.lo) + ' to ' + gbpShort(L.safe.hi)) + '</span></span></li></ul></div>' +
       '<p class="note">' + (L.stake.mine ? 'Your investments as they are now, ' + gbp(L.stake.amount) + ', ' + until + ', in today’s money; money you add later isn’t included.' : gbp(STAKE) + ' as an example, ' + until + ', in today’s money, as there are no investments in the app yet.') + ' Short-term moves can’t be predicted, but over decades returns have tended towards their average: here ' + pct(s.sharesMid, 1) + ' a year above inflation for shares (' + pct(s.sharesLow, 1) + ' to ' + pct(s.sharesHigh, 1) + '), less each fund’s charge.' +
@@ -2990,11 +2995,12 @@ function vFunds() {
     (M.years.length ? '<section class="sec"><h2>Each year</h2>' + fundTable(M.years.map(String), rows.map((f) => '<tr><th scope="row">' + esc(f.short) + '</th>' + M.years.map((y) => fundCell(f.years[y] == null ? null : (f.years[y] < 0 ? '−' : '') + (Math.abs(Number(f.years[y])) * 100).toFixed(1) + '%', f.years[y] < 0)).join('') + '</tr>')) +
       '<p class="note">Total returns in pounds, after each fund’s charge.</p></section>' : '') +
     '<section class="sec"><h2>The funds</h2><div class="panel"><ul class="rows">' + rows.map((f) => '<li class="fund"><span class="main"><span class="t2">' + esc(f.name) + '</span><span class="s">' + esc(f.holds || (f.missing ? 'Not checked yet' : '')) + '</span>' +
-      (fundPast(f) ? '<span class="s">' + esc(fundPast(f)) + '</span>' : '') + '<span class="s">' + (f.isin ? 'ISIN ' + esc(f.isin) : '') + (f.url ? (f.isin ? ' · ' : '') + '<a class="flink" href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc((f.source || host(f.url)) + ' ↗') + '</a>' : '') + '</span></span>' +
+      (fundNeeds(f) ? '<span class="s">Returns come with Claude’s next check</span>' : '') + (fundPast(f) ? '<span class="s">' + esc(fundPast(f)) + '</span>' : '') + '<span class="s">' + (f.isin ? 'ISIN ' + esc(f.isin) : '') + (f.url ? (f.isin ? ' · ' : '') + '<a class="flink" href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc((f.source || host(f.url)) + ' ↗') + '</a>' : '') + '</span></span>' +
       '<span class="end"><span class="v">' + (f.ocf != null ? esc(pct(f.ocf, 2)) : '–') + '</span><span class="vs">a year</span></span></li>').join('') + '</ul></div></section>' +
     '<section class="sec"><h2>Worth knowing</h2><div class="panel"><ul class="rows">' +
       '<li><span class="main"><span class="t2">Buying at a record high</span><span class="s">The next year averaged +13.6%, against +11.9% from other days (US shares, 1989 to 2026). <a class="flink" href="https://clark.com/personal-finance-credit/investing-retirement/should-you-be-scared-of-investing-at-all-time-highs/amp/" target="_blank" rel="noopener noreferrer">J.P. Morgan data ↗</a></span></span></li>' +
-      '<li><span class="main"><span class="t2">All at once or in slices</span><span class="s">All at once beat three monthly slices 68% of the time; slices did better in the worst cases (Vanguard, 1976 to 2022). <a class="flink" href="https://www.vanguard.co.uk/professional/vanguard-365/financial-planning/financial-well-being/cost-averaging" target="_blank" rel="noopener noreferrer">Vanguard ↗</a></span></span></li></ul></div></section>' +
+      '<li><span class="main"><span class="t2">All at once or in slices</span><span class="s">All at once beat three monthly slices 68% of the time; slices did better in the worst cases (Vanguard, 1976 to 2022). <a class="flink" href="https://www.vanguard.co.uk/professional/vanguard-365/financial-planning/financial-well-being/cost-averaging" target="_blank" rel="noopener noreferrer">Vanguard ↗</a></span></span></li>' +
+      '<li><span class="main"><span class="t2">Funds or ETFs</span><span class="s">An ETF can cost less to hold, but platforms often charge each time you buy one, which adds up with monthly slices. Check Barclays’ price list.</span></span></li></ul></div></section>' +
     '<p class="note">' + (c && c.at ? 'Checked by ' + esc(c.model || 'Claude') + ' on the web' + (c.cost >= 0.005 ? ', about $' + c.cost.toFixed(2) : '') + '. ' : '') + 'Past returns don’t predict future ones. Information, not financial advice.</p>' +
     (!key ? '<p class="note">Add your API key in More, under Assistant, and Claude keeps these figures up to date.</p>' : fundsBusy ? '' : '<button class="btn quiet" data-act="funds-run">' + IC.spark + 'Check again now</button>');
 }
@@ -3043,8 +3049,8 @@ function fundsBrief(list) {
 async function fundsRun() {
   if (fundsBusy || !state || !aiConf().key) return;
   fundsBusy = true;
-  const was = fundsConf() || {}, tried = new Date().toISOString(), list = fundList();
-  fundsSave(Object.assign({}, was, { tried, error: '' }));
+  const was = fundsConf() || {}, tried = new Date().toISOString(), list = fundList(), asked = list.map(fundKey);
+  fundsSave(Object.assign({}, was, { tried, error: '', asked }));
   fundsPaint();
   const ask = { role: 'user', content: [{ type: 'text', text: fundsBrief(list) }] };
   let content = [], cost = 0, error = '';
@@ -3068,20 +3074,22 @@ async function fundsRun() {
         holds: f.holds || old.holds || '', years: Object.assign({}, old.years || {}, f.years), trailing: f.trailing || old.trailing || null, url: f.url || old.url || '', source: f.source || old.source || '' };
     });
     if (!n) throw new Error('Claude didn’t find figures for these funds.');
-    fundsSave({ at: new Date().toISOString(), tried, funds, summary: clip(call.input.summary, 200), cost, model: aiModel()[1] });
+    fundsSave({ at: new Date().toISOString(), tried, asked, funds, summary: clip(call.input.summary, 200), cost, model: aiModel()[1] });
   } catch (e) {
     error = (e && e.message) || 'Something went wrong.';
-    fundsSave(Object.assign({}, was, { tried, error, cost: was.cost || 0 }));
+    fundsSave(Object.assign({}, was, { tried, asked, error, cost: was.cost || 0 }));
   }
   fundsBusy = false;
   fundsPaint();
   if (!error && !(location.hash === '#offers' && ui.ofv === 'funds')) toast('Fund figures updated: see Offers, then Funds');
 }
-// Once a month while the offers check is on; after a failed check, or for a fund with no figures, the next day.
+// Once a month while the offers check is on. A fund on the list that no check has asked about yet is checked straight
+// away; after a failed check, or a fund the check couldn't find, it tries again the next day.
 function fundsMaybe() {
   if (!state || state.example || !aiConf().key || fundsBusy || navigator.onLine === false || !newsEvery()) return;
-  const c = fundsConf(), last = c ? Date.parse(c.tried || c.at || 0) || 0 : 0;
-  if (Date.now() - last >= (c && (c.error || fundRows().some((f) => f.missing)) ? 1 : FUNDS_EVERY) * 864e5) fundsRun();
+  const c = fundsConf(), last = c ? Date.parse(c.tried || c.at || 0) || 0 : 0, rows = fundRows(), asked = (c && c.asked) || [];
+  const fresh = rows.some((f) => fundNeeds(f) && !asked.includes(f.key)), retry = c && (c.error || rows.some(fundNeeds));
+  if (fresh || Date.now() - last >= (retry ? 1 : FUNDS_EVERY) * 864e5) fundsRun();
 }
 function fundsPaint() { if (state) render(); }
 // What Claude sees of the Funds page.
