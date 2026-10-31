@@ -276,6 +276,7 @@ span.row { cursor: default; }
 .fsum { color: var(--ink-2); }
 .flink { color: var(--brand); text-decoration: none; white-space: nowrap; }
 .rows > li.fund { align-items: flex-start; }
+.rows > li.ref .t2, .rows > li.ref .v { color: var(--ink-2); }
 .tabs button { position: relative; }
 .tabs button.dot::after { content: ''; position: absolute; top: 1px; left: calc(50% + 8px); width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 2px var(--bg); }
 .titlebtn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
@@ -537,7 +538,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 23:00';
+const VERSION = '31 Oct 2026, 23:40';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -2849,6 +2850,13 @@ function vOffers() {
 const FUNDS_KEY = 'money-snapshot-funds';
 const FUNDS_EVERY = 30;
 const STAKE = 10000;
+// The money the forecast is for: your investments now, the Investments group (stocks and shares and Lifetime ISAs),
+// so it follows your balances as they change. £10,000 stands in as an example while there are none.
+const fundStake = () => {
+  const types = (GROUPS.find((g) => g.id === 'invest') || { types: ['shares', 'lisa'] }).types;
+  const v = state ? sum(state.pots.filter((p) => types.includes(p.type)), (p) => Math.max(0, Number(p.balance) || 0)) : 0;
+  return v >= 1 ? { amount: v, mine: true } : { amount: STAKE, mine: false };
+};
 const FUND_LIST = [
   { name: 'HSBC FTSE All-World Index C Acc', isin: 'GB00BMJJJF91' },
   { name: 'Vanguard FTSE Global All Cap Index Acc', isin: 'GB00BD3RZ582' },
@@ -2893,9 +2901,9 @@ function fundRows() {
 const fundMix = (f) => (f.shares == null || !Number.isFinite(Number(f.shares)) ? 1 : Math.min(1, Math.max(0, Number(f.shares))));
 const fundGrowth = (f, k) => { const s = state.settings, m = fundMix(f); return m * s['shares' + k] + (1 - m) * s['safe' + k]; };
 // The stake grown through each calendar year in a row from the first one, stopping at a year not known.
-const runFrom = (f, from) => { const out = []; let v = STAKE; for (let y = from; f.years[y] != null; y++) { v *= 1 + Number(f.years[y]); out.push({ y, v }); } return out; };
+const runFrom = (f, from, amount = STAKE) => { const out = []; let v = amount; for (let y = from; f.years[y] != null; y++) { v *= 1 + Number(f.years[y]); out.push({ y, v }); } return out; };
 function fundModel(rows) {
-  const s = state.settings, lastFull = new Date().getFullYear() - 1;
+  const s = state.settings, lastFull = new Date().getFullYear() - 1, stake = fundStake(), A = stake.amount;
   const have = rows.filter((f) => Object.keys(f.years || {}).length);
   const years = [...new Set(have.flatMap((f) => Object.keys(f.years).map(Number)))].filter((y) => y <= lastFull).sort((a, b) => a - b).slice(-5);
   let growth = null, worst = null;
@@ -2903,19 +2911,19 @@ function fundModel(rows) {
     // From the first year shown that every fund has, to the last year they all have after it.
     const from = years.find((y) => have.every((f) => f.years[y] != null));
     if (from != null) {
-      const paths = have.map((f) => ({ f, p: runFrom(f, from) })), to = Math.min(...paths.map((x) => x.p[x.p.length - 1].y));
+      const paths = have.map((f) => ({ f, p: runFrom(f, from, A) })), to = Math.min(...paths.map((x) => x.p[x.p.length - 1].y));
       if (to > from) growth = { from, to, funds: paths.map(({ f, p }) => ({ f, v: p.find((q) => q.y === to).v })) };
     }
     // The year that went worst on average, and the stake put in on its first day.
     const avg = (y) => { const v = have.filter((f) => f.years[y] != null).map((f) => Number(f.years[y])); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : Infinity; };
     const wy = years.reduce((b, y) => (avg(y) < avg(b) ? y : b), years[0]);
     if (avg(wy) < 0) {
-      const funds = have.filter((f) => f.years[wy] != null).map((f) => ({ f, p: runFrom(f, wy).slice(0, 3) }));
+      const funds = have.filter((f) => f.years[wy] != null).map((f) => ({ f, p: runFrom(f, wy, A).slice(0, 3) }));
       worst = { year: wy, cols: [...new Set(funds.flatMap((x) => x.p.map((q) => q.y)))].sort((a, b) => a - b), funds };
     }
   }
   // Long term: the stake left until retirement, at the forecast's growth for shares less each fund's charge.
-  const fc = forecast(), n = fc.years >= 1 ? fc.years : 20, at = (r, t) => STAKE * Math.pow(1 + r, t), net = (k, f) => fundGrowth(f, k) - (Number(f.ocf) || 0);
+  const fc = forecast(), n = fc.years >= 1 ? fc.years : 20, at = (r, t) => A * Math.pow(1 + r, t), net = (k, f) => fundGrowth(f, k) - (Number(f.ocf) || 0);
   const funds = rows.map((f) => ({ f, mid: at(net('Mid', f), n), lo: at(net('Low', f), n), hi: at(net('High', f), n), fees: at(fundGrowth(f, 'Mid'), n) - at(net('Mid', f), n) }));
   // The biggest fall: shares drop 40%, as from late 2007 to early 2009, just after the money goes in. Then it grows at
   // the central rate with no new money: how long until it's back, and what's left at the end.
@@ -2923,28 +2931,30 @@ function fundModel(rows) {
   funds.forEach((x) => {
     const fall = 0.4 * fundMix(x.f), g = net('Mid', x.f), back = (r) => { const m = fall > 0 && r > 0 ? Math.ceil(12 * Math.log(1 / (1 - fall)) / Math.log(1 + r)) : fall > 0 ? null : 0; return m != null && m > 480 ? null : m; };
     const worstYear = Object.entries(x.f.years || {}).map(([y, v]) => [Number(y), Number(v)]).sort((p, q) => p[1] - q[1])[0];
-    x.crash = { fall, loss: STAKE * fall, backNow: back((1 + g) * (1 + infl) - 1), backReal: back(g), after: STAKE * (1 - fall) * Math.pow(1 + g, Math.max(0, n - 1)), worstYear: worstYear && worstYear[1] < 0 ? worstYear : null };
+    x.crash = { fall, loss: A * fall, backNow: back((1 + g) * (1 + infl) - 1), backReal: back(g), after: A * (1 - fall) * Math.pow(1 + g, Math.max(0, n - 1)), worstYear: worstYear && worstYear[1] < 0 ? worstYear : null };
   });
   const cheap = funds.filter((x) => x.f.ocf != null).sort((a, b) => a.f.ocf - b.f.ocf)[0] || funds[0];
-  return { years, have, growth, worst, long: { n, age: fc.years >= 1 ? s.retireAge : null, y0: new Date().getFullYear(), funds, cheap } };
+  // For comparison: the same money kept in gilts and savings, at the forecast's growth for cash and gilts.
+  const safe = { mid: at(s.safeMid, n), lo: at(s.safeLow, n), hi: at(s.safeHigh, n) };
+  return { stake, years, have, growth, worst, long: { n, age: fc.years >= 1 ? s.retireAge : null, y0: new Date().getFullYear(), funds, cheap, stake, safe } };
 }
 const fanText = (L, p) => L.cheap.f.short + (p.t === 0 ? ' now' : ' in ' + (L.y0 + p.t) + (L.age && p.t === L.n ? ', at ' + L.age : '')) + ', in today’s money. Range ' + gbpShort(p.lo) + ' to ' + gbpShort(p.hi) + '.';
 // The stake in the cheapest fund, year by year to retirement: the central case with the low to high range around it.
 function fundFan(L) {
   const W = 340, H = 170, T = 10, B = 22, X0 = 2, R = 46, n = L.n, f = L.cheap.f, net = (k) => fundGrowth(f, k) - (Number(f.ocf) || 0);
   const fall = L.cheap.crash.fall;
-  const pts = Array.from({ length: n + 1 }, (_, t) => ({ t, lo: STAKE * Math.pow(1 + net('Low'), t), mid: STAKE * Math.pow(1 + net('Mid'), t), hi: STAKE * Math.pow(1 + net('High'), t),
-    cr: t === 0 ? STAKE : STAKE * (1 - fall) * Math.pow(1 + net('Mid'), t - 1) }));
+  const A = L.stake.amount, pts = Array.from({ length: n + 1 }, (_, t) => ({ t, lo: A * Math.pow(1 + net('Low'), t), mid: A * Math.pow(1 + net('Mid'), t), hi: A * Math.pow(1 + net('High'), t),
+    cr: t === 0 ? A : A * (1 - fall) * Math.pow(1 + net('Mid'), t - 1), sf: A * Math.pow(1 + state.settings.safeMid, t) }));
   const rg = niceRange(0, pts[n].hi, 4);
   const x = (t) => X0 + (t / n) * (W - X0 - R), y = (v) => T + (1 - (v - rg.lo) / (rg.hi - rg.lo)) * (H - T - B);
-  const P = (k) => pts.map((p) => [x(p.t), y(p[k])]), Pm = P('mid'), Ph = P('hi'), Pl = P('lo').reverse(), Pc = P('cr'), e = Pm[n];
+  const P = (k) => pts.map((p) => [x(p.t), y(p[k])]), Pm = P('mid'), Ph = P('hi'), Pl = P('lo').reverse(), Pc = P('cr'), Ps = P('sf'), e = Pm[n];
   const band = at0(Ph[0]) + curve(Ph).join('') + 'L' + f1(Pl[0][0]) + ',' + f1(Pl[0][1]) + curve(Pl).join('') + 'Z';
   const every = n > 24 ? 10 : 5;
   let xt = '';
   for (let yr = Math.ceil((L.y0 + 1) / every) * every; yr <= L.y0 + n; yr += every) if (x(yr - L.y0) > 14 && x(yr - L.y0) < W - R - 12) xt += '<text x="' + f1(x(yr - L.y0)) + '" y="' + (H - 4) + '" text-anchor="middle" class="tick">' + yr + '</text>';
   const show = (i) => { $('#ffv').innerHTML = bigMoney(pts[i].mid); $('#ffs').textContent = fanText(L, pts[i]); };
   CH.ffan = { W, H, T, B, n: pts.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(n) };
-  return '<div class="chartbox">' + chartSvg('ffan', W, H, 'Long-term forecast for ' + f.short, guides(rg, y, X0, W - R) + '<path d="' + band + '" class="band fade"/>' + '<path d="' + at0(Pc[0]) + curve(Pc).join('') + '" class="ln alt fade"/>' +
+  return '<div class="chartbox">' + chartSvg('ffan', W, H, 'Long-term forecast for ' + f.short, guides(rg, y, X0, W - R) + '<path d="' + band + '" class="band fade"/>' + '<path d="' + at0(Ps[0]) + curve(Ps).join('') + '" class="ln pen fade"/>' + '<path d="' + at0(Pc[0]) + curve(Pc).join('') + '" class="ln alt fade"/>' +
     '<path d="' + at0(Pm[0]) + curve(Pm).join('') + '" class="ln draw" pathLength="1"/><circle cx="' + f1(e[0]) + '" cy="' + f1(e[1]) + '" r="4.5" class="end fade"/>' + xt) + '</div>';
 }
 const fundTable = (head, rows) => '<div class="panel ftab"><table class="ftable"><thead><tr><th>Fund</th>' + head.map((h) => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -2965,16 +2975,18 @@ function vFunds() {
   return '<header class="page"><div class="ph"><h1>Funds</h1>' + topActions() + '</div><p class="sub">Index funds you might buy, ' + (key && every ? 'checked by Claude once a month' : 'checked by Claude when you ask') + '. Figures from ' + esc(when) + '</p></header>' +
     offersSeg('funds') +
     (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web…</p>' : c && c.error ? '<p class="note warnline">The last check didn’t work: ' + esc(c.error) + '</p>' : c && c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
-    '<section class="sec"><h2>Long term</h2><div class="panel pad"><div><p class="fnum" id="ffv">' + bigMoney(L.cheap.mid) + '</p><p class="num-sub" id="ffs">' + esc(fanText(L, { t: L.n, lo: L.cheap.lo, hi: L.cheap.hi })) + '</p></div>' + fundFan(L) +
-      '<div class="legend"><span><i class="lg-main"></i>Central</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-alt"></i>A 2008-style fall first</span></div>' +
-      '<ul class="rows">' + L.funds.map((x) => '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc((fundMix(x.f) < 1 ? pct(fundMix(x.f)) + ' in shares · ' : '') + (x.f.ocf != null ? pct(x.f.ocf, 2) + ' a year, about ' + gbp(x.fees) + ' in charges' : 'Charge not known yet')) + '</span></span><span class="end"><span class="v">' + gbp(x.mid) + '</span><span class="vs">' + esc(gbpShort(x.lo) + ' to ' + gbpShort(x.hi)) + '</span></span></li>').join('') + '</ul></div>' +
-      '<p class="note">' + gbp(STAKE) + ' put in now, and what it could be ' + until + ', in today’s money. Short-term moves can’t be predicted, but over decades returns have tended towards their average: here ' + pct(s.sharesMid, 1) + ' a year above inflation for shares (' + pct(s.sharesLow, 1) + ' to ' + pct(s.sharesHigh, 1) + '), less each fund’s charge.' +
+    '<section class="sec"><h2>Long term' + (L.stake.mine ? '<small>' + gbp(L.stake.amount) + ' invested</small>' : '') + '</h2><div class="panel pad"><div><p class="fnum" id="ffv">' + bigMoney(L.cheap.mid) + '</p><p class="num-sub" id="ffs">' + esc(fanText(L, { t: L.n, lo: L.cheap.lo, hi: L.cheap.hi })) + '</p></div>' + fundFan(L) +
+      '<div class="legend"><span><i class="lg-main"></i>Central</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-alt"></i>A 2008-style fall first</span><span><i class="lg-pen"></i>Gilts and savings</span></div>' +
+      '<ul class="rows">' + L.funds.map((x) => '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc((fundMix(x.f) < 1 ? pct(fundMix(x.f)) + ' in shares · ' : '') + (x.f.ocf != null ? pct(x.f.ocf, 2) + ' a year, about ' + gbp(x.fees) + ' in charges' : 'Charge not known yet')) + '</span></span><span class="end"><span class="v">' + gbp(x.mid) + '</span><span class="vs">' + esc(gbpShort(x.lo) + ' to ' + gbpShort(x.hi)) + '</span></span></li>').join('') +
+      '<li class="ref"><span class="main"><span class="t2">Gilts and savings</span><span class="s">' + esc('For comparison: ' + pct(s.safeMid, 1) + ' a year above inflation (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + '), no fund charge') + '</span></span><span class="end"><span class="v">' + gbp(L.safe.mid) + '</span><span class="vs">' + esc(gbpShort(L.safe.lo) + ' to ' + gbpShort(L.safe.hi)) + '</span></span></li></ul></div>' +
+      '<p class="note">' + (L.stake.mine ? 'Your investments as they are now, ' + gbp(L.stake.amount) + ', ' + until + ', in today’s money; money you add later isn’t included.' : gbp(STAKE) + ' as an example, ' + until + ', in today’s money, as there are no investments in the app yet.') + ' Short-term moves can’t be predicted, but over decades returns have tended towards their average: here ' + pct(s.sharesMid, 1) + ' a year above inflation for shares (' + pct(s.sharesLow, 1) + ' to ' + pct(s.sharesHigh, 1) + '), less each fund’s charge.' +
       (L.funds.some((x) => fundMix(x.f) < 1) ? ' The bonds and cash in a mixed fund grow ' + pct(s.safeMid, 1) + ' (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + ').' : '') + '</p></section>' +
     '<section class="sec"><h2>Biggest fall</h2><div class="panel"><ul class="rows">' + L.funds.map((x) => { const k = x.crash; return '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span>' +
       '<span class="s">' + esc(k.fall ? 'Back in about ' + spanTxt(k.backNow) + ' on your statements, ' + spanTxt(k.backReal) + ' after inflation' : 'Nothing in shares to fall') + '</span>' +
       '<span class="s">' + esc('Still about ' + gbpShort(k.after) + ' ' + until + (k.worstYear ? '. Worst year so far: ' + retPct(k.worstYear[1]) + ' in ' + k.worstYear[0] : '')) + '</span></span>' +
-      '<span class="end"><span class="v">−' + gbp(k.loss) + '</span><span class="vs down">' + pct(k.fall) + '</span></span></li>'; }).join('') + '</ul></div>' +
-      '<p class="note">If shares fell 40% just after you put ' + gbp(STAKE) + ' in, about as much as from late 2007 to early 2009. Afterwards it grows at the central rate, with no new money.</p></section>' +
+      '<span class="end"><span class="v">−' + gbp(k.loss) + '</span><span class="vs down">' + pct(k.fall) + '</span></span></li>'; }).join('') +
+      '<li class="ref"><span class="main"><span class="t2">Gilts and savings</span><span class="s">For comparison: savings don’t fall, and gilts held to the end repay in full</span></span><span class="end"><span class="v">' + gbp(0) + '</span><span class="vs">0%</span></span></li></ul></div>' +
+      '<p class="note">' + (L.stake.mine ? 'If shares fell 40% now' : 'If shares fell 40% just after you put ' + gbp(STAKE) + ' in') + ', about as much as from late 2007 to early 2009. Afterwards ' + (L.stake.mine ? 'your investments grow' : 'it grows') + ' at the central rate, with no new money.</p></section>' +
     (M.years.length ? '<section class="sec"><h2>Each year</h2>' + fundTable(M.years.map(String), rows.map((f) => '<tr><th scope="row">' + esc(f.short) + '</th>' + M.years.map((y) => fundCell(f.years[y] == null ? null : (f.years[y] < 0 ? '−' : '') + (Math.abs(Number(f.years[y])) * 100).toFixed(1) + '%', f.years[y] < 0)).join('') + '</tr>')) +
       '<p class="note">Total returns in pounds, after each fund’s charge.</p></section>' : '') +
     '<section class="sec"><h2>The funds</h2><div class="panel"><ul class="rows">' + rows.map((f) => '<li class="fund"><span class="main"><span class="t2">' + esc(f.name) + '</span><span class="s">' + esc(f.holds || (f.missing ? 'Not checked yet' : '')) + '</span>' +
@@ -3082,12 +3094,13 @@ function aiFunds() {
       calendar_year_returns_percent: Object.fromEntries(Object.keys(f.years).sort().map((y) => [y, p2(f.years[y])])),
       latest: f.trailing ? { to: f.trailing.to, one_year_percent: p2(f.trailing.y1), three_years_percent_a_year: p2(f.trailing.y3), five_years_percent_a_year: p2(f.trailing.y5) } : null,
       source: f.url || null, not_checked_yet: f.missing })),
-    stake: STAKE,
+    stake: M.stake.amount, stake_is_their_investments_now: M.stake.mine,
     growth: M.growth ? { from_start_of: M.growth.from, to_end_of: M.growth.to, values: M.growth.funds.map(({ f, v }) => ({ fund: f.short, value: r0(v) })) } : null,
     bought_before_worst_year: M.worst ? { year: M.worst.year, values_at_year_ends: M.worst.funds.map(({ f, p }) => ({ fund: f.short, values: Object.fromEntries(p.map((q) => [q.y, r0(q.v)])) })) } : null,
     long_term: { years: M.long.n, until_age: M.long.age, in_todays_money: true, shares_growth_above_inflation_percent: { low: p2(s.sharesLow), central: p2(s.sharesMid), high: p2(s.sharesHigh) }, bonds_and_cash_growth_above_inflation_percent: { low: p2(s.safeLow), central: p2(s.safeMid), high: p2(s.safeHigh) }, less_each_funds_charge: true,
-      funds: M.long.funds.map((x) => ({ fund: x.f.short, central: r0(x.mid), low: r0(x.lo), high: r0(x.hi), charges_over_the_years: r0(x.fees) })) },
-    biggest_fall: { what: 'Shares fall 40%, as from late 2007 to early 2009, just after the stake goes in; then central growth with no new money.',
+      funds: M.long.funds.map((x) => ({ fund: x.f.short, central: r0(x.mid), low: r0(x.lo), high: r0(x.hi), charges_over_the_years: r0(x.fees) })),
+      for_comparison_gilts_and_savings: { central: r0(M.long.safe.mid), low: r0(M.long.safe.lo), high: r0(M.long.safe.hi), growth_above_inflation_percent: { low: p2(s.safeLow), central: p2(s.safeMid), high: p2(s.safeHigh) }, biggest_fall: 'none for savings, or for gilts held to the end' } },
+    biggest_fall: { what: 'Shares fall 40%, as from late 2007 to early 2009, straight away; then central growth with no new money.',
       funds: M.long.funds.map((x) => ({ fund: x.f.short, loss: r0(x.crash.loss), fall_percent: p2(x.crash.fall), back_in_months_on_statements: x.crash.backNow, back_in_months_after_inflation: x.crash.backReal, value_at_end_even_so: r0(x.crash.after),
         worst_calendar_year: x.crash.worstYear ? { year: x.crash.worstYear[0], return_percent: p2(x.crash.worstYear[1]) } : null })) },
   };
