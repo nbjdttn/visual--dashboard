@@ -1,6 +1,6 @@
 // Money Snapshot service worker: keeps the app working offline.
 // It only caches the app's own files. Your figures live in the app's storage, never here.
-const CACHE = 'money-snapshot-v7';
+const CACHE = 'money-snapshot-v8';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', (e) => {

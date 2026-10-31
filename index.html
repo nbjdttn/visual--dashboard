@@ -68,6 +68,16 @@ button { font: inherit; color: inherit; }
 .page { display: grid; gap: 2px; padding: 14px 2px 0; margin-bottom: -12px; }
 .page h1 { font: 600 34px/1.1 var(--serif); letter-spacing: -0.01em; }
 .page .sub { color: var(--muted); font-size: 15px; }
+.page .ph { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+/* Phones held sideways see a note to turn back, rather than a squashed layout. */
+#upright { display: none; }
+@media (orientation: landscape) and (max-height: 520px) {
+  #upright { display: grid; position: fixed; inset: 0; z-index: 100; place-items: center; padding: 24px; background: var(--bg); color: var(--ink); text-align: center; }
+  #upright svg { width: 46px; height: 46px; color: var(--brand); }
+  #upright p { margin: 10px 0 4px; font: 600 21px/1.3 var(--serif); }
+  #upright small { font-size: 14px; color: var(--muted); }
+  html, body { overflow: hidden; }
+}
 .sec { display: grid; gap: 10px; }
 .sec > h2 { font: 600 21px/1.25 var(--serif); padding: 0 2px; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 30px; }
 .sec > h2 small { font: 500 15px var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -502,13 +512,14 @@ html.applock body { overflow: hidden; }
 
 <div id="sheet" hidden></div>
 <div id="lock" hidden></div>
+<div id="upright" aria-hidden="true"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7.5" y="2.5" width="9" height="19" rx="2.4"/><path d="M11 18.5h2"/><path d="M3 9a9 9 0 0 1 3-5.5M3.5 4.5L6 3.5l.8 2.5"/></svg><p>Turn your phone upright</p><small>Money Snapshot works in portrait.</small></div></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="glow" filterUnits="userSpaceOnUse" x="-40" y="-40" width="440" height="320"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
 
 <script>
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 02:20';
+const VERSION = '31 Oct 2026, 02:45';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1320,6 +1331,9 @@ function vWelcome() {
     '<button class="btn ghost" data-act="start-example">Look around with example figures</button></div></section>';
 }
 
+// Claude and Share, at the top right of every tab.
+const topActions = () => '<span class="who-r"><button type="button" class="icon-btn" data-act="assistant" aria-label="Ask Claude">' + IC.spark + '</button>' +
+  (total() > 0 ? '<button type="button" class="icon-btn" data-act="share" aria-label="Share a summary with family">' + IC.share + '</button>' : '') + '</span>';
 const homeTitle = () => state.settings.title || (state.settings.name ? state.settings.name + '’s accounts' : 'Your accounts');
 function openTitle() {
   openSheet('Title', field('title', 'Title on the Home page', homeTitle(), 'text', 'e.g. Family accounts'), (fd) => {
@@ -1343,7 +1357,7 @@ function vHome() {
   if (since > 0 && Math.round(S.nowTotal - t) !== 0) bits.push((bits.length ? 'about ' : 'About ') + gbp(S.nowTotal) + ' today');
   const sub = bits.join(', ') || (ls ? 'Across ' + state.pots.length + ' pot' + (state.pots.length === 1 ? '' : 's') : 'No balances recorded yet');
   const num = bigMoney(t);
-  return '<section class="hero"><header class="head"><div class="who"><span class="who-l"><button type="button" class="titlebtn" data-act="rename" aria-label="Change the title: ' + esc(homeTitle()) + '">' + esc(homeTitle()) + '</button>' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + '</span><span class="who-r"><button type="button" class="icon-btn" data-act="assistant" aria-label="Ask Claude">' + IC.spark + '</button>' + (t > 0 ? '<button type="button" class="icon-btn" data-act="share" aria-label="Share a summary with family">' + IC.share + '</button>' : '') + '</span></div>' +
+  return '<section class="hero"><header class="head"><div class="who"><span class="who-l"><button type="button" class="titlebtn" data-act="rename" aria-label="Change the title: ' + esc(homeTitle()) + '">' + esc(homeTitle()) + '</button>' + (ls ? '<small>Updated ' + esc(shortDate(ls.date)) + '</small>' : '') + '</span>' + topActions() + '</div>' +
     '<p class="num" id="hv">' + num + '</p><p class="num-sub" id="hs">' + sub + '</p></header>' +
     (t > 0 ? heroChart(S, num, sub) : '') +
     '</section>' +
@@ -1400,7 +1414,7 @@ function potDelta(p) {
 }
 function vPots() {
   const t = total();
-  return '<header class="page"><h1>Pots</h1><p class="sub">' + state.pots.length + ' pot' + (state.pots.length === 1 ? '' : 's') + ', ' + gbp(t) + ' in all</p></header>' +
+  return '<header class="page"><div class="ph"><h1>Pots</h1>' + topActions() + '</div><p class="sub">' + state.pots.length + ' pot' + (state.pots.length === 1 ? '' : 's') + ', ' + gbp(t) + ' in all</p></header>' +
     GROUPS.map((g) => {
       const pots = state.pots.filter((p) => g.types.includes(p.type));
       if (!pots.length) return '';
@@ -1419,7 +1433,7 @@ function vMonthly() {
   const ty = taxYearKey(), paid = Number(state.isa[ty]) || 0, used = s.isaAllowance > 0 ? Math.min(1, paid / s.isaAllowance) : 0;
   const interestPots = state.pots.filter((p) => p.monthly && p.balance * p.rate > 0), prizes = prizesMonthly();
   const doneN = mv.filter((m) => dn.has(m.id)).length;
-  return '<header class="page"><h1>Monthly</h1><p class="sub">' + esc(fmtMonth(k)) + '</p></header>' +
+  return '<header class="page"><div class="ph"><h1>Monthly</h1>' + topActions() + '</div><p class="sub">' + esc(fmtMonth(k)) + '</p></header>' +
     '<section class="sec"><h2>Money moves' + (mv.length ? '<small>' + doneN + ' of ' + mv.length + ' done</small>' : '') + '</h2><div class="panel">' +
     (mv.length ? '<ul class="rows">' + mv.map((m) => {
       const done = dn.has(m.id), ft = flowText(m);
@@ -1433,7 +1447,7 @@ function vMonthly() {
 
 function vForecast() {
   const mode = ui.fc === 'retire' || ui.fc === 'tax' ? ui.fc : 'months';
-  return '<header class="page"><h1>Forecast</h1><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : 'In today’s money') + '</p></header>' +
+  return '<header class="page"><div class="ph"><h1>Forecast</h1>' + topActions() + '</div><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : 'In today’s money') + '</p></header>' +
     seg('fc', [['months', 'Month by month'], ['retire', 'Retirement'], ['tax', 'Tax']], mode, 'Forecast type') +
     (mode === 'months' ? vMonths() : mode === 'retire' ? vRetire() : vTax());
 }
@@ -1476,7 +1490,7 @@ function vRetire() {
 function vMore() {
   const snaps = state.snapshots.slice().reverse(), n = state.snapshots.length;
   const evs = state.events.slice().sort((a, b) => a.date.localeCompare(b.date));
-  return '<header class="page"><h1>More</h1></header>' +
+  return '<header class="page"><div class="ph"><h1>More</h1>' + topActions() + '</div></header>' +
     '<section class="sec"><h2>History</h2>' +
     (n ? '<div class="panel pad"><div><p class="fig" id="xv">' + bigMoney(snapTotal(state.snapshots[n - 1])) + '</p><p class="note" id="xs">' + esc(histText(n - 1)) + '</p></div>' + histChart() + '</div>' +
       '<div class="panel"><ul class="rows">' + snaps.slice(0, 36).map((s, i) => {
@@ -2733,7 +2747,7 @@ function offerCard(raw) {
 }
 function vOffers() {
   const n = newsConf(), every = newsEvery(), items = (n && n.items) || [];
-  const head = '<header class="page"><h1>Offers</h1><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + (n && n.at ? '. Last checked ' + esc(fmtDate(localISO(new Date(n.at)))) : '') + '</p></header>';
+  const head = '<header class="page"><div class="ph"><h1>Offers</h1>' + topActions() + '</div><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + (n && n.at ? '. Last checked ' + esc(fmtDate(localISO(new Date(n.at)))) : '') + '</p></header>';
   if (!aiConf().key) return head + '<p class="note">Once your Anthropic API key is in More, under Assistant, Claude searches the web for offers worth knowing about and compares them with your accounts.</p>';
   return head + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error ? '<p class="note warnline">The last check didn’t work: ' + esc(n.error) + (items.length && n.at ? ' These are the offers from ' + esc(fmtDate(localISO(new Date(n.at)))) + '.' : '') + '</p>' : '') +
     (n && n.highlights && n.highlights.length ? '<section class="sec"><h2>Right now</h2><div class="hl">' + n.highlights.map((h) => '<div><span class="hl-l">' + esc(h.label) + '</span><b>' + esc(h.value) + '</b>' + (h.provider ? '<span class="hl-p">' + esc(h.provider) + '</span>' : '') + '</div>').join('') + '</div></section>' : '') +
@@ -3190,6 +3204,8 @@ function lockReady() {
 /* ---------- start ---------- */
 // The app doesn't zoom: double taps are taps (touch-action in the styles), and pinching is ignored.
 ['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+// Upright only: phones that allow it lock the screen; elsewhere the note above covers a sideways phone.
+try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(() => {}); } catch (e) { /* not supported here */ }
 applyTheme();
 lock();
 render(true);
