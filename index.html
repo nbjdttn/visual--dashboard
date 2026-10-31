@@ -538,7 +538,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '1 Nov 2026, 00:30';
+const VERSION = '1 Nov 2026, 01:30';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -2181,7 +2181,7 @@ const AI_TOOLS = [
     input_schema: { type: 'object', properties: { months: { type: 'integer', description: 'How many months ahead, 1 to 120. Default 36.' } }, additionalProperties: false } },
   { name: 'get_tax', description: 'Get the estimated tax on savings interest for this tax year or next: taxable interest by pot, the allowance, the rate bands and the tax. Call it for tax questions.',
     input_schema: { type: 'object', properties: { year: { type: 'string', enum: ['this', 'next'] } }, required: ['year'], additionalProperties: false } },
-  { name: 'get_funds', description: 'Get the Funds page: the index funds being compared, their charges, calendar-year and latest returns, a long-term forecast, and the biggest fall: a 2008-style crash just after buying, with how long it takes to get back. Call it for questions about these funds or about investing in them.',
+  { name: 'get_funds', description: 'Get the Funds page: the index funds being compared, their charges, calendar-year and latest returns, a long-term forecast, and each fund\'s biggest fall from a high, with a 2008-style crash for comparison. Call it for questions about these funds or about investing in them.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false } },
   { name: 'refresh_funds', description: 'Start a new web check of the figures on the Funds page. It runs in the background for a minute or two and usually costs the user 30p to 60p. Use it only when the user asks to update or check the funds; to change which funds are compared, propose the tracked_funds setting instead.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false } },
@@ -2849,6 +2849,7 @@ function vOffers() {
 // month while the offers check is on, and whenever you ask. Only the funds' names go into the searches.
 const FUNDS_KEY = 'money-snapshot-funds';
 const FUNDS_EVERY = 30;
+const FUNDS_V = 2;
 const STAKE = 10000;
 // The money the forecast is for: your investments now, the Investments group (stocks and shares and Lifetime ISAs),
 // so it follows your balances as they change. £10,000 stands in as an example while there are none.
@@ -2931,18 +2932,21 @@ function fundModel(rows) {
   // Long term: the stake left until retirement, at the forecast's growth for shares less each fund's charge.
   const fc = forecast(), n = fc.years >= 1 ? fc.years : 20, at = (r, t) => A * Math.pow(1 + r, t), net = (k, f) => fundGrowth(f, k) - (Number(f.ocf) || 0);
   const funds = rows.map((f) => ({ f, mid: at(net('Mid', f), n), lo: at(net('Low', f), n), hi: at(net('High', f), n), fees: at(fundGrowth(f, 'Mid'), n) - at(net('Mid', f), n) }));
-  // The biggest fall: shares drop 40%, as from late 2007 to early 2009, just after the money goes in. Then it grows at
-  // the central rate with no new money: how long until it's back, and what's left at the end.
+  // The biggest fall: each fund's own biggest drop from a high, as Claude found it, on the money invested now; then how
+  // long it takes to get back at the central rate, with no new money. Its worst calendar year is shown beside it.
   const infl = inflation();
+  const backIn = (fall, r) => { const m = fall > 0 && r > 0 ? Math.ceil(12 * Math.log(1 / (1 - fall)) / Math.log(1 + r)) : fall > 0 ? null : 0; return m != null && m > 480 ? null : m; };
   funds.forEach((x) => {
-    const fall = 0.4 * fundMix(x.f), g = net('Mid', x.f), back = (r) => { const m = fall > 0 && r > 0 ? Math.ceil(12 * Math.log(1 / (1 - fall)) / Math.log(1 + r)) : fall > 0 ? null : 0; return m != null && m > 480 ? null : m; };
-    const worstYear = Object.entries(x.f.years || {}).map(([y, v]) => [Number(y), Number(v)]).sort((p, q) => p[1] - q[1])[0];
-    x.crash = { fall, loss: A * fall, backNow: back((1 + g) * (1 + infl) - 1), backReal: back(g), after: A * (1 - fall) * Math.pow(1 + g, Math.max(0, n - 1)), worstYear: worstYear && worstYear[1] < 0 ? worstYear : null };
+    const g = net('Mid', x.f), wy = Object.entries(x.f.years || {}).map(([y, v]) => [Number(y), Number(v)]).sort((p, q) => p[1] - q[1])[0];
+    const worstYear = wy && wy[1] < 0 ? wy : null, fall = x.f.maxFall ? x.f.maxFall.pct : null;
+    x.crash = { fall, loss: fall == null ? null : A * fall, backNow: fall == null ? null : backIn(fall, (1 + g) * (1 + infl) - 1), worstYear, maxFall: x.f.maxFall || null };
   });
+  // For comparison, a 2008-style fall: shares down 40%.
+  const stress = { fall: 0.4, loss: A * 0.4, backNow: backIn(0.4, (1 + s.sharesMid) * (1 + infl) - 1) };
   const cheap = funds.filter((x) => x.f.ocf != null).sort((a, b) => a.f.ocf - b.f.ocf)[0] || funds[0];
   // For comparison: the same money kept in gilts and savings, at the forecast's growth for cash and gilts.
   const safe = { mid: at(s.safeMid, n), lo: at(s.safeLow, n), hi: at(s.safeHigh, n) };
-  return { stake, years, have, growth, worst, long: { n, age: fc.years >= 1 ? s.retireAge : null, y0: new Date().getFullYear(), funds, cheap, stake, safe } };
+  return { stake, years, have, growth, worst, long: { n, age: fc.years >= 1 ? s.retireAge : null, y0: new Date().getFullYear(), funds, cheap, stake, safe, stress } };
 }
 const fanText = (L, p) => L.cheap.f.short + (p.t === 0 ? ' now' : ' in ' + (L.y0 + p.t) + (L.age && p.t === L.n ? ', at ' + L.age : '')) + ', in today’s money. Range ' + gbpShort(p.lo) + ' to ' + gbpShort(p.hi) + '.';
 // The stake in the cheapest fund, year by year to retirement: the central case with the low to high range around it.
@@ -2979,23 +2983,28 @@ function vFunds() {
   const when = c && c.at ? fmtDate(localISO(new Date(c.at))) : fmtDate(FUND_SEED_AT), until = L.age ? 'at ' + L.age : 'in ' + L.n + ' years';
   return '<header class="page"><div class="ph"><h1>Funds</h1>' + topActions() + '</div><p class="sub">Index funds you might buy, ' + (key && every ? 'checked by Claude once a month' : 'checked by Claude when you ask') + '. Figures from ' + esc(when) + '</p></header>' +
     offersSeg('funds') +
-    (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web…</p>' : c && c.error ? '<p class="note warnline">The last check didn’t work: ' + esc(c.error) + '</p>' : c && c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
+    (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web…</p>' : c && c.error ? '<p class="note warnline">The last check didn’t finish: ' + esc(c.error) + ' It tries again ' + (c.net ? 'next time you open the app' : 'tomorrow') + ', or tap Check again now.</p>' : c && c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
     '<section class="sec"><h2>Long term' + (L.stake.mine ? '<small>' + gbp(L.stake.amount) + ' invested</small>' : '') + '</h2><div class="panel pad"><div><p class="fnum" id="ffv">' + bigMoney(L.cheap.mid) + '</p><p class="num-sub" id="ffs">' + esc(fanText(L, { t: L.n, lo: L.cheap.lo, hi: L.cheap.hi })) + '</p></div>' + fundFan(L) +
       '<div class="legend"><span><i class="lg-main"></i>Central</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-pen"></i>Gilts and savings</span></div>' +
       '<ul class="rows">' + L.funds.map((x) => '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc((fundMix(x.f) < 1 ? pct(fundMix(x.f)) + ' in shares · ' : '') + (x.f.ocf != null ? pct(x.f.ocf, 2) + ' a year, about ' + gbp(x.fees) + ' in charges' : 'Charge not known yet')) + '</span></span><span class="end"><span class="v">' + gbp(x.mid) + '</span><span class="vs">' + esc(gbpShort(x.lo) + ' to ' + gbpShort(x.hi)) + '</span></span></li>').join('') +
       '<li class="ref"><span class="main"><span class="t2">Gilts and savings</span><span class="s">' + esc('For comparison: ' + pct(s.safeMid, 1) + ' a year above inflation (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + '), no fund charge') + '</span></span><span class="end"><span class="v">' + gbp(L.safe.mid) + '</span><span class="vs">' + esc(gbpShort(L.safe.lo) + ' to ' + gbpShort(L.safe.hi)) + '</span></span></li></ul></div>' +
       '<p class="note">' + (L.stake.mine ? 'Your investments as they are now, ' + gbp(L.stake.amount) + ', ' + until + ', in today’s money; money you add later isn’t included.' : gbp(STAKE) + ' as an example, ' + until + ', in today’s money, as there are no investments in the app yet.') + ' Short-term moves can’t be predicted, but over decades returns have tended towards their average: here ' + pct(s.sharesMid, 1) + ' a year above inflation for shares (' + pct(s.sharesLow, 1) + ' to ' + pct(s.sharesHigh, 1) + '), less each fund’s charge.' +
       (L.funds.some((x) => fundMix(x.f) < 1) ? ' The bonds and cash in a mixed fund grow ' + pct(s.safeMid, 1) + ' (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + ').' : '') + '</p></section>' +
-    '<section class="sec"><h2>Biggest fall</h2><div class="panel"><ul class="rows">' + L.funds.map((x) => { const k = x.crash; return '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span>' +
-      '<span class="s">' + esc(k.fall ? 'Back in about ' + spanTxt(k.backNow) + ' on your statements, ' + spanTxt(k.backReal) + ' after inflation' : 'Nothing in shares to fall') + '</span>' +
-      '<span class="s">' + esc('Still about ' + gbpShort(k.after) + ' ' + until + (k.worstYear ? '. Worst year so far: ' + retPct(k.worstYear[1]) + ' in ' + k.worstYear[0] : '')) + '</span></span>' +
-      '<span class="end"><span class="v">−' + gbp(k.loss) + '</span><span class="vs down">' + pct(k.fall) + '</span></span></li>'; }).join('') +
+    '<section class="sec"><h2>Biggest fall</h2><div class="panel"><ul class="rows">' + L.funds.map((x) => {
+      const k = x.crash, mf = k.maxFall, wy = k.worstYear, wyText = wy ? 'Worst calendar year ' + retPct(wy[1]) + ' in ' + wy[0] : '';
+      const checked = !!(c && c.at && (c.asked || []).includes(x.f.key));
+      const first = mf ? 'From a high: ' + retPct(-mf.pct) + (mf.from && mf.to ? ', ' + fmtMonth(mf.from) + ' to ' + fmtMonth(mf.to) : '') : [wyText, checked ? 'Biggest fall not found yet' : 'Biggest fall comes with Claude’s next check'].filter(Boolean).join(' · ');
+      const second = mf ? [wyText, 'Back in about ' + spanTxt(k.backNow)].filter(Boolean).join(' · ') : '';
+      return '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc(first) + '</span>' + (second ? '<span class="s">' + esc(second) + '</span>' : '') + '</span>' +
+        '<span class="end">' + (k.fall != null ? '<span class="v">−' + gbp(k.loss) + '</span><span class="vs down">' + pct(k.fall, 1) + '</span>' : '<span class="v">–</span>') + '</span></li>';
+    }).join('') +
+      '<li class="ref"><span class="main"><span class="t2">A 2008-style crash</span><span class="s">' + esc('For comparison: shares down 40%, back in about ' + spanTxt(L.stress.backNow)) + '</span></span><span class="end"><span class="v">−' + gbp(L.stress.loss) + '</span><span class="vs down">40%</span></span></li>' +
       '<li class="ref"><span class="main"><span class="t2">Gilts and savings</span><span class="s">For comparison: savings don’t fall, and gilts held to the end repay in full</span></span><span class="end"><span class="v">' + gbp(0) + '</span><span class="vs">0%</span></span></li></ul></div>' +
-      '<p class="note">' + (L.stake.mine ? 'If shares fell 40% now' : 'If shares fell 40% just after you put ' + gbp(STAKE) + ' in') + ', about as much as from late 2007 to early 2009. Afterwards ' + (L.stake.mine ? 'your investments grow' : 'it grows') + ' at the central rate, with no new money.</p></section>' +
+      '<p class="note">Each fund’s own biggest fall, as Claude found it, on ' + (L.stake.mine ? 'your investments now' : gbp(STAKE)) + '. Getting back assumes the central growth rate and no new money, in pounds on your statements.</p></section>' +
     (M.years.length ? '<section class="sec"><h2>Each year</h2>' + fundTable(M.years.map(String), rows.map((f) => '<tr><th scope="row">' + esc(f.short) + '</th>' + M.years.map((y) => fundCell(f.years[y] == null ? null : (f.years[y] < 0 ? '−' : '') + (Math.abs(Number(f.years[y])) * 100).toFixed(1) + '%', f.years[y] < 0)).join('') + '</tr>')) +
-      '<p class="note">Total returns in pounds, after each fund’s charge.</p></section>' : '') +
+      '<p class="note">Total returns in pounds, after each fund’s charge. A dash means no figure: the fund is newer, or Claude hasn’t found it yet.</p></section>' : '') +
     '<section class="sec"><h2>The funds</h2><div class="panel"><ul class="rows">' + rows.map((f) => '<li class="fund"><span class="main"><span class="t2">' + esc(f.name) + '</span><span class="s">' + esc(f.holds || (f.missing ? 'Not checked yet' : '')) + '</span>' +
-      (fundNeeds(f) ? '<span class="s">Returns come with Claude’s next check</span>' : '') + (fundPast(f) ? '<span class="s">' + esc(fundPast(f)) + '</span>' : '') + '<span class="s">' + (f.isin ? 'ISIN ' + esc(f.isin) : '') + (f.url ? (f.isin ? ' · ' : '') + '<a class="flink" href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc((f.source || host(f.url)) + ' ↗') + '</a>' : '') + '</span></span>' +
+      (fundNeeds(f) ? '<span class="s">' + esc(c && c.at && (c.notFound || []).includes(f.key) ? 'Claude couldn’t find its returns yet; it tries again tomorrow' : 'Returns come with Claude’s next check') + '</span>' : '') + (fundPast(f) ? '<span class="s">' + esc(fundPast(f)) + '</span>' : '') + '<span class="s">' + (f.isin ? 'ISIN ' + esc(f.isin) : '') + (f.url ? (f.isin ? ' · ' : '') + '<a class="flink" href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc((f.source || host(f.url)) + ' ↗') + '</a>' : '') + '</span></span>' +
       '<span class="end"><span class="v">' + (f.ocf != null ? esc(pct(f.ocf, 2)) : '–') + '</span><span class="vs">a year</span></span></li>').join('') + '</ul></div></section>' +
     '<section class="sec"><h2>Worth knowing</h2><div class="panel"><ul class="rows">' +
       '<li><span class="main"><span class="t2">Buying at a record high</span><span class="s">The next year averaged +13.6%, against +11.9% from other days (US shares, 1989 to 2026). <a class="flink" href="https://clark.com/personal-finance-credit/investing-retirement/should-you-be-scared-of-investing-at-all-time-highs/amp/" target="_blank" rel="noopener noreferrer">J.P. Morgan data ↗</a></span></span></li>' +
@@ -3008,7 +3017,7 @@ const offersSeg = (mode) => seg('ofv', [['offers', 'Offers'], ['funds', 'Funds']
 
 // Claude's check: it searches for each fund's latest figures and hands them over in a form, checked here.
 const FUNDS_SYSTEM = 'You keep a UK investor\'s comparison of index funds up to date. Search the web for each fund\'s latest published figures, then call report_funds once with all of them.\n\n' +
-  'For each fund find: the ongoing charges figure (OCF); its total return in pounds for each full calendar year asked for; its total return over the last year, and a year over the last 3 and 5 years, to the latest date published, with that date; and in a few words what it holds. Use the share class given. Prefer the fund manager\'s factsheet, then well-known UK sites such as AJ Bell, Hargreaves Lansdown, Fidelity or Trustnet.\n\n' +
+  'For each fund find: the ongoing charges figure (OCF); its total return in pounds for each full calendar year asked for; its total return over the last year, and a year over the last 3 and 5 years, to the latest date published, with that date; its biggest fall from a high to a low (maximum drawdown) over the longest period published, in pounds where possible, with the months it ran from and to; and in a few words what it holds. Use the share class given. Prefer the fund manager\'s factsheet, then well-known UK sites such as AJ Bell, Hargreaves Lansdown, Fidelity or Trustnet.\n\n' +
   'Only report figures you found in your searches. Leave out a figure you couldn\'t find rather than estimating it. Search for the funds only: nothing about the user is needed.';
 const FUNDS_TOOL = { name: 'report_funds', description: 'Hand over the fund figures you found. Call it once, when you have finished searching.',
   input_schema: { type: 'object', properties: {
@@ -3021,6 +3030,7 @@ const FUNDS_TOOL = { name: 'report_funds', description: 'Hand over the fund figu
       holds: { type: 'string', description: 'What it holds, under 90 characters, such as About 3,400 large and mid-sized companies worldwide' },
       calendar_years: { type: 'array', items: { type: 'object', properties: { year: { type: 'integer' }, return_percent: { type: 'number', description: 'Total return in pounds that year, in percent, such as -7.8' } }, required: ['year', 'return_percent'], additionalProperties: false } },
       trailing: { type: 'object', properties: { to: { type: 'string', description: 'The date these run to, YYYY-MM-DD' }, one_year_percent: { type: 'number' }, three_years_percent_a_year: { type: 'number' }, five_years_percent_a_year: { type: 'number' } }, required: ['to'], additionalProperties: false },
+      biggest_fall: { type: 'object', description: 'Its biggest fall from a high to a low (maximum drawdown) over the longest period published, in pounds where possible', properties: { percent: { type: 'number', description: 'The size of the fall, in percent, such as 24.5' }, from: { type: 'string', description: 'The month of the high, YYYY-MM' }, to: { type: 'string', description: 'The month of the low, YYYY-MM' } }, required: ['percent'], additionalProperties: false },
       url: { type: 'string', description: 'The page most of these figures came from' },
       source: { type: 'string', description: 'The name of that site' } },
       required: ['name'], additionalProperties: false } },
@@ -3035,7 +3045,8 @@ function fundItems(input) {
     const years = {};
     (Array.isArray(x.calendar_years) ? x.calendar_years : []).forEach((c) => { const y = Math.round(Number(c && c.year)), r = pctIn(c && c.return_percent, -80, 150); if (y >= 1990 && y <= last && r != null) years[y] = r; });
     const tr = x.trailing && isDay(x.trailing.to) ? { to: String(x.trailing.to), y1: pctIn(x.trailing.one_year_percent, -80, 200), y3: pctIn(x.trailing.three_years_percent_a_year, -60, 80), y5: pctIn(x.trailing.five_years_percent_a_year, -50, 60) } : null;
-    return { isin: isinOf(x.isin), name: clip(x.name, 90), short: clip(x.short, 24), ocf: pctIn(x.ocf_percent, 0, 3), shares: pctIn(x.shares_percent, 0, 100), holds: clip(x.holds, 120), years,
+    const bf = x.biggest_fall, mon = (v) => (/^\d{4}-\d{2}/.test(String(v || '')) ? String(v).slice(0, 7) : ''), fall = bf ? numIn(Math.abs(Number(bf.percent)), 1, 90) : null;
+    return { isin: isinOf(x.isin), maxFall: fall == null ? null : { pct: +(fall / 100).toFixed(4), from: mon(bf.from), to: mon(bf.to) }, name: clip(x.name, 90), short: clip(x.short, 24), ocf: pctIn(x.ocf_percent, 0, 3), shares: pctIn(x.shares_percent, 0, 100), holds: clip(x.holds, 120), years,
       trailing: tr && (tr.y1 != null || tr.y3 != null || tr.y5 != null) ? tr : null, url: /^https:\/\/\S+$/.test(String(x.url || '').trim()) ? String(x.url).trim() : '', source: clip(x.source, 40) };
   }).filter((f) => f.name || f.isin);
 }
@@ -3050,46 +3061,57 @@ async function fundsRun() {
   if (fundsBusy || !state || !aiConf().key) return;
   fundsBusy = true;
   const was = fundsConf() || {}, tried = new Date().toISOString(), list = fundList(), asked = list.map(fundKey);
-  fundsSave(Object.assign({}, was, { tried, error: '', asked }));
+  fundsSave(Object.assign({}, was, { tried, error: '', net: false, asked, v: FUNDS_V }));
   fundsPaint();
-  const ask = { role: 'user', content: [{ type: 'text', text: fundsBrief(list) }] };
-  let content = [], cost = 0, error = '';
+  const turns = [{ role: 'user', content: [{ type: 'text', text: fundsBrief(list) }] }];
+  let content = [], cost = 0, error = '', net = false;
   try {
-    // A long search can pause; sending the turn back lets it carry on where it stopped.
-    for (let i = 0; i < 4; i++) {
-      const res = await aiCall(content.length ? [ask, { role: 'assistant', content }] : [ask], { system: FUNDS_SYSTEM, tools: [webTool(12), FUNDS_TOOL] });
+    // A long search can pause; sending the turn back lets it carry on where it stopped. If Claude finishes without
+    // handing over the form, it's asked for it once.
+    for (let i = 0, nudged = false; i < 8; i++) {
+      const res = await aiCall(content.length ? turns.concat([{ role: 'assistant', content }]) : turns, { system: FUNDS_SYSTEM, tools: [webTool(12), FUNDS_TOOL] });
       cost += aiUsd(res.usage);
       if (res.stop_reason === 'refusal') throw new Error('Claude couldn’t do this check.');
       content = content.concat(aiKeep(res.content));
-      if (res.stop_reason !== 'pause_turn') break;
+      if (res.stop_reason === 'pause_turn') continue;
+      if (nudged || content.some((b) => b.type === 'tool_use' && b.name === 'report_funds')) break;
+      turns.push({ role: 'assistant', content }, { role: 'user', content: [{ type: 'text', text: 'Please call report_funds now with the figures you found, leaving out any you couldn’t find.' }] });
+      content = [];
+      nudged = true;
     }
-    const call = content.find((b) => b.type === 'tool_use' && b.name === 'report_funds'), found = call ? fundItems(call.input) : [];
-    const funds = Object.assign({}, was.funds || {});
+    const said = turns.flatMap((m) => (m.role === 'assistant' ? m.content : [])).concat(content);
+    const call = said.find((b) => b.type === 'tool_use' && b.name === 'report_funds'), found = call ? fundItems(call.input) : [];
+    const funds = Object.assign({}, was.funds || {}), matched = new Set();
     let n = 0;
     list.forEach((t) => {
       const k = fundKey(t), f = fundMatch(found, t), old = funds[k] || FUND_SEED[k] || {};
       if (!f) return;
       n++;
+      matched.add(k);
       funds[k] = { name: f.name || old.name || t.name, short: f.short || old.short || fundShort(t.name), isin: f.isin || isinOf(t.isin) || old.isin || '', ocf: f.ocf != null ? f.ocf : old.ocf == null ? null : old.ocf, shares: f.shares != null ? f.shares : old.shares == null ? null : old.shares,
-        holds: f.holds || old.holds || '', years: Object.assign({}, old.years || {}, f.years), trailing: f.trailing || old.trailing || null, url: f.url || old.url || '', source: f.source || old.source || '' };
+        holds: f.holds || old.holds || '', years: Object.assign({}, old.years || {}, f.years), trailing: f.trailing || old.trailing || null, maxFall: f.maxFall || old.maxFall || null, url: f.url || old.url || '', source: f.source || old.source || '' };
     });
     if (!n) throw new Error('Claude didn’t find figures for these funds.');
-    fundsSave({ at: new Date().toISOString(), tried, asked, funds, summary: clip(call.input.summary, 200), cost, model: aiModel()[1] });
+    fundsSave({ at: new Date().toISOString(), tried, asked, v: FUNDS_V, notFound: asked.filter((k) => !matched.has(k)), funds, summary: clip(call.input.summary, 200), cost, model: aiModel()[1] });
   } catch (e) {
     error = (e && e.message) || 'Something went wrong.';
-    fundsSave(Object.assign({}, was, { tried, asked, error, cost: was.cost || 0 }));
+    // A dropped connection (the app put away mid-check, say), a busy moment or too many requests: worth trying again soon.
+    net = /reach Anthropic|busy right now|Too many requests/.test(error);
+    fundsSave(Object.assign({}, was, { tried, asked, v: FUNDS_V, error, net, cost: was.cost || 0 }));
   }
   fundsBusy = false;
   fundsPaint();
   if (!error && !(location.hash === '#offers' && ui.ofv === 'funds')) toast('Fund figures updated: see Offers, then Funds');
 }
-// Once a month while the offers check is on. A fund on the list that no check has asked about yet is checked straight
-// away; after a failed check, or a fund the check couldn't find, it tries again the next day.
+// Once a month while the offers check is on. Straight away for a fund no check has asked about yet, or when this
+// version of the app asks for more. After a dropped connection it tries again 10 minutes on; after another failure, or
+// for a fund the check couldn't find, the next day.
 function fundsMaybe() {
   if (!state || state.example || !aiConf().key || fundsBusy || navigator.onLine === false || !newsEvery()) return;
   const c = fundsConf(), last = c ? Date.parse(c.tried || c.at || 0) || 0 : 0, rows = fundRows(), asked = (c && c.asked) || [];
-  const fresh = rows.some((f) => fundNeeds(f) && !asked.includes(f.key)), retry = c && (c.error || rows.some(fundNeeds));
-  if (fresh || Date.now() - last >= (retry ? 1 : FUNDS_EVERY) * 864e5) fundsRun();
+  const fresh = !c || c.v !== FUNDS_V || rows.some((f) => fundNeeds(f) && !asked.includes(f.key));
+  const days = c && c.error ? (c.net ? 10 / 1440 : 1) : rows.some(fundNeeds) ? 1 : FUNDS_EVERY;
+  if (fresh || Date.now() - last >= days * 864e5) fundsRun();
 }
 function fundsPaint() { if (state) render(); }
 // What Claude sees of the Funds page.
@@ -3108,9 +3130,10 @@ function aiFunds() {
     long_term: { years: M.long.n, until_age: M.long.age, in_todays_money: true, shares_growth_above_inflation_percent: { low: p2(s.sharesLow), central: p2(s.sharesMid), high: p2(s.sharesHigh) }, bonds_and_cash_growth_above_inflation_percent: { low: p2(s.safeLow), central: p2(s.safeMid), high: p2(s.safeHigh) }, less_each_funds_charge: true,
       funds: M.long.funds.map((x) => ({ fund: x.f.short, central: r0(x.mid), low: r0(x.lo), high: r0(x.hi), charges_over_the_years: r0(x.fees) })),
       for_comparison_gilts_and_savings: { central: r0(M.long.safe.mid), low: r0(M.long.safe.lo), high: r0(M.long.safe.hi), growth_above_inflation_percent: { low: p2(s.safeLow), central: p2(s.safeMid), high: p2(s.safeHigh) }, biggest_fall: 'none for savings, or for gilts held to the end' } },
-    biggest_fall: { what: 'Shares fall 40%, as from late 2007 to early 2009, straight away; then central growth with no new money.',
-      funds: M.long.funds.map((x) => ({ fund: x.f.short, loss: r0(x.crash.loss), fall_percent: p2(x.crash.fall), back_in_months_on_statements: x.crash.backNow, back_in_months_after_inflation: x.crash.backReal, value_at_end_even_so: r0(x.crash.after),
-        worst_calendar_year: x.crash.worstYear ? { year: x.crash.worstYear[0], return_percent: p2(x.crash.worstYear[1]) } : null })) },
+    biggest_fall: { what: 'Each fund\'s own biggest fall from a high (maximum drawdown) as found on the web, on the stake, and its worst calendar year; getting back assumes central growth and no new money.',
+      funds: M.long.funds.map((x) => ({ fund: x.f.short, from_a_high: x.crash.maxFall ? { percent: p2(x.crash.maxFall.pct), from: x.crash.maxFall.from || null, to: x.crash.maxFall.to || null } : null,
+        worst_calendar_year: x.crash.worstYear ? { year: x.crash.worstYear[0], return_percent: p2(x.crash.worstYear[1]) } : null, loss_on_stake: x.crash.loss == null ? null : r0(x.crash.loss), back_in_months_on_statements: x.crash.backNow })),
+      for_comparison_2008_style: { shares_fall_percent: 40, loss_on_stake: r0(M.long.stress.loss), back_in_months_on_statements: M.long.stress.backNow } },
   };
 }
 function aiRefreshFunds() {
