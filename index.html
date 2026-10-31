@@ -362,6 +362,8 @@ html.applock body { overflow: hidden; }
 .legend .lg-main { background: var(--brand); }
 .legend .lg-pen { background: var(--g-invest); }
 .legend .lg-band { background: var(--brand); opacity: .25; height: 10px; width: 14px; border-radius: 3px; }
+.legend .lg-alt { background: repeating-linear-gradient(90deg, var(--ink-2) 0 4px, transparent 4px 7px); }
+.chart .ln.alt { stroke: var(--ink-2); stroke-width: 2; stroke-dasharray: 5 4; }
 .themes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .th { display: grid; justify-items: center; gap: 8px; padding: 12px 4px 10px; border-radius: 16px; border: 0; background: var(--surface); box-shadow: var(--shadow); font: 600 13px var(--sans); color: var(--ink-2); cursor: pointer; }
 .th span { width: 44px; height: 44px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08); }
@@ -457,6 +459,8 @@ html.applock body { overflow: hidden; }
 :root[data-theme="paper"] .facts > div:first-child { padding-left: 0; }
 :root[data-theme="paper"] .mixbar { border-radius: 2px; }
 :root[data-theme="paper"] .chart .ln { stroke-width: 2; }
+:root[data-theme="paper"] .chart .ln.pen { stroke: var(--g-fixed); }
+:root[data-theme="paper"] .legend .lg-pen { background: var(--g-fixed); }
 :root[data-theme="paper"] .btn { border-radius: 6px; box-shadow: none; background: transparent; box-shadow: inset 0 0 0 1px var(--ink); }
 :root[data-theme="paper"] .btn.primary { background: var(--ink); color: var(--bg); box-shadow: none; }
 :root[data-theme="paper"] .btn.quiet { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
@@ -519,7 +523,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 02:45';
+const VERSION = '31 Oct 2026, 03:05';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -593,7 +597,7 @@ const MATURES = new Set(['fixed', 'gilt']);
 const DEFAULTS = {
   name: '', title: '', birthYear: 1990, birthMonth: 1, retireAge: 66,
   takeHome: 0, fixedCosts: 0, extraPensionMonthly: 0,
-  emergencyMonths: 6, targetShares: 0.6, planStartDate: '', planStartShares: 0, targetSharesBy: '', planPath: [],
+  emergencyMonths: 6, targetShares: 0.6, cautiousShares: 0.2, planStartDate: '', planStartShares: 0, targetSharesBy: '', planPath: [],
   isaAllowance: 20000, newSavingsPerYear: 0, targetIncome: 0,
   dbPension: 0, dbLump: 0, dbAccrual: 0, dbLumpAccrual: 0, dbAge: 66, leaveDbAge: 66,
   pensionThisYear: 0, pensionPerYearA: 0, pensionSwitchYear: 2030, pensionPerYearB: 0,
@@ -605,7 +609,7 @@ const DEFAULTS = {
 const SETTINGS_FORM = [
   ['About you', [['name', 'Your name', 'text'], ['title', 'Title on the Home page', 'text'], ['birthYear', 'Year of birth', 'int'], ['birthMonth', 'Month of birth (1 to 12)', 'int'], ['retireAge', 'Retire at age', 'int']]],
   ['Each month', [['takeHome', 'Take-home pay (£)', 'money'], ['fixedCosts', 'Fixed costs, such as rent and bills (£)', 'money'], ['extraPensionMonthly', 'Extra pension taken from pay (£)', 'money']]],
-  ['Plan', [['emergencyMonths', 'Emergency cash, in months of fixed costs', 'int'], ['targetShares', 'Target in shares and funds (%)', 'pct'], ['targetSharesBy', 'Reach that target by', 'date'], ['isaAllowance', 'ISA allowance a year (£)', 'money'], ['newSavingsPerYear', 'New savings a year, from pay (£)', 'money'], ['targetIncome', 'Target retirement income a year, before tax (£)', 'money']]],
+  ['Plan', [['emergencyMonths', 'Emergency cash, in months of fixed costs', 'int'], ['targetShares', 'Target in shares and funds (%)', 'pct'], ['targetSharesBy', 'Reach that target by', 'date'], ['cautiousShares', 'Cautious comparison: share in stocks and shares (%)', 'pct'], ['isaAllowance', 'ISA allowance a year (£)', 'money'], ['newSavingsPerYear', 'New savings a year, from pay (£)', 'money'], ['targetIncome', 'Target retirement income a year, before tax (£)', 'money']]],
   ['Guaranteed pension', [['dbPension', 'Built so far, a year (£)', 'money'], ['dbLump', 'Lump sum built so far (£)', 'money'], ['dbAccrual', 'Added for each year you work, a year (£)', 'money'], ['dbLumpAccrual', 'Lump sum added each year (£)', 'money'], ['dbAge', 'Paid in full from age', 'int'], ['leaveDbAge', 'Stay in the scheme until age', 'int']]],
   ['Pension pot contributions', [['pensionThisYear', 'Extra, for the rest of this tax year (£)', 'money'], ['pensionPerYearA', 'Extra a year after that (£)', 'money'], ['pensionSwitchYear', 'Until the year', 'int'], ['pensionPerYearB', 'Extra a year from then on (£)', 'money']]],
   ['State Pension', [['statePension', 'A year (£)', 'money'], ['statePensionAge', 'From age', 'int']]],
@@ -710,18 +714,19 @@ function forecast() {
   const targetYear = s.targetSharesBy ? parseD(s.targetSharesBy).getFullYear() : yearNow;
   const target = Math.max(f0, Number(s.targetShares) || 0);
   const span = Math.max(1, targetYear - yearNow);
-  const fracAt = (t) => (t + 1 >= span ? target : f0 + (target - f0) * ((t + 1) / span));
+  const fracFor = (goal) => (t) => (t + 1 >= span ? goal : f0 + (goal - f0) * ((t + 1) / span));
+  const fracAt = fracFor(target);
   const leaveYears = s.leaveDbAge - age0;
   const contrib = (t) => {
     if (t >= leaveYears) return 0;
     if (t === 0) return s.pensionThisYear;
     return yearNow + t < s.pensionSwitchYear ? s.pensionPerYearA : s.pensionPerYearB;
   };
-  const run = (rs, rc) => {
+  const run = (rs, rc, frac = fracAt) => {
     let inv = inv0, pot = pot0;
     const out = [{ age: age0, inv, pot }];
     for (let t = 0; t < years; t++) {
-      const f = fracAt(t);
+      const f = frac(t);
       inv = inv * (1 + f * rs + (1 - f) * rc) + (Number(s.newSavingsPerYear) || 0);
       pot = pot * (1 + rs) + (Number(contrib(t)) || 0);
       out.push({ age: age0 + t + 1, inv, pot });
@@ -729,12 +734,14 @@ function forecast() {
     return out;
   };
   const lo = run(s.sharesLow, s.safeLow), mid = run(s.sharesMid, s.safeMid), hi = run(s.sharesHigh, s.safeHigh);
+  const cautiousShare = Math.min(1, Math.max(0, s.cautiousShares == null ? 0.2 : Number(s.cautiousShares)));
+  const cautious = run(s.sharesMid, s.safeMid, fracFor(cautiousShare));
   const dbYears = Math.max(0, Math.min(s.leaveDbAge, s.retireAge) - age0);
   const db = s.dbPension + s.dbAccrual * dbYears;
   const dbLump = s.dbLump + s.dbLumpAccrual * dbYears;
   const last = (ser) => ser[ser.length - 1];
   const income = (ser) => db + s.statePension + s.drawRate * (last(ser).inv + last(ser).pot);
-  return { years, age0, lo, mid, hi, db, dbLump, income: { lo: income(lo), mid: income(mid), hi: income(hi) } };
+  return { years, age0, lo, mid, hi, cautious, cautiousShare, target, db, dbLump, income: { lo: income(lo), mid: income(mid), hi: income(hi), cautious: income(cautious) } };
 }
 
 const activeMoves = (k = monthKey()) => state.moves.filter((m) => (!m.start || m.start <= k) && (!m.end || m.end >= k));
@@ -1188,7 +1195,7 @@ function retireChart(ser) {
   const rg = niceRange(0, Math.max.apply(null, ser.map((d) => d.hi)), 4);
   const x = (a) => L + (a - a0) / (a1 - a0) * (W - L - R), y = (v) => T + (1 - (v - rg.lo) / (rg.hi - rg.lo)) * (H - T - B);
   const pts = (k) => ser.map((d) => [x(d.age), y(d[k])]);
-  const Pm = pts('mid'), Pp = pts('pot'), Ph = pts('hi'), Pl = pts('lo').reverse(), e = Pm[Pm.length - 1];
+  const Pm = pts('mid'), Pp = pts('pot'), Ph = pts('hi'), Pl = pts('lo').reverse(), Pa = pts('alt'), e = Pm[Pm.length - 1];
   const band = at0(Ph[0]) + curve(Ph).join('') + 'L' + f1(Pl[0][0]) + ',' + f1(Pl[0][1]) + curve(Pl).join('') + 'Z';
   const every = a1 - a0 > 24 ? 10 : 5;
   let xt = '';
@@ -1197,6 +1204,7 @@ function retireChart(ser) {
   CH.retire = { W, H, T, B, n: ser.length, xs: Pm.map((p) => p[0]), ys: Pm.map((p) => p[1]), show, reset: () => show(ser.length - 1) };
   return '<div class="chartbox">' + chartSvg('retire', W, H, 'Forecast by age, in today’s money', guides(rg, y, L, W - R) +
     '<path d="' + band + '" class="band fade"/><path d="' + at0(Pp[0]) + curve(Pp).join('') + '" class="ln pen draw" pathLength="1"/>' +
+    '<path d="' + at0(Pa[0]) + curve(Pa).join('') + '" class="ln alt fade"/>' +
     '<path d="' + at0(Pm[0]) + curve(Pm).join('') + '" class="ln draw" pathLength="1"/><circle cx="' + f1(e[0]) + '" cy="' + f1(e[1]) + '" r="4.5" class="end fade"/>' + xt) + '</div>';
 }
 
@@ -1476,10 +1484,15 @@ function vMonths() {
 function vRetire() {
   const s = state.settings, f = forecast(), end = f.mid[f.mid.length - 1];
   const tot = (r) => r.inv + r.pot;
-  const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]) }));
-  const last = ser[ser.length - 1];
+  const ser = f.mid.map((r, i) => ({ age: r.age, mid: tot(r), pot: r.pot, lo: tot(f.lo[i]), hi: tot(f.hi[i]), alt: tot(f.cautious[i]) }));
+  const last = ser[ser.length - 1], gap = last.mid - last.alt, gapIncome = f.income.mid - f.income.cautious;
   return '<section class="hero"><header class="head"><p class="num" id="rv">' + bigMoney(last.mid) + '</p><p class="num-sub" id="rs">' + esc(retireText(last)) + '</p></header>' +
-    (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
+    (ser.length > 1 ? retireChart(ser) + '<div class="legend"><span><i class="lg-main"></i>Everything</span><span><i class="lg-pen"></i>Pension pot</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-alt"></i>Cautious, ' + pct(f.cautiousShare) + ' in shares</span></div>' : '<p class="note">Set a retirement age in the future to see a forecast.</p>') + '</section>' +
+    (ser.length > 1 ? '<section class="sec"><h2>Your plan or a cautious mix</h2><div class="facts two">' +
+      fact('Your plan, ' + pct(f.target) + ' in shares', gbpShort(last.mid), 'at ' + s.retireAge + ', ' + gbpShort(f.income.mid) + ' a year') +
+      fact('Cautious, ' + pct(f.cautiousShare) + ' in shares', gbpShort(last.alt), 'at ' + s.retireAge + ', ' + gbpShort(f.income.cautious) + ' a year') + '</div>' +
+      '<p class="note">' + esc(Math.abs(gap) < 500 ? 'Both mixes end up about the same.' : 'Keeping only ' + pct(f.cautiousShare) + ' in stocks and shares, with the rest in gilts and savings, leaves about ' + gbp(Math.abs(gap)) + (gap > 0 ? ' less' : ' more') + ' at ' + s.retireAge + ', or ' + gbp(Math.abs(gapIncome)) + ' a year ' + (gap > 0 ? 'less' : 'more') + ' income, in today’s money. In return, it swings far less from year to year.') +
+      ' Shares are assumed to grow ' + pct(s.sharesMid, 1) + ' a year above inflation, and gilts and savings ' + pct(s.safeMid, 1) + '.</p></section>' : '') +
     '<section class="sec"><h2>At ' + esc(s.retireAge) + '</h2><div class="panel"><ul class="rows">' + row('Savings and investments', gbp(end.inv)) + row('Pension pot', gbp(end.pot)) + row('Guaranteed pension', gbp(f.db) + ' a year') + row('Guaranteed lump sum', gbp(f.dbLump)) + '</ul></div></section>' +
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
     '<p class="note">Before tax, once the State Pension starts: your guaranteed pension, the State Pension and ' + pct(s.drawRate, 1) + ' a year drawn from your pots.' +
@@ -1677,6 +1690,7 @@ function openHowRetire() {
     'Cash, gilts and Premium Bonds grow ' + pct(s.safeMid, 1) + ' a year above inflation (' + pct(s.safeLow, 1) + ' to ' + pct(s.safeHigh, 1) + ').',
     'You add ' + gbp(s.newSavingsPerYear) + ' a year from pay.',
     'Your money moves towards ' + pct(s.targetShares) + ' in shares' + (s.targetSharesBy ? ' by ' + fmtDate(s.targetSharesBy) : '') + '.',
+    'The dashed line is a cautious mix for comparison: the same money and savings, moving towards ' + pct(s.cautiousShares == null ? 0.2 : s.cautiousShares) + ' in shares instead, with the rest in gilts and savings.',
     'The guaranteed pension grows by ' + gbp(s.dbAccrual) + ' a year until age ' + s.leaveDbAge + '.',
     'Extra pension contributions: ' + gbp(s.pensionThisYear) + ' this tax year, ' + gbp(s.pensionPerYearA) + ' a year until ' + s.pensionSwitchYear + ', then ' + gbp(s.pensionPerYearB) + '.',
   ];
@@ -2192,7 +2206,8 @@ function aiForecast(n) {
     maturing: rows.flatMap((m) => m.notes.filter((nt) => nt.kind === 'mature').map((nt) => ({ date: nt.pot.maturity, pot: potName(nt.pot), amount: r0(nt.amount), then_to: potName(nt.to) }))),
     plan_invested_by_year: invested,
     retirement: f.years > 0 ? { at_age: state.settings.retireAge, savings_and_pensions: at(last), low: r0(f.lo[last].inv + f.lo[last].pot), high: r0(f.hi[last].inv + f.hi[last].pot),
-      income_a_year: r0(f.income.mid), income_low: r0(f.income.lo), income_high: r0(f.income.hi), guaranteed_pension_a_year: r0(f.db) } : null,
+      income_a_year: r0(f.income.mid), income_low: r0(f.income.lo), income_high: r0(f.income.hi), guaranteed_pension_a_year: r0(f.db),
+      cautious_mix: { shares_percent: Math.round(f.cautiousShare * 100), savings_and_pensions: r0(f.cautious[last].inv + f.cautious[last].pot), income_a_year: r0(f.income.cautious) } } : null,
   };
 }
 function aiTax(which) {
