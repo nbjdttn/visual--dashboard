@@ -236,6 +236,8 @@ span.row { cursor: default; }
 .st-you { grid-area: you; margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--brand-soft); color: var(--ink); font-size: 14px; line-height: 1.4; }
 .st-meta { grid-area: meta; margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13.5px; color: var(--muted); }
 .st-link { color: var(--brand); font-weight: 700; text-decoration: none; }
+.warnline { padding: 10px 12px; border-radius: 12px; background: var(--fill); color: var(--warn); }
+.version { text-align: center; margin-top: 18px; }
 .story { grid-template-columns: minmax(0, 1fr) 92px; grid-template-areas: "main art" "points points" "cmp cmp" "you you" "meta meta"; }
 .st-art.fig { width: 92px; height: 92px; position: relative; display: grid; align-content: center; justify-items: center; gap: 2px; padding: 6px; text-align: center; }
 .st-art.fig b { font: 700 24px/1 var(--sans); letter-spacing: -0.02em; }
@@ -503,6 +505,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
+const VERSION = '31 Oct 2026, 01:05';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1484,7 +1487,8 @@ function vMore() {
     '<section class="sec"><h2>Your data</h2><div class="panel pad"><p class="lockline">' + IC.lock + '<span>Saved automatically, only on this phone</span></p>' +
     '<p class="note">Every change is saved as it happens, and the app keeps restore points by itself. Nothing is sent anywhere, except to Anthropic when you use the assistant. Back up saves a copy to Files, with your passcode, Face ID and API key, so a new phone needs no setting up: keep it private. Recover goes back to a restore point or a saved copy.</p>' +
     '<div class="row-actions"><button class="btn quiet" data-act="export">' + IC.download + 'Back up</button><button class="btn quiet" data-act="points">' + IC.history + 'Recover</button></div>' +
-    '<div class="row-actions"><button class="btn quiet danger" data-act="wipe">' + IC.trash + 'Delete all</button></div></div></section>';
+    '<div class="row-actions"><button class="btn quiet danger" data-act="wipe">' + IC.trash + 'Delete all</button></div></div></section>' +
+    '<p class="note version">Money Snapshot, version ' + esc(VERSION) + '</p>';
 }
 
 // Your taxable interest from the first pound to the last: what's tax-free, then each rate. Deeper green, more tax.
@@ -2674,7 +2678,7 @@ function vOffers() {
   const n = newsConf(), every = newsEvery(), items = (n && n.items) || [];
   const head = '<header class="page"><h1>Offers</h1><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + (n && n.at ? '. Last checked ' + esc(fmtDate(localISO(new Date(n.at)))) : '') + '</p></header>';
   if (!aiConf().key) return head + '<p class="note">Once your Anthropic API key is in More, under Assistant, Claude searches the web for offers worth knowing about and compares them with your accounts.</p>';
-  return head + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error && !items.length ? '<p class="note">The last check didn’t work: ' + esc(n.error) + '</p>' : '') +
+  return head + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error ? '<p class="note warnline">The last check didn’t work: ' + esc(n.error) + (items.length && n.at ? ' These are the offers from ' + esc(fmtDate(localISO(new Date(n.at)))) + '.' : '') + '</p>' : '') +
     (n && n.highlights && n.highlights.length ? '<section class="sec"><h2>Right now</h2><div class="hl">' + n.highlights.map((h) => '<div><span class="hl-l">' + esc(h.label) + '</span><b>' + esc(h.value) + '</b>' + (h.provider ? '<span class="hl-p">' + esc(h.provider) + '</span>' : '') + '</div>').join('') + '</div></section>' : '') +
     (items.length ? '<div class="feed">' + items.map(offerCard).join('') + '</div><p class="note">' + (n.model ? 'From ' + esc(n.model) + ', searching the web' : 'Searched on the web') + (n.cost >= 0.005 ? ', about $' + n.cost.toFixed(2) + ' for this check' : '') + '. Information, not financial advice: check the details with the provider.</p>'
       : newsBusy ? '' : '<p class="note">' + (every ? 'The first check runs the next time the app opens, or now.' : 'Checks are off. You can still check now.') + '</p>') +
