@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Money Snapshot</title>
@@ -49,7 +49,7 @@
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 /* A long press shouldn't open link previews or select the app's own text. What you type, Claude's replies and the
    family report stay selectable, and the report picture can still be saved to Photos. */
-* { -webkit-touch-callout: none; }
+* { -webkit-touch-callout: none; touch-action: manipulation; }
 body { -webkit-user-select: none; user-select: none; }
 input, textarea, select, .msg, pre { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 #sharebox img { -webkit-touch-callout: default; }
@@ -505,7 +505,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 01:15';
+const VERSION = '31 Oct 2026, 01:25';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -3132,6 +3132,8 @@ function lockReady() {
 }
 
 /* ---------- start ---------- */
+// The app doesn't zoom: double taps are taps (touch-action in the styles), and pinching is ignored.
+['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
 applyTheme();
 lock();
 render(true);
