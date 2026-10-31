@@ -523,7 +523,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 11:30';
+const VERSION = '31 Oct 2026, 12:00';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1481,26 +1481,31 @@ function vMonths() {
     '<div class="row-actions"><button class="btn quiet" data-act="table">Every month</button><button class="btn quiet" data-act="how">How this works</button></div>';
 }
 
-// Shares, and pensions invested in them, fall 40% in a year, as in 2008, once your money is at the mix. How much that
-// knocks off, and how many years to get back to where it was, growing at the app's average rates with no new money:
-// in pounds on your statements, and after inflation.
+// Shares, and pensions invested in them, fall 40%, as from late 2007 to early 2009, once your money is at the mix. How
+// much that knocks off, and how many months until your money is back where it was: growing at the app's average rates,
+// with your new savings still going in at the same mix, in pounds on your statements and after inflation.
 function crashTest(share) {
   const s = state.settings, pot = sum(state.pots.filter((p) => p.type === 'pension'), (p) => p.balance), inv = total() - pot;
-  const risky = inv * share + pot, safe = inv * (1 - share), before = risky + safe;
+  const risky = inv * share + pot, safe = inv * (1 - share), before = risky + safe, save = Math.max(0, Number(s.newSavingsPerYear) || 0) / 12;
   const back = (infl) => {
-    const rs = (1 + s.sharesMid) * (1 + infl) - 1, rc = (1 + s.safeMid) * (1 + infl) - 1;
-    for (let t = 1; t <= 40; t++) if (risky * 0.6 * Math.pow(1 + rs, t) + safe * Math.pow(1 + rc, t) >= before) return t;
+    const rs = Math.pow((1 + s.sharesMid) * (1 + infl), 1 / 12) - 1, rc = Math.pow((1 + s.safeMid) * (1 + infl), 1 / 12) - 1;
+    let a = risky * 0.6, b = safe;
+    for (let m = 1; m <= 480; m++) {
+      a = a * (1 + rs) + save * share; b = b * (1 + rc) + save * (1 - share);
+      if (a + b >= before) return m;
+    }
     return null;
   };
-  return { fall: risky * 0.4, frac: before > 0 ? risky * 0.4 / before : 0, statements: back(inflation()), real: back(0) };
+  return { fall: risky * 0.4, frac: before > 0 ? risky * 0.4 / before : 0, save, statements: back(inflation()), real: back(0) };
 }
-const yrs = (n) => (n == null ? 'over 40 years' : n + ' year' + (n === 1 ? '' : 's'));
+const spanTxt = (m) => (m == null ? 'over 40 years' : m < 24 ? m + ' month' + (m === 1 ? '' : 's') : Math.round(m / 12) + ' years');
 function crashSection(f, mixes) {
   if (!(total() > 0)) return '';
+  const save = crashTest(0).save;
   return '<section class="sec"><h2>If shares fell like 2008</h2><div class="panel"><ul class="rows">' + mixes.map(([label, share]) => {
     const c = crashTest(share);
-    return '<li><span class="main"><span class="t2">' + esc(label + ', ' + pct(share) + ' in shares') + '</span><span class="s">Back in about ' + esc(yrs(c.statements)) + ' on your statements, ' + esc(yrs(c.real)) + ' after inflation</span></span><span class="end"><span class="v">−' + gbp(c.fall) + '</span><span class="vs down">' + pct(c.frac) + '</span></span></li>';
-  }).join('') + '</ul></div><p class="note">If shares, and pensions invested in them, fell 40%, about as much as from late 2007 to early 2009, once your money is at that mix. After the fall, everything grows at the average rates above and no new money goes in, so saving more gets you back sooner. Markets have often recovered faster: world shares, with dividends, took from a few months (2020) to about six years (after 2000) to regain their old highs. One country on its own can take far longer: Japan’s share prices took 34 years to pass their 1989 peak.</p></section>';
+    return '<li><span class="main"><span class="t2">' + esc(label + ', ' + pct(share) + ' in shares') + '</span><span class="s">' + esc(c.fall < 1 ? 'Nothing in shares to fall' : 'Back in about ' + spanTxt(c.statements) + ', ' + (c.statements >= 24 && c.real >= 24 ? Math.round(c.real / 12) : spanTxt(c.real)) + ' after inflation') + '</span></span><span class="end"><span class="v">−' + gbp(c.fall) + '</span><span class="vs down">' + pct(c.frac) + '</span></span></li>';
+  }).join('') + '</ul></div><p class="note">' + esc('A 40% fall, as in 2008–09, with ' + (save > 0 ? gbp(save) + ' a month still going in.' : 'no new savings going in.')) + '</p></section>';
 }
 function vRetire() {
   const s = state.settings, f = forecast(), end = f.mid[f.mid.length - 1];
@@ -1514,8 +1519,7 @@ function vRetire() {
     (ser.length > 1 && other ? '<section class="sec"><h2>Your plan or ' + (kind === 'Cautious' ? 'a cautious' : 'a bolder') + ' mix</h2><div class="facts two">' +
       fact('Your plan, ' + pct(f.target) + ' in shares', gbpShort(last.mid), 'at ' + s.retireAge + ', ' + gbpShort(f.income.mid) + ' a year') +
       fact(kind + ', ' + pct(f.cautiousShare) + ' in shares', gbpShort(last.alt), 'at ' + s.retireAge + ', ' + gbpShort(f.income.cautious) + ' a year') + '</div>' +
-      '<p class="note">' + esc(Math.abs(gap) < 500 ? 'Both mixes end up about the same.' : (kind === 'Cautious' ? 'Keeping only ' : 'Putting ') + pct(f.cautiousShare) + ' in stocks and shares, with the rest in gilts and savings, leaves about ' + gbp(Math.abs(gap)) + (gap > 0 ? ' less' : ' more') + ' at ' + s.retireAge + ', or ' + gbp(Math.abs(gapIncome)) + ' a year ' + (gap > 0 ? 'less' : 'more') + ' income, in today’s money. ' + (kind === 'Cautious' ? 'In return, it swings far less from year to year.' : 'In return, it swings far more from year to year.')) +
-      ' Shares are assumed to grow ' + pct(s.sharesMid, 1) + ' a year above inflation, and gilts and savings ' + pct(s.safeMid, 1) + '.</p></section>' : '') +
+      '<p class="note">' + esc(Math.abs(gap) < 500 ? 'Both end up about the same.' : gbpShort(Math.abs(gap)) + (gap > 0 ? ' less' : ' more') + ' at ' + s.retireAge + ', or ' + gbpShort(Math.abs(gapIncome)) + ' a year, for far ' + (kind === 'Cautious' ? 'smaller' : 'bigger') + ' swings.') + '</p></section>' : '') +
     crashSection(f, other ? [['Your plan', f.target], [kind, f.cautiousShare]] : [['Your plan', f.target]]) +
     '<section class="sec"><h2>At ' + esc(s.retireAge) + '</h2><div class="panel"><ul class="rows">' + row('Savings and investments', gbp(end.inv)) + row('Pension pot', gbp(end.pot)) + row('Guaranteed pension', gbp(f.db) + ' a year') + row('Guaranteed lump sum', gbp(f.dbLump)) + '</ul></div></section>' +
     '<section class="sec"><h2>Yearly income</h2><div class="panel"><ul class="rows">' + row('Central case', gbp(f.income.mid), true) + row('Low to high', gbp(f.income.lo) + ' to ' + gbp(f.income.hi)) + row('Your target', s.targetIncome ? gbp(s.targetIncome) : 'Not set') + '</ul></div>' +
@@ -1715,7 +1719,7 @@ function openHowRetire() {
     'You add ' + gbp(s.newSavingsPerYear) + ' a year from pay.',
     'Your money moves towards ' + pct(s.targetShares) + ' in shares' + (s.targetSharesBy ? ' by ' + fmtDate(s.targetSharesBy) : '') + '.',
     'The dashed line compares another mix: the same money and savings, moving towards ' + pct(s.cautiousShares == null ? 0.2 : s.cautiousShares) + ' in shares instead, with the rest in gilts and savings. It hides when that is your plan.',
-    'The 2008 test drops shares, and pension pots, by 40% at once when your money is at the mix. It then counts the years until your money is back where it was, at the average rates and with no new savings: on your statements, and after inflation.',
+    'The 2008 test: shares, and pension pots, fall 40% when your money is at the mix, then grow at the average rates, with your new savings (' + gbp(s.newSavingsPerYear) + ' a year) still going in. World shares have taken from a few months (2020) to about six years (after 2000) to regain their highs; Japan’s took 34 years after 1989.',
     'The guaranteed pension grows by ' + gbp(s.dbAccrual) + ' a year until age ' + s.leaveDbAge + '.',
     'Extra pension contributions: ' + gbp(s.pensionThisYear) + ' this tax year, ' + gbp(s.pensionPerYearA) + ' a year until ' + s.pensionSwitchYear + ', then ' + gbp(s.pensionPerYearB) + '.',
   ];
@@ -2155,7 +2159,7 @@ const MOVE_PROPS = {
 const AI_TOOLS = [
   { name: 'get_finances', description: 'Get the current pots (ids, balances, rates, maturities), monthly moves, plan and settings. Call it when figures may have changed since the conversation started, for example after the user applied a proposal.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false } },
-  { name: 'get_forecast', description: 'Get the month-by-month forecast in today\'s money: totals, the mix by group, what matures and where it goes, how much the investing plan puts in each year, and the retirement forecast. Call it for any question about the future.',
+  { name: 'get_forecast', description: 'Get the month-by-month forecast in today\'s money: totals, the mix by group, what matures and where it goes, how much the investing plan puts in each year, and the retirement forecast, with a 2008-like crash test. Call it for any question about the future.',
     input_schema: { type: 'object', properties: { months: { type: 'integer', description: 'How many months ahead, 1 to 120. Default 36.' } }, additionalProperties: false } },
   { name: 'get_tax', description: 'Get the estimated tax on savings interest for this tax year or next: taxable interest by pot, the allowance, the rate bands and the tax. Call it for tax questions.',
     input_schema: { type: 'object', properties: { year: { type: 'string', enum: ['this', 'next'] } }, required: ['year'], additionalProperties: false } },
@@ -2231,7 +2235,8 @@ function aiForecast(n) {
     plan_invested_by_year: invested,
     retirement: f.years > 0 ? { at_age: state.settings.retireAge, savings_and_pensions: at(last), low: r0(f.lo[last].inv + f.lo[last].pot), high: r0(f.hi[last].inv + f.hi[last].pot),
       income_a_year: r0(f.income.mid), income_low: r0(f.income.lo), income_high: r0(f.income.hi), guaranteed_pension_a_year: r0(f.db),
-      cautious_mix: { shares_percent: Math.round(f.cautiousShare * 100), savings_and_pensions: r0(f.cautious[last].inv + f.cautious[last].pot), income_a_year: r0(f.income.cautious) } } : null,
+      cautious_mix: { shares_percent: Math.round(f.cautiousShare * 100), savings_and_pensions: r0(f.cautious[last].inv + f.cautious[last].pot), income_a_year: r0(f.income.cautious) },
+      crash_like_2008: (() => { const c = crashTest(f.target); return { shares_fall_percent: 40, at_plan_shares_percent: Math.round(f.target * 100), loss: r0(c.fall), loss_percent_of_total: +(c.frac * 100).toFixed(1), new_savings_a_month: r0(c.save), months_back_on_statements: c.statements, months_back_after_inflation: c.real }; })() } : null,
   };
 }
 function aiTax(which) {
