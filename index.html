@@ -505,7 +505,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 01:40';
+const VERSION = '31 Oct 2026, 01:45';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1343,7 +1343,7 @@ function vHome() {
     '<p class="num" id="hv">' + num + '</p><p class="num-sub" id="hs">' + sub + '</p></header>' +
     (t > 0 ? heroChart(S, num, sub) : '') +
     '</section>' +
-    (t > 0 ? '<div class="facts">' + fact('Earning', gbp(at(S.off + 1).growth), 'a month, before tax') + fact('In a year', gbpShort(simToday()[Math.min(S.months.length - 1, S.off + 12)].total), 'in today’s money') + afterTaxFact(at(S.off + 1).growth) + '</div>' : '') +
+    (t > 0 ? '<div class="facts">' + fact('In a year', gbpShort(simToday()[Math.min(S.months.length - 1, S.off + 12)].total), 'in today’s money') + fact('Earning', gbp(at(S.off + 1).growth), 'a month, before tax') + afterTaxFact(at(S.off + 1).growth) + '</div>' : '') +
     splitSection() + attentionSection() + comingSection();
 }
 
