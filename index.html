@@ -508,7 +508,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 02:00';
+const VERSION = '31 Oct 2026, 02:20';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -2371,30 +2371,48 @@ function aiUsd(u) {
 function aiCost(u) { chat.cost += aiUsd(u); }
 // When a declined reply is re-run on another model, only text is kept from before the switch.
 const aiKeep = (content) => { const cut = content.map((b) => b.type).lastIndexOf('fallback'); return content.filter((b, i) => i >= cut || b.type === 'text'); };
-// Talking to Claude: the phone's own speech recognition (Apple's dictation, as on the keyboard) writes what you say
-// into the box as you speak. Tap the microphone again when you've finished and it's sent. Where the app can't
-// listen, the keyboard opens, with its own microphone.
+// Talking to Claude. iPhone doesn't let Home Screen web apps listen for themselves, so there the button opens the
+// keyboard, whose microphone types what you say. Elsewhere the browser's speech recognition writes your words into
+// the box as you speak, and tapping again sends them. If it starts but never hears anything, the second tap switches
+// to the keyboard, and the app remembers that.
+const MIC_KEY = 'money-snapshot-mic';
 let listening = null;
+const micKeyboard = () => { try { return navigator.standalone === true || localStorage.getItem(MIC_KEY) === 'keyboard'; } catch (e) { return navigator.standalone === true; } };
 function micPaint() {
   const b = $('#sheet [data-act="chat-mic"]');
   if (b) { b.classList.toggle('on', !!listening); b.setAttribute('aria-label', listening ? 'Stop and send' : 'Talk to Claude'); }
 }
 function micStop() { const l = listening; listening = null; if (l) { l.onend = null; try { l.stop(); } catch (e) { /* already stopped */ } } micPaint(); }
+function micViaKeyboard(note) {
+  const ta = $('#chatin');
+  if (!ta) return;
+  ta.placeholder = 'Tap 🎤 on the keyboard and speak';
+  ta.focus();
+  toast(note || 'Tap the microphone on the keyboard, speak, then tap Send');
+}
 function aiListen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition, ta = $('#chatin');
   if (!chat || chat.busy || !ta) return;
-  if (listening) { listening.stop(); return; }
-  if (!SR) { ta.focus(); toast('Tap the microphone on the keyboard to talk'); return; }
+  if (listening) {
+    const l = listening;
+    if (l.live || l.heard) { l.stop(); return; }
+    micStop();
+    try { localStorage.setItem(MIC_KEY, 'keyboard'); } catch (e) { /* remembered for this visit only */ }
+    micViaKeyboard('Your iPhone didn’t let the app listen, so use the microphone on the keyboard');
+    return;
+  }
+  if (!SR || micKeyboard()) { micViaKeyboard(); return; }
   const rec = new SR(), before = ta.value.trim() ? ta.value.trim() + ' ' : '';
   let said = '';
   rec.lang = navigator.language || 'en-GB'; rec.interimResults = true; rec.continuous = true;
-  rec.onresult = (e) => { said = Array.from(e.results).map((r) => r[0].transcript).join('').trim(); ta.value = before + said; ta.style.height = 'auto'; ta.style.height = Math.min(120, ta.scrollHeight) + 'px'; };
+  rec.onaudiostart = () => { rec.live = true; };
+  rec.onresult = (e) => { rec.heard = true; said = Array.from(e.results).map((r) => r[0].transcript).join('').trim(); ta.value = before + said; ta.style.height = 'auto'; ta.style.height = Math.min(120, ta.scrollHeight) + 'px'; };
   rec.onerror = (e) => {
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { ta.focus(); toast('Allow the microphone in Settings, or use the keyboard’s microphone'); }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { try { localStorage.setItem(MIC_KEY, 'keyboard'); } catch (x) { /* this visit only */ } toast('Tap the microphone again to use the keyboard’s microphone'); }
     else if (e.error !== 'no-speech' && e.error !== 'aborted') toast('Couldn’t hear that. Try again.');
   };
   rec.onend = () => { listening = null; micPaint(); if (said && chat && !chat.busy) aiSend(); };
-  try { rec.start(); listening = rec; micPaint(); } catch (e) { listening = null; ta.focus(); toast('Tap the microphone on the keyboard to talk'); }
+  try { rec.start(); listening = rec; micPaint(); } catch (e) { listening = null; micViaKeyboard(); }
 }
 async function aiSend() {
   if (!chat || chat.busy) return;
@@ -2411,7 +2429,7 @@ async function aiSend() {
   const before = c.messages.slice(), notes = c.notes, last = before[before.length - 1], lastContent = last && last.content;
   if (last && last.role === 'user') last.content = last.content.concat(content); else c.messages.push({ role: 'user', content });
   c.notes = []; c.files = [];
-  if (ta) { ta.value = ''; ta.style.height = ''; }
+  if (ta) { ta.value = ''; ta.style.height = ''; ta.placeholder = 'Ask, or add screenshots'; }
   c.busy = true; paintFiles(); paintChat();
   try {
     for (let i = 0; ; i++) {
@@ -2502,7 +2520,7 @@ function paintChat() {
   if (!box || !chat) return;
   const m = aiModel();
   box.innerHTML = '<p class="note chatmeta">' + esc(m[1]) + (chat.cost >= 0.005 ? ', about $' + chat.cost.toFixed(2) + ' so far' : '') + '. Your question, your figures and any screenshots go to Anthropic. Changes wait for you to apply them.</p>' +
-    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Tap the photo button and pick screenshots from your banking apps: they come straight to me and I’ll update your balances.' + (updateHint() ? ' This time, ' + esc(updateHint()) + ' should be enough, as the others change little between updates.' : '') + '</p><p>You can also just tell me a balance: tap the microphone and say it. And I can change your pots, monthly moves, dates and settings, look up current offers, or answer questions about your money, forecast and tax.</p></div>') +
+    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Tap the photo button and pick screenshots from your banking apps: they come straight to me and I’ll update your balances.' + (updateHint() ? ' This time, ' + esc(updateHint()) + ' should be enough, as the others change little between updates.' : '') + '</p><p>You can also just tell me a balance: ' + (micKeyboard() ? 'tap the microphone, then the one on the keyboard, and say it.' : 'tap the microphone and say it.') + ' And I can change your pots, monthly moves, dates and settings, look up current offers, or answer questions about your money, forecast and tax.</p></div>') +
     chat.log.map(chatItem).join('') + (chat.busy ? '<div class="msg ai pending">Thinking…</div>' : '');
   const sp = $('#sheet .sheetp');
   if (sp) sp.scrollTop = sp.scrollHeight;
