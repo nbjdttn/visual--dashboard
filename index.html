@@ -222,23 +222,34 @@ body.no-tabs .tabs { display: none; }
 .bdg.n3 { font-size: 12px; }
 .bdg.n4 { font-size: 10.5px; }
 span.row { cursor: default; }
-/* offers, laid out like a news feed */
+/* offers, laid out like a news feed: each a card with its headline, a sentence, short facts and a link */
 .feed { display: grid; margin: 0 0 12px; border-top: 1px solid var(--line); }
-.story { display: grid; grid-template-columns: minmax(0, 1fr) 84px; grid-template-areas: "main art" "meta meta"; gap: 12px 16px; padding: 18px 0; margin: 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.st-main { grid-area: main; display: grid; gap: 7px; align-content: start; min-width: 0; }
-.st-title { font: 600 20px/1.28 var(--sans); letter-spacing: -0.01em; color: var(--ink); }
-.st-body { font-size: 14.5px; line-height: 1.42; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.st-art { grid-area: art; width: 84px; height: 84px; border-radius: 14px; display: grid; place-items: center; color: #FFF; background: var(--a); background: linear-gradient(145deg, color-mix(in srgb, var(--a) 78%, #FFF), var(--a) 55%, color-mix(in srgb, var(--a) 70%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22); }
-.st-art svg { width: 38px; height: 38px; }
-.st-meta { grid-area: meta; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); }
-.st-head { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; }
-.st-head .st-art { grid-area: auto; width: 56px; height: 56px; border-radius: 12px; }
-.st-head .st-art svg { width: 28px; height: 28px; }
-.st-head h3 { margin: 0; font: 600 20px/1.28 var(--sans); }
-.st-full { font-size: 16px; line-height: 1.5; -webkit-user-select: text; user-select: text; }
-.src li { margin: 0 0 8px; }
-.src a { color: var(--brand); font-weight: 600; text-decoration: none; }
-.src small { color: var(--muted); }
+.story { display: grid; grid-template-columns: minmax(0, 1fr) 72px; grid-template-areas: "main art" "points points" "you you" "meta meta"; gap: 10px 14px; padding: 18px 0; border-bottom: 1px solid var(--line); -webkit-user-select: text; user-select: text; }
+.st-main { grid-area: main; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.st-tag { margin: 0; font: 700 11px/1.2 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.st-title { margin: 0; font: 600 19px/1.28 var(--sans); letter-spacing: -0.01em; color: var(--ink); }
+.st-body { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+.st-art { grid-area: art; width: 72px; height: 72px; border-radius: 14px; display: grid; place-items: center; color: #FFF; background: var(--a); background: linear-gradient(145deg, color-mix(in srgb, var(--a) 78%, #FFF), var(--a) 55%, color-mix(in srgb, var(--a) 70%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22); }
+.st-art svg { width: 32px; height: 32px; }
+.st-points { grid-area: points; margin: 0; padding-left: 18px; font-size: 14.5px; line-height: 1.45; color: var(--ink); }
+.st-points li { margin: 3px 0; }
+.st-you { grid-area: you; margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--brand-soft); color: var(--ink); font-size: 14px; line-height: 1.4; }
+.st-meta { grid-area: meta; margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13.5px; color: var(--muted); }
+.st-link { color: var(--brand); font-weight: 700; text-decoration: none; }
+.story { grid-template-columns: minmax(0, 1fr) 92px; grid-template-areas: "main art" "points points" "cmp cmp" "you you" "meta meta"; }
+.st-art.fig { width: 92px; height: 92px; position: relative; display: grid; align-content: center; justify-items: center; gap: 2px; padding: 6px; text-align: center; }
+.st-art.fig b { font: 700 24px/1 var(--sans); letter-spacing: -0.02em; }
+.st-art.fig.long b { font-size: 18px; }
+.st-art.fig small { font: 600 10.5px/1.15 var(--sans); opacity: .9; }
+.st-cmp { grid-area: cmp; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--ink-2); }
+.cb-t { height: 8px; border-radius: 4px; background: var(--fill); overflow: hidden; }
+.cb-t i { display: block; height: 100%; border-radius: 4px; }
+.cb-v { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hl > div { display: grid; gap: 3px; padding: 12px 14px; border-radius: 14px; background: var(--fill); }
+.hl-l { font-size: 12.5px; color: var(--muted); }
+.hl b { font: 700 22px/1.1 var(--sans); color: var(--brand); letter-spacing: -0.01em; }
+.hl-p { font-size: 12.5px; color: var(--ink-2); }
 .tabs button { position: relative; }
 .tabs button.dot::after { content: ''; position: absolute; top: 1px; left: calc(50% + 8px); width: 8px; height: 8px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 2px var(--bg); }
 .titlebtn { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
@@ -1399,11 +1410,11 @@ function vMonthly() {
     '<section class="sec"><h2>Money moves' + (mv.length ? '<small>' + doneN + ' of ' + mv.length + ' done</small>' : '') + '</h2><div class="panel">' +
     (mv.length ? '<ul class="rows">' + mv.map((m) => {
       const done = dn.has(m.id), ft = flowText(m);
-      return '<li class="mv' + (done ? ' done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(m.title) + '" data-act="toggle-move" data-id="' + esc(m.id) + '"' + (done ? ' checked' : '') + '><span class="row"><span class="main"><span class="t">' + esc(m.title) + '</span>' + (ft ? '<span class="s">' + esc(ft) + '</span>' : '') + (m.note ? '<span class="s">' + esc(m.note) + '</span>' : '') + '</span><span class="v">' + (m.amount ? gbp(m.amount) : '') + '</span></span></li>';
+      return '<li class="mv' + (done ? ' done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(m.title) + '" data-act="toggle-move" data-id="' + esc(m.id) + '"' + (done ? ' checked' : '') + '><span class="row">' + (potById(m.to) ? badge(potById(m.to)) : '') + '<span class="main"><span class="t">' + esc(m.title) + '</span>' + (ft ? '<span class="s">' + esc(ft) + '</span>' : '') + (m.note ? '<span class="s">' + esc(m.note) + '</span>' : '') + '</span><span class="v">' + (m.amount ? gbp(m.amount) : '') + '</span></span></li>';
     }).join('') + '</ul>' : '<p class="empty">' + (later.length ? 'Nothing to do this month. Your next moves start in ' + esc(fmtMonth(later[0].start)) + '.' : 'No moves yet. Claude can add the transfers you make each month, such as paying into your ISA.') + '</p>') +
     '</div></section>' +
     '<section class="sec"><h2>Pay and costs</h2><div class="panel"><ul class="rows">' + row('Take-home pay', gbp(s.takeHome)) + row('Fixed costs', gbp(-s.fixedCosts)) + row('Left over', gbp(s.takeHome - s.fixedCosts), true) + row('Extra pension from pay', gbp(s.extraPensionMonthly)) + '</ul></div></section>' +
-    (interestPots.length || prizes > 0 ? '<section class="sec"><h2>Interest each month<small>' + gbp(monthlyInterest() + prizes) + '</small></h2><div class="panel"><ul class="rows">' + interestPots.map((p) => row(potName(p), gbp(p.balance * p.rate / 12))).join('') + (prizes > 0 ? row('Premium Bond prizes, on average', gbp(prizes)) : '') + '</ul></div></section>' : '') +
+    (interestPots.length || prizes > 0 ? '<section class="sec"><h2>Interest each month<small>' + gbp(monthlyInterest() + prizes) + '</small></h2><div class="panel"><ul class="rows">' + interestPots.map((p) => '<li>' + badge(p) + '<span class="main"><span class="t2">' + esc(potName(p)) + '</span></span><span class="v plain">' + gbp(p.balance * p.rate / 12) + '</span></li>').join('') + (prizes > 0 ? '<li>' + badgeFor('NS&I') + '<span class="main"><span class="t2">Premium Bond prizes, on average</span></span><span class="v plain">' + gbp(prizes) + '</span></li>' : '') + '</ul></div></section>' : '') +
     (s.isaAllowance > 0 ? '<section class="sec"><h2>ISA allowance<small>' + esc(ty) + '</small></h2><div class="panel pad"><div class="meter" role="img" aria-label="' + pct(used) + ' of the allowance used"><i class="grow-x" style="width:' + (100 * used).toFixed(1) + '%"></i></div><ul class="rows">' + row('Paid in', gbp(paid)) + row('Left to use', gbp(Math.max(0, s.isaAllowance - paid))) + row('Days until 5 April', String(Math.max(0, days(new Date(), taxYearEnd())))) + '</ul></div></section>' : '');
 }
 
@@ -2519,11 +2530,47 @@ const newsConf = () => { try { return JSON.parse(localStorage.getItem(NEWS_KEY) 
 const newsSave = (n) => { try { localStorage.setItem(NEWS_KEY, JSON.stringify(n)); } catch (e) { /* not essential */ } };
 const newsEvery = () => { const v = aiConf().newsEvery; return v == null ? 15 : Number(v); };
 let newsBusy = false;
-const NEWS_SYSTEM = 'You keep a UK saver up to date with offers worth knowing about. Search the web for what is new or notable in the last few weeks, then write a short digest.\n\n' +
-  'Cover what is worth saying from: the best easy-access, regular saver, fixed-rate and cash ISA rates now; bank switching offers; credit card offers, such as long 0% periods, rewards and sign-up bonuses, and notable new cards; new accounts or apps; and rule changes that matter to savers, such as the ISA allowance, the Personal Savings Allowance or the Premium Bond prize rate.\n\n' +
-  'Compare with the user\'s accounts below and say plainly where they could earn more or should act soon, such as a rate that has fallen or a better home for money that is about to mature. Only mention offers you found in your searches, with the provider, the rate or reward, and any catch, such as minimum deposits, withdrawal limits or closing dates.\n\n' +
+const NEWS_SYSTEM = 'You keep a UK saver up to date with offers worth knowing about. Search the web for what is new or notable in the last few weeks.\n\n' +
+  'Look for: the best easy-access, regular saver, fixed-rate and cash ISA rates now; bank switching offers; credit card offers, such as long 0% periods, rewards and sign-up bonuses, and notable new cards; new accounts or apps; and rule changes that matter to savers, such as the ISA allowance, the Personal Savings Allowance or the Premium Bond prize rate.\n\n' +
+  'Compare with the user\'s accounts below, and say where they could earn more or should act soon, such as a rate that has fallen or a better home for money about to mature. Only include offers you found in your searches.\n\n' +
   'Search for the market, never for the user: keep their details out of your searches.\n\n' +
-  'Write 5 to 8 points, one per line. Start each with "- ", then one tag in square brackets, [Savings], [ISA], [Switching], [Cards], [Rules] or [Your accounts], then a short bold headline, a colon and one or two plain sentences. For example: - [Savings] **Easy access now pays 5.1%**: Example Bank pays 5.1% with no notice and no limit on withdrawals. No introduction, no sign-off and no links, because sources are listed separately. This is information, not regulated financial advice.';
+  'When you have finished searching, call report_offers once with 5 to 8 offers, the most useful to this user first. Give each offer its own item, and never put two providers in one. Keep every item short and easy to scan: a headline with the key number, one sentence, then 2 to 4 short facts, such as the rate, the conditions, the catch and the closing date. Give each its key number to show large, with a two- or three-word note. Where an offer pays a rate that can be compared with one of the user\'s accounts, fill in compare. Add up to four highlights: the best rates and bonuses on the market now. Add the link to the page where you found it, from your search results, and never make one up. Write nothing outside the tool call. This is information, not regulated financial advice.';
+const OFFER_TAGS = ['Your accounts', 'Savings', 'ISA', 'Switching', 'Cards', 'Rules'];
+const OFFERS_TOOL = { name: 'report_offers', description: 'Hand over the offers you found. Call it once, when you have finished searching.',
+  input_schema: { type: 'object', properties: { offers: { type: 'array', items: { type: 'object', properties: {
+    tag: { type: 'string', enum: OFFER_TAGS },
+    title: { type: 'string', description: 'A short headline with the key number, under 60 characters, such as "Afin Bank: 5.28% fixed for two years"' },
+    summary: { type: 'string', description: 'One short, plain sentence' },
+    points: { type: 'array', items: { type: 'string' }, description: '2 to 4 short facts, each under 80 characters: the rate or reward, conditions, the catch, the closing date' },
+    for_you: { type: 'string', description: 'One short sentence on what it means for this user, compared with their accounts; empty if nothing specific' },
+    provider: { type: 'string', description: 'The bank or company offering it' },
+    url: { type: 'string', description: 'The page about this offer, from your search results: the provider\'s page or the article you found it in' },
+    source: { type: 'string', description: 'The name of the site that page is on' },
+    figure: { type: 'string', description: 'The key number to show large, at most 7 characters, such as 5.28%, £600 or 0%' },
+    figure_note: { type: 'string', description: 'Two or three words under the number, such as 2-year fix, to switch or for 30 months' },
+    compare: { type: 'object', description: 'Only for a rate that can be compared with one of the user\'s accounts', properties: {
+      label: { type: 'string', description: 'The user\'s account, such as Your HSBC fix' }, yours_percent: { type: 'number' }, offer_percent: { type: 'number' } },
+      required: ['label', 'yours_percent', 'offer_percent'], additionalProperties: false } },
+    required: ['tag', 'title', 'summary', 'points'], additionalProperties: false } },
+    highlights: { type: 'array', description: 'Up to 4 headline figures from the market now', items: { type: 'object', properties: {
+      label: { type: 'string', description: 'Such as Best easy access, Best 1-year fix, Top switch bonus or Longest 0% card' },
+      value: { type: 'string', description: 'Such as 5.10%, £600 or 30 months' }, provider: { type: 'string' } }, required: ['label', 'value'], additionalProperties: false } } },
+    required: ['offers'], additionalProperties: false } };
+const clip = (v, n) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, n);
+// Each offer from the form, tidied: short fields, https links only.
+const offerItems = (input) => (input && Array.isArray(input.offers) ? input.offers : []).map((o) => ({
+  tag: OFFER_TAGS.includes(o.tag) ? o.tag : '', title: clip(o.title, 90), summary: clip(o.summary, 260),
+  points: (Array.isArray(o.points) ? o.points : []).map((x) => clip(x, 140)).filter(Boolean).slice(0, 4),
+  forYou: clip(o.for_you, 220), provider: clip(o.provider, 60), source: clip(o.source, 60),
+  url: /^https:\/\/\S+$/.test(String(o.url || '').trim()) ? String(o.url).trim() : '',
+  figure: clip(o.figure, 9), figureNote: clip(o.figure_note, 24),
+  compare: o.compare && [o.compare.yours_percent, o.compare.offer_percent].every((v) => Number.isFinite(Number(v)) && v >= 0 && v <= 30)
+    ? { label: clip(o.compare.label, 40) || 'Yours', yours: Number(o.compare.yours_percent), offer: Number(o.compare.offer_percent) } : null,
+})).filter((o) => o.title).slice(0, 10);
+const offerHighlights = (input) => (input && Array.isArray(input.highlights) ? input.highlights : []).map((h) => ({ label: clip(h.label, 30), value: clip(h.value, 12), provider: clip(h.provider, 30) })).filter((h) => h.label && h.value).slice(0, 4);
+// Offers saved before the form existed, in the same shape.
+const offerShape = (it) => (it.summary !== undefined ? it : { tag: it.tag || '', title: it.title, summary: it.body || '', points: [], forYou: '', provider: '', source: '', figure: '', figureNote: '', compare: null,
+  url: it.sources && it.sources[0] && /^https:/.test(it.sources[0].url) ? it.sources[0].url : '' });
 const webTool = (n) => ({ type: aiModel()[0] === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: n, user_location: { type: 'approximate', country: 'GB', timezone: 'Europe/London' } });
 function newsBrief() {
   const s = state.settings, paid = Number(state.isa[taxYearKey()]) || 0, F = taxFigures(taxYearStart().getFullYear()), n = newsConf();
@@ -2558,7 +2605,7 @@ async function newsRun() {
   try {
     // A long search can pause; sending the turn back lets it carry on where it stopped.
     for (let i = 0; i < 4; i++) {
-      const res = await aiCall(content.length ? [ask, { role: 'assistant', content }] : [ask], { system: sys, tools: [webTool(8)] });
+      const res = await aiCall(content.length ? [ask, { role: 'assistant', content }] : [ask], { system: sys, tools: [webTool(8), OFFERS_TOOL] });
       cost += aiUsd(res.usage);
       if (res.stop_reason === 'refusal') throw new Error('Claude couldn’t do this check.');
       content = content.concat(aiKeep(res.content));
@@ -2572,9 +2619,10 @@ async function newsRun() {
       (b.citations || []).forEach((c) => { if (/^https?:\/\//.test(c.url || '')) marks.push({ mid, url: c.url, title: String(c.title || '').slice(0, 120) }); });
       text += b.text;
     });
-    const items = newsItems(text, marks);
+    const call = content.find((b) => b.type === 'tool_use' && b.name === 'report_offers');
+    const items = call ? offerItems(call.input) : newsItems(text.replace(/[ \t]+[-•][ \t]+(?=\[)/g, '\n- '), marks).map(offerShape);
     if (!items.length) throw new Error('Claude didn’t find anything to report.');
-    newsSave({ at: new Date().toISOString(), tried, text, items, cost, model: aiModel()[1], seen: false });
+    newsSave({ at: new Date().toISOString(), tried, text, items, highlights: call ? offerHighlights(call.input) : [], cost, model: aiModel()[1], seen: false });
   } catch (e) {
     error = (e && e.message) || 'Something went wrong.';
     newsSave(Object.assign({}, was, { tried, error, cost: (was.cost || 0) }));
@@ -2604,30 +2652,33 @@ const NEWS_TAGS = {
 };
 const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return url; } };
 const newsTag = (it) => NEWS_TAGS[String(it.tag || '').toLowerCase()] || ['#6E6259', '<path d="M11 3.5l1.7 4.8 4.8 1.7-4.8 1.7L11 16.5l-1.7-4.8L4.5 10l4.8-1.7z"/>'];
+// Two bars: the offer's rate against the user's account, from zero, so the gap reads at a glance.
+function offerCompare(it, col) {
+  const c = it.compare;
+  if (!c) return '';
+  const top = Math.max(c.yours, c.offer, 0.01), bar = (label, v, colour) => '<span class="cb-l">' + esc(label) + '</span><span class="cb-t"><i style="width:' + (100 * v / top).toFixed(1) + '%;background:' + colour + '"></i></span><span class="cb-v">' + esc(+v.toFixed(2) + '%') + '</span>';
+  return '<div class="st-cmp" role="img" aria-label="' + esc('This offer ' + c.offer + '%, ' + c.label + ' ' + c.yours + '%') + '">' + bar('This offer', c.offer, col) + bar(c.label, c.yours, 'var(--muted)') + '</div>';
+}
+function offerCard(raw) {
+  const it = offerShape(raw), [col, art] = newsTag(it), name = it.provider || it.source || (it.url ? host(it.url) : '');
+  const meta = (it.url ? '<a class="st-link" href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">' + esc(name) + ' ↗</a>' : name ? '<span>' + esc(name) + '</span>' : '') +
+    (it.url && host(it.url) !== name ? '<span>' + esc(host(it.url)) + '</span>' : '');
+  return '<article class="story"><div class="st-main">' + (it.tag ? '<p class="st-tag" style="color:' + col + '">' + esc(it.tag) + '</p>' : '') + '<h3 class="st-title">' + esc(it.title) + '</h3>' +
+    (it.summary ? '<p class="st-body">' + esc(it.summary) + '</p>' : '') + '</div>' +
+    (it.figure ? '<span class="st-art fig' + (it.figure.length > 5 ? ' long' : '') + '" style="--a:' + col + '"><b>' + esc(it.figure) + '</b>' + (it.figureNote ? '<small>' + esc(it.figureNote) + '</small>' : '') + '</span>'
+      : '<span class="st-art" style="--a:' + col + '" aria-hidden="true">' + icon(art, 1.6) + '</span>') +
+    (it.points.length ? '<ul class="st-points">' + it.points.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '') + offerCompare(it, col) +
+    (it.forYou ? '<p class="st-you">' + esc(it.forYou) + '</p>' : '') + (meta ? '<p class="st-meta">' + meta + '</p>' : '') + '</article>';
+}
 function vOffers() {
-  const n = newsConf(), every = newsEvery(), items = (n && n.items) || [], when = n && n.at ? fmtDate(localISO(new Date(n.at))) : '';
-  const head = '<header class="page"><h1>Offers</h1><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + '</p></header>';
+  const n = newsConf(), every = newsEvery(), items = (n && n.items) || [];
+  const head = '<header class="page"><h1>Offers</h1><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + (n && n.at ? '. Last checked ' + esc(fmtDate(localISO(new Date(n.at)))) : '') + '</p></header>';
   if (!aiConf().key) return head + '<p class="note">Once your Anthropic API key is in More, under Assistant, Claude searches the web for offers worth knowing about and compares them with your accounts.</p>';
   return head + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error && !items.length ? '<p class="note">The last check didn’t work: ' + esc(n.error) + '</p>' : '') +
-    (items.length ? '<div class="feed">' + items.map((it, i) => {
-      const [col, art] = newsTag(it), src = it.sources[0] ? host(it.sources[0].url) : '';
-      return '<button type="button" class="story" data-act="offer" data-id="' + i + '"><span class="st-main"><span class="st-title">' + esc(it.title) + '</span>' + (it.body ? '<span class="st-body">' + esc(it.body) + '</span>' : '') + '</span>' +
-        '<span class="st-art" style="--a:' + col + '" aria-hidden="true">' + icon(art, 1.6) + '</span>' +
-        '<span class="st-meta"><span>' + esc([it.tag, src].filter(Boolean).join(' · ')) + '</span><span>' + esc(when) + '</span></span></button>';
-    }).join('') + '</div><p class="note">' + (n.model ? 'From ' + esc(n.model) + ', searching the web' : 'Searched on the web') + (n.cost >= 0.005 ? ', about $' + n.cost.toFixed(2) + ' for this check' : '') + '. Information, not financial advice: check the details with the provider.</p>'
+    (n && n.highlights && n.highlights.length ? '<section class="sec"><h2>Right now</h2><div class="hl">' + n.highlights.map((h) => '<div><span class="hl-l">' + esc(h.label) + '</span><b>' + esc(h.value) + '</b>' + (h.provider ? '<span class="hl-p">' + esc(h.provider) + '</span>' : '') + '</div>').join('') + '</div></section>' : '') +
+    (items.length ? '<div class="feed">' + items.map(offerCard).join('') + '</div><p class="note">' + (n.model ? 'From ' + esc(n.model) + ', searching the web' : 'Searched on the web') + (n.cost >= 0.005 ? ', about $' + n.cost.toFixed(2) + ' for this check' : '') + '. Information, not financial advice: check the details with the provider.</p>'
       : newsBusy ? '' : '<p class="note">' + (every ? 'The first check runs the next time the app opens, or now.' : 'Checks are off. You can still check now.') + '</p>') +
     (newsBusy ? '' : '<button class="btn quiet" data-act="news-run">' + IC.spark + (items.length ? 'Check again now' : 'Check now') + '</button>');
-}
-// One offer in full, like opening an article, with its sources and a way to ask Claude about it.
-function openOffer(i) {
-  const n = newsConf(), it = n && n.items && n.items[Number(i)];
-  if (!it) return;
-  const [col, art] = newsTag(it);
-  openSheet(it.tag || 'Offer', '<div class="st-head"><span class="st-art" style="--a:' + col + '" aria-hidden="true">' + icon(art, 1.6) + '</span><h3>' + esc(it.title) + '</h3></div>' +
-    (it.body ? '<p class="st-full">' + esc(it.body) + '</p>' : '') +
-    (it.sources.length ? '<h3>Sources</h3><ul class="plain src">' + it.sources.map((x) => '<li><a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.title || host(x.url)) + '</a> <small>' + esc(host(x.url)) + '</small></li>').join('') + '</ul>' : '') +
-    '<p class="note">Found by Claude on ' + esc(fmtDate(localISO(new Date(n.at)))) + '. Information, not financial advice: check the details with the provider.</p>',
-    () => {}, { label: 'Done', noCancel: true });
 }
 
 /* ---------- restore points ---------- */
@@ -2810,7 +2861,6 @@ document.addEventListener('click', (e) => {
     case 'assistant': openAssistant(); break;
     case 'rename': openTitle(); break;
     case 'news-run': newsRun(); break;
-    case 'offer': openOffer(id); break;
     case 'ai-setup': openAiSetup(null); break;
     case 'lock-on': openLockOn(); break;
     case 'lock-now': lock(); break;
