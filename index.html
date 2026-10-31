@@ -274,7 +274,7 @@ span.row { cursor: default; }
 .fcmp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px 10px; font-size: 14px; color: var(--ink-2); }
 .fnum { font: 600 32px/1.1 var(--sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .fsum { color: var(--ink-2); }
-.flink { color: var(--brand); text-decoration: none; white-space: nowrap; }
+.flink { color: var(--brand); text-decoration: none; overflow-wrap: anywhere; }
 .rows > li.fund { align-items: flex-start; }
 .rows > li.ref .t2, .rows > li.ref .v { color: var(--ink-2); }
 .tabs button { position: relative; }
@@ -538,7 +538,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '1 Nov 2026, 01:30';
+const VERSION = '1 Nov 2026, 02:15';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -2862,16 +2862,18 @@ const FUND_LIST = [
   { name: 'HSBC FTSE All-World Index C Acc', isin: 'GB00BMJJJF91' },
   { name: 'Fidelity Index World P Acc', isin: 'GB00BJS8SJ34' },
   { name: 'Vanguard FTSE All-World UCITS ETF (USD) Accumulating', isin: 'IE00BK5BQT80' },
-  { name: 'Amundi Prime All Country World UCITS ETF Acc', isin: '' },
+  { name: 'Amundi Prime All Country World UCITS ETF Acc', isin: 'IE0003XJA0J9' },
 ];
 // Figures found on 31 October 2026, shown until Claude's first check: total returns in pounds after each fund's
 // charge, from AJ Bell's annual returns and the HSBC and Fidelity factsheets.
 const FUND_SEED_AT = '2026-10-31';
 const FUND_SEED = {
-  // Charges only, until Claude's first check: Vanguard's cut from 28 July 2026, and Amundi's on the London Stock Exchange.
-  IE00BK5BQT80: { name: 'Vanguard FTSE All-World UCITS ETF (USD) Accumulating', short: 'Vanguard All-World', isin: 'IE00BK5BQT80', shares: 1, ocf: 0.0014, holds: 'Large and mid-sized companies in developed and emerging markets (an ETF)',
-    years: {}, trailing: null, url: 'https://www.vanguard.co.uk/uk-fund-directory/product/etf/equity/9679/ftse-all-world-ucits', source: 'Vanguard' },
-  'n:amundi prime all country world ucits etf acc': { name: 'Amundi Prime All Country World UCITS ETF Acc', short: 'Amundi All-World', isin: '', shares: 1, ocf: 0.0007, holds: 'Large and mid-sized companies in developed and emerging markets (an ETF)',
+  // Vanguard's charge after its cut on 28 July 2026, with the yearly returns AJ Bell gives for VWRL, the same fund's
+  // income version; Amundi's charge from the London Stock Exchange. Claude's check replaces these.
+  IE00BK5BQT80: { name: 'Vanguard FTSE All-World UCITS ETF (USD) Accumulating', short: 'Vanguard All-World', isin: 'IE00BK5BQT80', shares: 1, ocf: 0.0014, holds: 'Large and mid-sized companies in developed and emerging markets (an ETF; returns so far are from VWRL, the same fund’s income version)',
+    years: { 2020: 0.1215, 2021: 0.2003, 2022: -0.084, 2023: 0.156, 2024: 0.1959, 2025: 0.1399 }, trailing: null,
+    url: 'https://www.ajbell.co.uk/market-research/sub/LSE:VWRL/charts-performance', source: 'AJ Bell (VWRL’s returns)' },
+  IE0003XJA0J9: { name: 'Amundi Prime All Country World UCITS ETF Acc', short: 'Amundi All-World', isin: 'IE0003XJA0J9', shares: 1, ocf: 0.0007, holds: 'Large and mid-sized companies in developed and emerging markets (an ETF, launched June 2024)',
     years: {}, trailing: null, url: 'https://www.londonstockexchange.com/discover/news-and-insights/amundi-reaffirms-commitment-uk-market-etfs-available-lse', source: 'London Stock Exchange' },
   GB00BMJJJF91: { name: 'HSBC FTSE All-World Index C Acc', short: 'HSBC All-World', isin: 'GB00BMJJJF91', shares: 1, ocf: 0.0013, holds: 'About 3,400 large and mid-sized companies in developed and emerging markets',
     years: { 2020: 0.1263, 2021: 0.2012, 2022: -0.0782, 2023: 0.1541, 2024: 0.194, 2025: 0.1448 }, trailing: { to: '2026-08-31', y1: 0.2147, y3: 0.1789, y5: 0.1145 },
@@ -2981,9 +2983,13 @@ function fundPast(f) {
 function vFunds() {
   const c = fundsConf(), rows = fundRows(), M = fundModel(rows), L = M.long, every = newsEvery(), key = !!aiConf().key, s = state.settings;
   const when = c && c.at ? fmtDate(localISO(new Date(c.at))) : fmtDate(FUND_SEED_AT), until = L.age ? 'at ' + L.age : 'in ' + L.n + ' years';
+  const checkNow = '<button class="btn quiet" data-act="funds-run">' + IC.spark + 'Check now</button>';
   return '<header class="page"><div class="ph"><h1>Funds</h1>' + topActions() + '</div><p class="sub">Index funds you might buy, ' + (key && every ? 'checked by Claude once a month' : 'checked by Claude when you ask') + '. Figures from ' + esc(when) + '</p></header>' +
     offersSeg('funds') +
-    (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web…</p>' : c && c.error ? '<p class="note warnline">The last check didn’t finish: ' + esc(c.error) + ' It tries again ' + (c.net ? 'next time you open the app' : 'tomorrow') + ', or tap Check again now.</p>' : c && c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
+    (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web. It takes a minute or two: keep the app open.</p>'
+      : c && c.error ? '<p class="note warnline">The last check didn’t finish: ' + esc(c.error) + ' It tries again ' + (c.net ? 'next time you open the app' : 'tomorrow') + '.</p>' + checkNow
+      : !(c && c.at) ? '<p class="note">' + (key ? 'Claude hasn’t checked these funds yet' + (every ? '. It starts when the app opens, or now.' : '.') : 'Claude keeps these figures up to date once your API key is in More, under Assistant.') + '</p>' + (key ? checkNow : '')
+      : c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
     '<section class="sec"><h2>Long term' + (L.stake.mine ? '<small>' + gbp(L.stake.amount) + ' invested</small>' : '') + '</h2><div class="panel pad"><div><p class="fnum" id="ffv">' + bigMoney(L.cheap.mid) + '</p><p class="num-sub" id="ffs">' + esc(fanText(L, { t: L.n, lo: L.cheap.lo, hi: L.cheap.hi })) + '</p></div>' + fundFan(L) +
       '<div class="legend"><span><i class="lg-main"></i>Central</span><span><i class="lg-band"></i>Low to high</span><span><i class="lg-pen"></i>Gilts and savings</span></div>' +
       '<ul class="rows">' + L.funds.map((x) => '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc((fundMix(x.f) < 1 ? pct(fundMix(x.f)) + ' in shares · ' : '') + (x.f.ocf != null ? pct(x.f.ocf, 2) + ' a year, about ' + gbp(x.fees) + ' in charges' : 'Charge not known yet')) + '</span></span><span class="end"><span class="v">' + gbp(x.mid) + '</span><span class="vs">' + esc(gbpShort(x.lo) + ' to ' + gbpShort(x.hi)) + '</span></span></li>').join('') +
@@ -2993,7 +2999,7 @@ function vFunds() {
     '<section class="sec"><h2>Biggest fall</h2><div class="panel"><ul class="rows">' + L.funds.map((x) => {
       const k = x.crash, mf = k.maxFall, wy = k.worstYear, wyText = wy ? 'Worst calendar year ' + retPct(wy[1]) + ' in ' + wy[0] : '';
       const checked = !!(c && c.at && (c.asked || []).includes(x.f.key));
-      const first = mf ? 'From a high: ' + retPct(-mf.pct) + (mf.from && mf.to ? ', ' + fmtMonth(mf.from) + ' to ' + fmtMonth(mf.to) : '') : [wyText, checked ? 'Biggest fall not found yet' : 'Biggest fall comes with Claude’s next check'].filter(Boolean).join(' · ');
+      const first = mf ? 'From a high: ' + retPct(-mf.pct) + (mf.from && mf.to ? ', ' + fmtMonth(mf.from) + ' to ' + fmtMonth(mf.to) : '') : [wyText, fundsBusy ? 'Claude is checking now' : checked ? 'Biggest fall not found yet' : 'Biggest fall comes with Claude’s next check'].filter(Boolean).join(' · ');
       const second = mf ? [wyText, 'Back in about ' + spanTxt(k.backNow)].filter(Boolean).join(' · ') : '';
       return '<li><span class="main"><span class="t2">' + esc(x.f.short) + '</span><span class="s">' + esc(first) + '</span>' + (second ? '<span class="s">' + esc(second) + '</span>' : '') + '</span>' +
         '<span class="end">' + (k.fall != null ? '<span class="v">−' + gbp(k.loss) + '</span><span class="vs down">' + pct(k.fall, 1) + '</span>' : '<span class="v">–</span>') + '</span></li>';
@@ -3004,7 +3010,7 @@ function vFunds() {
     (M.years.length ? '<section class="sec"><h2>Each year</h2>' + fundTable(M.years.map(String), rows.map((f) => '<tr><th scope="row">' + esc(f.short) + '</th>' + M.years.map((y) => fundCell(f.years[y] == null ? null : (f.years[y] < 0 ? '−' : '') + (Math.abs(Number(f.years[y])) * 100).toFixed(1) + '%', f.years[y] < 0)).join('') + '</tr>')) +
       '<p class="note">Total returns in pounds, after each fund’s charge. A dash means no figure: the fund is newer, or Claude hasn’t found it yet.</p></section>' : '') +
     '<section class="sec"><h2>The funds</h2><div class="panel"><ul class="rows">' + rows.map((f) => '<li class="fund"><span class="main"><span class="t2">' + esc(f.name) + '</span><span class="s">' + esc(f.holds || (f.missing ? 'Not checked yet' : '')) + '</span>' +
-      (fundNeeds(f) ? '<span class="s">' + esc(c && c.at && (c.notFound || []).includes(f.key) ? 'Claude couldn’t find its returns yet; it tries again tomorrow' : 'Returns come with Claude’s next check') + '</span>' : '') + (fundPast(f) ? '<span class="s">' + esc(fundPast(f)) + '</span>' : '') + '<span class="s">' + (f.isin ? 'ISIN ' + esc(f.isin) : '') + (f.url ? (f.isin ? ' · ' : '') + '<a class="flink" href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc((f.source || host(f.url)) + ' ↗') + '</a>' : '') + '</span></span>' +
+      (fundNeeds(f) ? '<span class="s">' + esc(fundsBusy ? 'Claude is checking now' : c && c.at && (c.notFound || []).includes(f.key) ? 'Claude couldn’t find its returns yet; it tries again tomorrow' : 'Returns come with Claude’s next check') + '</span>' : '') + (fundPast(f) ? '<span class="s">' + esc(fundPast(f)) + '</span>' : '') + '<span class="s">' + (f.isin ? 'ISIN ' + esc(f.isin) : '') + (f.url ? (f.isin ? ' · ' : '') + '<a class="flink" href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc((f.source || host(f.url)) + ' ↗') + '</a>' : '') + '</span></span>' +
       '<span class="end"><span class="v">' + (f.ocf != null ? esc(pct(f.ocf, 2)) : '–') + '</span><span class="vs">a year</span></span></li>').join('') + '</ul></div></section>' +
     '<section class="sec"><h2>Worth knowing</h2><div class="panel"><ul class="rows">' +
       '<li><span class="main"><span class="t2">Buying at a record high</span><span class="s">The next year averaged +13.6%, against +11.9% from other days (US shares, 1989 to 2026). <a class="flink" href="https://clark.com/personal-finance-credit/investing-retirement/should-you-be-scared-of-investing-at-all-time-highs/amp/" target="_blank" rel="noopener noreferrer">J.P. Morgan data ↗</a></span></span></li>' +
