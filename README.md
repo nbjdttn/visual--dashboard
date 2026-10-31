@@ -36,13 +36,13 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - Take a screenshot in each banking app whose balance has changed. Fixed savers and bonds change little, and the app adds their interest by itself.
 - Tap the Claude button (✦) at the top right of Home, then the photo button, and pick the screenshots. They go to Claude straight away. Check the card Claude shows and tap **Apply**.
 - Tick off the month's money moves on **Monthly**.
-- Every couple of weeks, go to **More**, then **Back up**, and save the file to iCloud Drive. The app reminds you.
 
 ## Your data on this phone
 
-- Everything is saved as you go, in the app's own storage on this phone.
-- The app also keeps restore points on the phone: one before every change Claude makes, one before you restore a file, and one a day, up to the last 40. **More → Restore points** takes you back to any of them. If the app's main storage is ever empty or damaged when it opens, it recovers from its latest copy by itself.
-- Apple doesn't let web apps save files without a tap, so a copy off the phone is one tap in **More → Back up**. That file is how you restore everything on a new phone.
+- Everything is saved automatically as it happens, in the app's own storage on this phone. There's nothing to tap.
+- The app also keeps restore points by itself: one before every change Claude makes, one before you open a saved copy, and one a day, up to the last 40. If the app's main storage is ever empty or damaged when it opens, it recovers from its latest copy by itself.
+- In **More**, under **Your data**, **Recover** takes you back to any restore point, or opens a copy saved to Files.
+- Changing phone, or adding the app to your Home Screen again? In **More**, tap **Back up** to save a copy to Files, then use **Recover** in the new app. Apple doesn't let web apps save files without a tap, so this is the one step that isn't automatic.
 - **Delete all** removes everything, including the restore points, the passcode and the API key.
 
 ## Face ID and passcode (optional)
@@ -54,7 +54,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 - **Opening the app**: Face ID starts by itself. If it doesn't recognise you, can't run, or you cancel it, type your passcode on the keypad. Tap the face on the keypad to try Face ID again.
 - **When it locks**: when the app opens, and when you come back after a minute away. Change this under **Ask for it**, or tap **Lock now**.
 - **If you forget the passcode**: tap **Forgot passcode?**. With Face ID, you can choose a new passcode. Without it, the only way in is to delete the figures on this phone and restore your backup file.
-- **What it protects**: it stops anyone who picks up your phone from opening Money Snapshot. Only a scrambled (hashed) version of the passcode is stored. The passcode, Face ID and your API key aren't in backups, so on a new phone you set them up again.
+- **What it protects**: it stops anyone who picks up your phone from opening Money Snapshot. Only a scrambled (hashed) version of the passcode is stored. Copies you save with **Back up** include your passcode, Face ID and API key, so a re-added app or a new phone needs no setting up. Keep those copies private.
 
 ## Claude, the assistant
 
@@ -63,7 +63,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 3. Tap the Claude button (✦) at the top right of Home. Attach screenshots and send, or ask for any change or question.
 
 - **What's sent, and when**: nothing until you send a message. Then your question, the app's figures and any screenshots go to Anthropic, and nowhere else.
-- **Your key** stays on this phone. It's stored apart from your figures, so it's never in a backup or a family report. **Remove the key from this phone** (under **More**, then **Assistant**) deletes it. If you think someone has seen it, delete it in the Claude Console too.
+- **Your key** stays on this phone. It's stored apart from your figures, so it's never in a family report. Copies you save with **Back up** include it, so keep them private. **Remove the key from this phone** (under **More**, then **Assistant**) deletes it. If you think someone has seen it, delete it in the Claude Console too.
 - **Nothing changes by itself**: Claude can read your figures, forecast and tax estimate. Anything it wants to change (a balance, a rate, a new pot or a setting) appears as a card, and only **Apply** saves it.
 - **Cost**: Anthropic charges your account for what you use. Most questions cost a few pence, a little more with screenshots, and the chat shows a running estimate. Claude Opus 5.5 is the default. Sonnet 5.5 and Haiku 5.5 are cheaper and are under **Key and model**; changing model starts a new chat.
 
@@ -78,7 +78,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 ## A new icon
 
-iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, then **Back up**, and save the file. Then remove the app from your Home Screen, add it again from Safari, open it and tap **Import my starting file**, then choose your backup. Removing it also removes the figures stored inside it, which is why the backup comes first. Your passcode, Face ID and API key aren't in the backup, so set them up again afterwards.
+iPhone keeps the icon it had when you added the app to your Home Screen. To get a new one, first go to **More**, tap **Back up**, and save the copy to Files. Then remove the app from your Home Screen, add it again from Safari, open it and tap **Import my starting file**, then choose your backup. Removing it also removes the figures stored inside it, which is why the copy comes first. The copy brings back your passcode, Face ID and API key too, so there's nothing to set up again.
 
 ## Why it doesn't connect to your bank
 
@@ -86,4 +86,4 @@ Automatic bank feeds in the UK use Open Banking. That needs a regulated company 
 
 ## Updating the app
 
-The whole app is `index.html`, plus `sw.js` (which lets it work offline), the icons and `manifest.webmanifest`. When a new version is pushed to `main`, your phone picks it up the next time you open the app with a connection. Your figures are not affected.
+You never need to download it again or re-add it for an update: swipe it away in the app switcher and open it from the same Home Screen icon. The whole app is `index.html`, plus `sw.js` (which lets it work offline), the icons and `manifest.webmanifest`. When a new version is pushed to `main`, your phone picks it up the next time you open the app with a connection. Your figures are not affected.
