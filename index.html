@@ -336,10 +336,13 @@ html.applock body { overflow: hidden; }
 .prop .rows > li { padding: 8px 0; min-height: 0; }
 .prop .v { white-space: normal; max-width: 52%; }
 .prop.done { opacity: .72; }
-.composer { flex: 1; min-width: 0; display: grid; gap: 8px; }
-.composer .crow { display: flex; gap: 8px; align-items: flex-end; }
+.composer { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.composer .crow { display: flex; gap: 8px; align-items: flex-end; min-width: 0; }
 .composer textarea { flex: 1; min-width: 0; font: 16px/1.4 var(--sans); color: var(--ink); background: var(--fill); border: 1px solid transparent; border-radius: 18px; padding: 8px 14px; resize: none; max-height: 120px; outline: none; }
 .composer textarea:focus { border-color: var(--brand); background: var(--surface); }
+#sheet .icon-btn.mic.on { background: var(--brand); color: var(--brand-ink); box-shadow: 0 0 0 0 var(--brand); animation: listen 1.4s ease-out infinite; }
+@keyframes listen { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 45%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
+@media (prefers-reduced-motion: reduce) { #sheet .icon-btn.mic.on { animation: none; } }
 .thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .share { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14px/1.6 var(--sans); color: var(--ink); background: var(--fill); border-radius: 12px; padding: 14px; max-height: 52vh; overflow: auto; -webkit-user-select: text; user-select: text; }
 .sharepic { display: block; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 8px 28px -12px rgba(0, 0, 0, .35); }
@@ -505,7 +508,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '31 Oct 2026, 01:45';
+const VERSION = '31 Oct 2026, 02:00';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -561,6 +564,7 @@ const IC = {
   sliders: icon('<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>'),
   trash: icon('<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>'),
   spark: icon('<path d="M11 3.5l1.7 4.8 4.8 1.7-4.8 1.7L11 16.5l-1.7-4.8L4.5 10l4.8-1.7z"/><path d="M18 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'),
+  mic: icon('<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>'),
   photo: icon('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8.5 8"/>'),
   face: icon('<path d="M4 8.5v-2A2.5 2.5 0 0 1 6.5 4h2M15.5 4h2A2.5 2.5 0 0 1 20 6.5v2M20 15.5v2a2.5 2.5 0 0 1-2.5 2.5h-2M8.5 20h-2A2.5 2.5 0 0 1 4 17.5v-2M9 9.5V11M15 9.5V11M12 9.5V13h-1M9.2 15.6a4 4 0 0 0 5.6 0"/>', 1.6),
   del: icon('<path d="M9 6h10.5A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-6-6z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/>', 1.6),
@@ -1592,7 +1596,7 @@ function openSheet(title, body, onSave, opts = {}) {
   onSheetSave = onSave;
   document.body.classList.add('locked');
 }
-function closeSheet() { sheet.hidden = true; sheet.innerHTML = ''; onSheetSave = null; document.body.classList.remove('locked'); }
+function closeSheet() { micStop(); sheet.hidden = true; sheet.innerHTML = ''; onSheetSave = null; document.body.classList.remove('locked'); }
 sheet.addEventListener('submit', (e) => {
   e.preventDefault();
   if (!onSheetSave) return;
@@ -2367,8 +2371,34 @@ function aiUsd(u) {
 function aiCost(u) { chat.cost += aiUsd(u); }
 // When a declined reply is re-run on another model, only text is kept from before the switch.
 const aiKeep = (content) => { const cut = content.map((b) => b.type).lastIndexOf('fallback'); return content.filter((b, i) => i >= cut || b.type === 'text'); };
+// Talking to Claude: the phone's own speech recognition (Apple's dictation, as on the keyboard) writes what you say
+// into the box as you speak. Tap the microphone again when you've finished and it's sent. Where the app can't
+// listen, the keyboard opens, with its own microphone.
+let listening = null;
+function micPaint() {
+  const b = $('#sheet [data-act="chat-mic"]');
+  if (b) { b.classList.toggle('on', !!listening); b.setAttribute('aria-label', listening ? 'Stop and send' : 'Talk to Claude'); }
+}
+function micStop() { const l = listening; listening = null; if (l) { l.onend = null; try { l.stop(); } catch (e) { /* already stopped */ } } micPaint(); }
+function aiListen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, ta = $('#chatin');
+  if (!chat || chat.busy || !ta) return;
+  if (listening) { listening.stop(); return; }
+  if (!SR) { ta.focus(); toast('Tap the microphone on the keyboard to talk'); return; }
+  const rec = new SR(), before = ta.value.trim() ? ta.value.trim() + ' ' : '';
+  let said = '';
+  rec.lang = navigator.language || 'en-GB'; rec.interimResults = true; rec.continuous = true;
+  rec.onresult = (e) => { said = Array.from(e.results).map((r) => r[0].transcript).join('').trim(); ta.value = before + said; ta.style.height = 'auto'; ta.style.height = Math.min(120, ta.scrollHeight) + 'px'; };
+  rec.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { ta.focus(); toast('Allow the microphone in Settings, or use the keyboard’s microphone'); }
+    else if (e.error !== 'no-speech' && e.error !== 'aborted') toast('Couldn’t hear that. Try again.');
+  };
+  rec.onend = () => { listening = null; micPaint(); if (said && chat && !chat.busy) aiSend(); };
+  try { rec.start(); listening = rec; micPaint(); } catch (e) { listening = null; ta.focus(); toast('Tap the microphone on the keyboard to talk'); }
+}
 async function aiSend() {
   if (!chat || chat.busy) return;
+  micStop();
   const c = chat, ta = $('#chatin'), q = ta ? ta.value.trim() : '';
   if (!q && !c.files.length) { toast('Type a question or add screenshots'); return; }
   const question = q || 'Please read these screenshots and update my balances.', content = [];
@@ -2472,7 +2502,7 @@ function paintChat() {
   if (!box || !chat) return;
   const m = aiModel();
   box.innerHTML = '<p class="note chatmeta">' + esc(m[1]) + (chat.cost >= 0.005 ? ', about $' + chat.cost.toFixed(2) + ' so far' : '') + '. Your question, your figures and any screenshots go to Anthropic. Changes wait for you to apply them.</p>' +
-    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Tap the photo button and pick screenshots from your banking apps: they come straight to me and I’ll update your balances.' + (updateHint() ? ' This time, ' + esc(updateHint()) + ' should be enough, as the others change little between updates.' : '') + '</p><p>You can also just tell me a balance, or say it with the microphone on the keyboard. And I can change your pots, monthly moves, dates and settings, look up current offers, or answer questions about your money, forecast and tax.</p></div>') +
+    (chat.log.length ? '' : '<div class="msg ai"><p>Hello! Tap the photo button and pick screenshots from your banking apps: they come straight to me and I’ll update your balances.' + (updateHint() ? ' This time, ' + esc(updateHint()) + ' should be enough, as the others change little between updates.' : '') + '</p><p>You can also just tell me a balance: tap the microphone and say it. And I can change your pots, monthly moves, dates and settings, look up current offers, or answer questions about your money, forecast and tax.</p></div>') +
     chat.log.map(chatItem).join('') + (chat.busy ? '<div class="msg ai pending">Thinking…</div>' : '');
   const sp = $('#sheet .sheetp');
   if (sp) sp.scrollTop = sp.scrollHeight;
@@ -2510,7 +2540,8 @@ function openAssistant() {
   openSheet('Assistant', '<div id="chatlog" class="chatlog" role="log" aria-live="polite"></div>', () => { aiSend(); return false; }, {
     cls: 'chat', label: 'Send', noCancel: true, head: '<button type="button" class="linkbtn" data-act="chat-new">New chat</button>',
     extra: '<div class="composer"><div id="chatfiles" class="thumbs" hidden></div><div class="crow"><label class="icon-btn" aria-label="Add screenshots">' + IC.photo +
-      '<input type="file" accept="image/*" multiple class="vh" data-act="chat-files"></label><textarea id="chatin" name="q" rows="1" placeholder="Ask, or add screenshots" autocomplete="off"></textarea></div></div>' });
+      '<input type="file" accept="image/*" multiple class="vh" data-act="chat-files"></label><textarea id="chatin" name="q" rows="1" placeholder="Ask, or add screenshots" autocomplete="off"></textarea>' +
+      '<button type="button" class="icon-btn mic" data-act="chat-mic" aria-label="Talk to Claude">' + IC.mic + '</button></div></div>' });
   paintChat(); paintFiles();
 }
 function openAiSetup(then) {
@@ -2882,6 +2913,7 @@ document.addEventListener('click', (e) => {
     case 'face-off': { const c = lockConf(); if (c) { faceForget(c); lockSave(Object.assign(c, { face: null })); } render(); toast('Face ID off'); break; }
     case 'ai-forget': confirmSheet('Remove the API key?', 'The assistant stops working on this phone until you add a key again. Your figures aren’t affected.', 'Remove', () => { aiSave(null); chat = null; toast('Key removed'); }); break;
     case 'chat-new': chat = newChat(); paintChat(); paintFiles(); break;
+    case 'chat-mic': aiListen(); break;
     case 'chat-unfile': if (chat) { chat.files = []; paintFiles(); } break;
     case 'prop-apply': aiDecide(Number(id), true); break;
     case 'prop-skip': aiDecide(Number(id), false); break;

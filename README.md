@@ -60,7 +60,7 @@ A private money dashboard for your iPhone. It shows all your pots in one place, 
 
 1. Create an API key in the Claude Console at **platform.claude.com**, under **API keys**. Add some credit there; you can also set a monthly spending limit.
 2. In the app, go to **More**, then **Assistant**, then **Add your API key**, and paste it. Paste it only into the app, never into a chat, email or file.
-3. Tap the Claude button (✦) at the top right of Home. Attach screenshots and send, or ask for any change or question.
+3. Tap the Claude button (✦) at the top right of Home. Attach screenshots and send, or ask for any change or question. To talk instead of typing, tap the microphone next to the message box, speak, and tap it again: what you said is sent. It uses iPhone's own dictation.
 
 - **What's sent, and when**: nothing until you send a message. Then your question, the app's figures and any screenshots go to Anthropic, and nowhere else.
 - **Your key** stays on this phone. It's stored apart from your figures, so it's never in a family report. Copies you save with **Back up** include it, so keep them private. **Remove the key from this phone** (under **More**, then **Assistant**) deletes it. If you think someone has seen it, delete it in the Claude Console too.
