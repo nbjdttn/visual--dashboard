@@ -188,6 +188,10 @@ button { font: inherit; color: inherit; }
 .tick:checked { border-color: var(--brand); background: var(--brand) var(--tick) center / 14px no-repeat; }
 .rows > li.mv { padding: 0; }
 .mv.done .t { color: var(--muted); text-decoration: line-through; }
+.rows > li.mv.leaving { opacity: 0; transform: translateX(10px); transition: opacity .3s ease, transform .3s ease; }
+@media (prefers-reduced-motion: reduce) { .rows > li.mv.leaving { transition: none; } }
+.donebtn { display: block; width: 100%; text-align: left; padding: 12px 0; border-top: 1px solid var(--line); }
+.rows:empty + .empty, .rows:empty + .donebtn { border-top: 0; }
 
 /* welcome, banner, data */
 .welcome { display: grid; gap: 22px; padding-top: 7vh; }
@@ -538,7 +542,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '1 Nov 2026, 02:15';
+const VERSION = '2 Nov 2026, 10:00';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -650,7 +654,7 @@ function normalise(d) {
   }));
   out.snapshots = (Array.isArray(d.snapshots) ? d.snapshots : []).filter((s) => s && s.date && s.balances && typeof s.balances === 'object').sort((a, b) => a.date.localeCompare(b.date));
   out.events = (Array.isArray(d.events) ? d.events : []).filter((e) => e && e.date).map((e) => ({ id: String(e.id || uid()), date: String(e.date), title: String(e.title || ''), done: !!e.done }));
-  out.moves = (Array.isArray(d.moves) ? d.moves : []).map((m) => ({ id: String(m.id || uid()), title: String(m.title || ''), amount: Number(m.amount) || 0, note: String(m.note || ''), start: String(m.start || ''), end: String(m.end || ''), from: String(m.from || ''), to: String(m.to || '') }));
+  out.moves = (Array.isArray(d.moves) ? d.moves : []).map((m) => ({ id: String(m.id || uid()), title: String(m.title || ''), amount: Number(m.amount) || 0, note: String(m.note || ''), start: String(m.start || ''), end: String(m.end || ''), from: String(m.from || ''), to: String(m.to || ''), provider: String(m.provider || '').trim().slice(0, 40) }));
   out.movesDone = d.movesDone && typeof d.movesDone === 'object' ? d.movesDone : {};
   out.isa = d.isa && typeof d.isa === 'object' ? d.isa : {};
   out.pasteIgnore = Array.isArray(d.pasteIgnore) ? d.pasteIgnore.map(String).slice(-60) : [];
@@ -1300,7 +1304,7 @@ const BRANDS = [
   [/\bhsbc\b/i, 'HSBC', '#DB0011'], [/first ?direct/i, 'fd', '#1C1C1C'], [/barclays/i, 'B', '#00AEEF'], [/natwest/i, 'NW', '#5A287D'],
   [/lloyds/i, 'L', '#006A4D'], [/halifax/i, 'H', '#005EB8'], [/santander/i, 'S', '#EC0000'], [/nationwide/i, 'N', '#13287A'], [/\btsb\b/i, 'TSB', '#1E60A8'],
   [/monzo/i, 'M', '#FF4F40'], [/starling/i, 'S', '#6935D3'], [/revolut/i, 'R', '#191C1F'], [/j\.? ?p\.? ?morgan|\bjpm\b/i, 'JPM', '#3B2F2A'],
-  [/\bchase\b/i, 'C', '#117ACA'], [/ns ?& ?i|national savings/i, 'NS&I', '#2E2A6B'], [/vanguard/i, 'V', '#96151D'], [/hargreaves/i, 'HL', '#0B2C5A'],
+  [/\bchase\b/i, 'C', '#117ACA'], [/ns ?& ?i|national savings|premium bonds?/i, 'NS&I', '#2E2A6B'], [/vanguard/i, 'V', '#96151D'], [/hargreaves/i, 'HL', '#0B2C5A'],
   [/fidelity/i, 'F', '#368727'], [/tesco/i, 'T', '#00539F'], [/virgin/i, 'V', '#CC0000'], [/co-?op/i, 'Co', '#00B1E7'], [/scottish widows/i, 'SW', '#1C1C1C'],
   [/\buss\b|universities superannuation/i, 'USS', '#B4152B'], [/aviva/i, 'A', '#FFD900'], [/legal ?(&|and) ?general/i, 'L&G', '#0B4FA0'],
 ];
@@ -1314,6 +1318,20 @@ function badgeFor(name) {
   return '<span class="bdg' + (label.length >= 4 ? ' n4' : label.length === 3 ? ' n3' : '') + '" style="--bb:' + bg + ';--bf:' + fg + '" aria-hidden="true">' + esc(label) + '</span>';
 }
 const badge = (p) => badgeFor(p.provider || p.name);
+// The logo a monthly move shows: the one Claude set ("none" for no logo), else the pot it pays into or comes from, else
+// the first bank named in its title, then its note, so a reminder such as "Make 15 purchases with your Chase debit card"
+// shows Chase, and one about Premium Bonds shows NS&I.
+function moveBrand(m) {
+  if (m.provider) return /^none$/i.test(m.provider) ? '' : m.provider;
+  const p = potById(m.to) || potById(m.from);
+  if (p) return p.provider || p.name;
+  for (const t of [m.title, m.note]) {
+    let best = null;
+    BRANDS.forEach(([re]) => { const x = String(t || '').match(re); if (x && (!best || x.index < best.index)) best = x; });
+    if (best) return best[0];
+  }
+  return '';
+}
 
 /* ---------- view parts ---------- */
 const exampleBanner = () => '<div class="banner"><span>These are example figures, not yours.</span><button class="linkbtn" data-act="clear-example">Clear</button></div>';
@@ -1460,10 +1478,12 @@ function vMonthly() {
   const doneN = mv.filter((m) => dn.has(m.id)).length;
   return '<header class="page"><div class="ph"><h1>Monthly</h1>' + topActions() + '</div><p class="sub">' + esc(fmtMonth(k)) + '</p></header>' +
     '<section class="sec"><h2>Money moves' + (mv.length ? '<small>' + doneN + ' of ' + mv.length + ' done</small>' : '') + '</h2><div class="panel">' +
-    (mv.length ? '<ul class="rows">' + mv.map((m) => {
+    (mv.length ? '<ul class="rows">' + mv.filter((m) => ui.showDone || !dn.has(m.id)).map((m) => {
       const done = dn.has(m.id), ft = flowText(m);
-      return '<li class="mv' + (done ? ' done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(m.title) + '" data-act="toggle-move" data-id="' + esc(m.id) + '"' + (done ? ' checked' : '') + '><span class="row">' + (potById(m.to) ? badge(potById(m.to)) : '') + '<span class="main"><span class="t">' + esc(m.title) + '</span>' + (ft ? '<span class="s">' + esc(ft) + '</span>' : '') + (m.note ? '<span class="s">' + esc(m.note) + '</span>' : '') + '</span><span class="v">' + (m.amount ? gbp(m.amount) : '') + '</span></span></li>';
-    }).join('') + '</ul>' : '<p class="empty">' + (later.length ? 'Nothing to do this month. Your next moves start in ' + esc(fmtMonth(later[0].start)) + '.' : 'No moves yet. Claude can add the transfers you make each month, such as paying into your ISA.') + '</p>') +
+      return '<li class="mv' + (done ? ' done' : '') + '"><input type="checkbox" class="tick" aria-label="Done: ' + esc(m.title) + '" data-act="toggle-move" data-id="' + esc(m.id) + '"' + (done ? ' checked' : '') + '><span class="row">' + (moveBrand(m) ? badgeFor(moveBrand(m)) : '') + '<span class="main"><span class="t">' + esc(m.title) + '</span>' + (ft ? '<span class="s">' + esc(ft) + '</span>' : '') + (m.note ? '<span class="s">' + esc(m.note) + '</span>' : '') + '</span><span class="v">' + (m.amount ? gbp(m.amount) : '') + '</span></span></li>';
+    }).join('') + '</ul>' + (doneN === mv.length && !ui.showDone ? '<p class="empty">All done for ' + esc(fmtMonth(k).split(' ')[0]) + '.</p>' : '') +
+      (doneN ? '<button type="button" class="linkbtn quiet donebtn" data-act="show-done">' + (ui.showDone ? 'Hide the ones done' : 'Done this month: ' + doneN + ' · Show') + '</button>' : '')
+      : '<p class="empty">' + (later.length ? 'Nothing to do this month. Your next moves start in ' + esc(fmtMonth(later[0].start)) + '.' : 'No moves yet. Claude can add the transfers you make each month, such as paying into your ISA.') + '</p>') +
     '</div></section>' +
     '<section class="sec"><h2>Pay and costs</h2><div class="panel"><ul class="rows">' + row('Take-home pay', gbp(s.takeHome)) + row('Fixed costs', gbp(-s.fixedCosts)) + row('Left over', gbp(s.takeHome - s.fixedCosts), true) + row('Extra pension from pay', gbp(s.extraPensionMonthly)) + '</ul></div></section>' +
     (interestPots.length || prizes > 0 ? '<section class="sec"><h2>Interest each month<small>' + gbp(monthlyInterest() + prizes) + '</small></h2><div class="panel"><ul class="rows">' + interestPots.map((p) => '<li>' + badge(p) + '<span class="main"><span class="t2">' + esc(potName(p)) + '</span></span><span class="v plain">' + gbp(p.balance * p.rate / 12) + '</span></li>').join('') + (prizes > 0 ? '<li>' + badgeFor('NS&I') + '<span class="main"><span class="t2">Premium Bond prizes, on average</span></span><span class="v plain">' + gbp(prizes) + '</span></li>' : '') + '</ul></div></section>' : '') +
@@ -2163,7 +2183,7 @@ const aiConf = () => { try { return JSON.parse(localStorage.getItem(AI_KEY) || '
 const aiSave = (c) => { try { if (c) localStorage.setItem(AI_KEY, JSON.stringify(c)); else localStorage.removeItem(AI_KEY); } catch (e) { toast('Could not save on this device'); } };
 const aiModel = () => AI_MODELS.find((m) => m[0] === aiConf().model) || AI_MODELS[0];
 const AI_SYSTEM = 'You are the assistant inside Money Snapshot, a private money tracker on the user\'s iPhone. They live in the UK and amounts are in pounds.\n\n' +
-  'The app has no edit buttons: every change to their figures goes through you. You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; add, change or remove pots, monthly money moves and dates; remove an update from their history; and change any setting, such as their pay for tax, ISA payments, pension plans, retirement age or growth assumptions. You can\'t change how the app itself looks or works. You can search the web for current rates, offers and rules; keep the user\'s details out of your searches.\n\n' +
+  'The app has no edit buttons: every change to their figures goes through you. Each monthly move shows a logo: the pot it pays into, or a bank named in its title, unless you set its provider to choose one. You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; add, change or remove pots, monthly money moves and dates; remove an update from their history; and change any setting, such as their pay for tax, ISA payments, pension plans, retirement age or growth assumptions. You can\'t change how the app itself looks or works. You can search the web for current rates, offers and rules; keep the user\'s details out of your searches.\n\n' +
   'The app\'s figures come with the user\'s first message. Call get_finances again after the user applies a change, and use get_forecast and get_tax for figures about the future and tax rather than working them out yourself. Forecasts are estimates in today\'s money; tax follows the app\'s rules for England, Wales and Northern Ireland.\n\n' +
   'The Offers tab also has a Funds page comparing index funds the user might buy, with a long-term forecast: get_funds reads it, refresh_funds starts a new web check of its figures, and the tracked_funds setting changes which funds it compares.\n\n' +
   'Changes only happen through the propose tools, and the user approves each one in the app, so never say you have changed something. Match each amount in a screenshot to a pot by name and provider, and use the pot ids from the figures. If you can\'t tell which pot an amount belongs to, ask rather than guess. Amounts that aren\'t balances, such as interest earned, pending payments, totals and changes, aren\'t updates.\n\n' +
@@ -2173,6 +2193,7 @@ const MOVE_PROPS = {
   from: { type: 'string', description: '"pay" for their pay or other new money, a pot id, or empty to leave it out of the forecast' },
   to: { type: 'string', description: 'A pot id, or empty to leave it out of the forecast' },
   start: { type: 'string', description: 'First month, YYYY-MM' }, end: { type: 'string', description: 'Last month, YYYY-MM, or empty to keep going' }, note: { type: 'string' },
+  provider: { type: 'string', description: 'The bank or company whose logo the move shows, such as Barclays, Chase or NS&I. Leave out to use the pot it pays into, or a bank named in the title; "none" for no logo, or an empty string to go back to automatic.' },
 };
 const AI_TOOLS = [
   { name: 'get_finances', description: 'Get the current pots (ids, balances, rates, maturities), monthly moves, plan and settings. Call it when figures may have changed since the conversation started, for example after the user applied a proposal.',
@@ -2239,7 +2260,7 @@ function aiFinances() {
       offer_ends: p.offerEnds || null, rate_after_percent: p.rateAfter == null ? null : pc(p.rateAfter), cap: p.cap || null, then_to: p.thenTo || null,
       also_called: p.aka || null, notes: p.notes || null }, p.type === 'gilt' ? { coupon_percent: giltTerms(p).coupon == null ? null : pc(giltTerms(p).coupon), nominal: giltTerms(p).nominal || null } : {})),
     monthly_moves: state.moves.map((m) => ({ id: m.id, title: m.title, amount: m.amount, from: m.from || null, from_name: moveEnd(m.from), to: m.to || null, to_name: moveEnd(m.to),
-      start: m.start || null, end: m.end || null, note: m.note || null, done_this_month: doneSet(monthKey()).has(m.id) })),
+      start: m.start || null, end: m.end || null, note: m.note || null, logo: moveBrand(m) || null, logo_set_by_you: m.provider || null, done_this_month: doneSet(monthKey()).has(m.id) })),
     dates: state.events.map((e) => ({ id: e.id, date: e.date, title: e.title, done: !!e.done })),
     history: state.snapshots.slice(-24).map((x) => ({ date: x.date, total: Math.round(snapTotal(x)) })),
     settings: Object.fromEntries(Object.entries(SET_FIELDS).map(([k, f]) => { const v = f[2](s); return [k, v == null || v === '' ? null : f[5] === 'pct' ? pc(v) : v]; })),
@@ -2300,6 +2321,7 @@ const MOVE_FIELDS = {
   from: ['from', 'From', (v) => (v === 'pay' ? 'pay' : v ? potOf(v).id : ''), moveEnd], to: ['to', 'To', (v) => (v ? potOf(v).id : ''), moveEnd],
   start: ['start', 'First month', (v) => month(v, 'The first month'), (v) => (v ? fmtMonth(v) : 'not set')], end: ['end', 'Last month', (v) => month(v, 'The last month'), (v) => (v ? fmtMonth(v) : 'keeps going')],
   note: ['note', 'Note', (v) => String(v).trim(), (v) => v || 'none'],
+  provider: ['provider', 'Logo', (v) => String(v).trim().slice(0, 40), (v) => v || 'automatic'],
 };
 // Each setting: [what it is, set it, read it, show it, check a new value, kind].
 const SET_FIELDS = {
@@ -2379,7 +2401,7 @@ function aiPropose(name, x) {
     apply = () => {
       const now = changes.map(({ m }) => moveOf(m.id));
       now.forEach((m, i) => changes[i].sets.forEach(([f, v]) => { m[f[0]] = v; }));
-      adds.forEach((sets) => state.moves.push(Object.assign({ id: uid(), title: '', amount: 0, note: '', start: monthKey(), end: '', from: '', to: '' }, Object.fromEntries(sets.map(([f, v]) => [f[0], v])))));
+      adds.forEach((sets) => state.moves.push(Object.assign({ id: uid(), title: '', amount: 0, note: '', start: monthKey(), end: '', from: '', to: '', provider: '' }, Object.fromEntries(sets.map(([f, v]) => [f[0], v])))));
     };
   } else if (name === 'propose_dates') {
     const adds = (x.add || []).map((d) => { const title = String(d.title || '').trim(); if (!title) throw new Error('A date needs a title.'); if (!isDay(d.date)) throw new Error('Dates must be YYYY-MM-DD.'); return { date: String(d.date), title }; });
@@ -3314,12 +3336,16 @@ document.addEventListener('click', (e) => {
   switch (act) {
     case 'close': closeSheet(); break;
     case 'toggle-move': {
-      const k = monthKey(), set = doneSet(k);
-      if (set.has(id)) set.delete(id); else set.add(id);
+      const k = monthKey(), set = doneSet(k), adding = !set.has(id), li = el.closest('li.mv');
+      if (adding) set.add(id); else set.delete(id);
       state.movesDone[k] = Array.from(set);
-      save(); render();
+      if (!set.size) ui.showDone = false;
+      save();
+      // A ticked move fades out before it leaves the list for the month.
+      if (adding && li && !ui.showDone) { li.classList.add('leaving'); setTimeout(render, 380); } else render();
       break;
     }
+    case 'show-done': ui.showDone = !ui.showDone; render(); break;
     case 'split': ui.split = id; saveUi(); render(); break;
     case 'theme': ui.theme = id; saveUi(); applyTheme(); render(); break;
     case 'taxyr': ui.taxYear = id; saveUi(); render(true); break;
