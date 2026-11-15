@@ -542,7 +542,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '2 Nov 2026, 10:00';
+const VERSION = '15 Nov 2026, 10:00';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1301,12 +1301,18 @@ document.addEventListener('focusout', (e) => { if (scrub && e.target === scrub.s
 // A small tile for each bank or platform, in its colour where the app knows it, so lists read at a glance. They're drawn
 // here rather than fetched, so which banks you use never leaves the phone.
 const BRANDS = [
-  [/\bhsbc\b/i, 'HSBC', '#DB0011'], [/first ?direct/i, 'fd', '#1C1C1C'], [/barclays/i, 'B', '#00AEEF'], [/natwest/i, 'NW', '#5A287D'],
+  [/\bhsbc\b/i, 'HSBC', '#DB0011'], [/first ?direct/i, 'fd', '#1C1C1C'], [/barclay/i, 'B', '#00AEEF'], [/natwest/i, 'NW', '#5A287D'],
   [/lloyds/i, 'L', '#006A4D'], [/halifax/i, 'H', '#005EB8'], [/santander/i, 'S', '#EC0000'], [/nationwide/i, 'N', '#13287A'], [/\btsb\b/i, 'TSB', '#1E60A8'],
   [/monzo/i, 'M', '#FF4F40'], [/starling/i, 'S', '#6935D3'], [/revolut/i, 'R', '#191C1F'], [/j\.? ?p\.? ?morgan|\bjpm\b/i, 'JPM', '#3B2F2A'],
   [/\bchase\b/i, 'C', '#117ACA'], [/ns ?& ?i|national savings|premium bonds?/i, 'NS&I', '#2E2A6B'], [/vanguard/i, 'V', '#96151D'], [/hargreaves/i, 'HL', '#0B2C5A'],
   [/fidelity/i, 'F', '#368727'], [/tesco/i, 'T', '#00539F'], [/virgin/i, 'V', '#CC0000'], [/co-?op/i, 'Co', '#00B1E7'], [/scottish widows/i, 'SW', '#1C1C1C'],
   [/\buss\b|universities superannuation/i, 'USS', '#B4152B'], [/aviva/i, 'A', '#FFD900'], [/legal ?(&|and) ?general/i, 'L&G', '#0B4FA0'],
+  [/royal bank of scotland|\brbs\b/i, 'RBS', '#0B2F6B'], [/bank of scotland/i, 'BoS', '#0A3A66'], [/metro ?bank/i, 'MB', '#E32418'],
+  [/sainsbury/i, 'S', '#F06C00'], [/post office/i, 'PO', '#E4002B'], [/marcus/i, 'M', '#0D1B3E'], [/zopa/i, 'Z', '#30285F'],
+  [/\batom\b/i, 'A', '#614B79'], [/trading ?212/i, 'T212', '#0B84F3'], [/\bplum\b/i, 'P', '#1A0A2B'], [/freetrade/i, 'FT', '#F7618B'],
+  [/coventry/i, 'CBS', '#006AB2'], [/skipton/i, 'SBS', '#2B2171'], [/ford money/i, 'FM', '#003478'], [/\baj ?bell\b/i, 'AJB', '#3D4A5C'],
+  [/interactive investor/i, 'ii', '#6E2C91'], [/standard life/i, 'SL', '#051A3F'], [/pension ?bee/i, 'PB', '#FFC800'],
+  [/american express|\bamex\b/i, 'AMEX', '#006FCF'], [/capital ?one/i, 'C1', '#004977'], [/paypal/i, 'PP', '#003087'],
 ];
 const BADGE_TONES = ['#6B5B4E', '#5E5A7A', '#4F6B63', '#7A6A55', '#4D5B6E'];
 function badgeFor(name) {
