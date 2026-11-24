@@ -545,7 +545,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '24 Nov 2026, 18:00';
+const VERSION = '24 Nov 2026, 20:30';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -2523,15 +2523,65 @@ function aiRunTool(u) {
   return Object.assign({ type: 'tool_result', tool_use_id: u.id, content: typeof out === 'string' ? out : JSON.stringify(out) }, bad ? { is_error: true } : {});
 }
 
+// Claude's reply arrives as a stream of small events, put back together here into the same shape as a whole reply.
+// Streaming keeps data arriving while Claude thinks or searches the web: iPhone drops a request that has been quiet
+// for about a minute, which a long search or a reply making several changes can easily take.
+const AI_DROPPED = 'Couldn’t reach Anthropic: the connection dropped part-way. Check your connection and try again.';
+const aiApiError = (err) => { const e = new Error(err && err.type === 'overloaded_error' ? 'Claude is busy right now. Try again in a moment.' : 'Anthropic said: ' + ((err && err.message) || 'something went wrong')); e.api = true; return e; };
+async function aiStream(res) {
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '', msg = null, stopped = false;
+  const json = {};
+  const handle = (ev) => {
+    if (ev.type === 'message_start') msg = Object.assign({}, ev.message, { content: [] });
+    else if (ev.type === 'error') throw aiApiError(ev.error);
+    else if (!msg) return;
+    else if (ev.type === 'content_block_start') { msg.content[ev.index] = JSON.parse(JSON.stringify(ev.content_block)); if (ev.content_block && 'input' in ev.content_block) json[ev.index] = ''; }
+    else if (ev.type === 'content_block_delta') {
+      const b = msg.content[ev.index], d = ev.delta || {};
+      if (!b) return;
+      if (d.type === 'text_delta') b.text = (b.text || '') + d.text;
+      else if (d.type === 'input_json_delta') json[ev.index] = (json[ev.index] || '') + (d.partial_json || '');
+      else if (d.type === 'thinking_delta') b.thinking = (b.thinking || '') + d.thinking;
+      else if (d.type === 'signature_delta') b.signature = d.signature;
+      else if (d.type === 'citations_delta') (b.citations = b.citations || []).push(d.citation);
+    } else if (ev.type === 'content_block_stop') {
+      const b = msg.content[ev.index];
+      // A change cut off half-written can't be read; it's dropped, as a cut-off reply is never acted on.
+      if (b && json[ev.index] != null) { try { b.input = json[ev.index] ? JSON.parse(json[ev.index]) : (b.input || {}); } catch (e) { b.input = {}; } delete json[ev.index]; }
+    } else if (ev.type === 'message_delta') { Object.assign(msg, ev.delta || {}); if (ev.usage) msg.usage = Object.assign({}, msg.usage, ev.usage); }
+    else if (ev.type === 'message_stop') stopped = true;
+  };
+  const take = (chunk) => {
+    const data = chunk.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).replace(/^ /, '')).join('\n');
+    if (data) handle(JSON.parse(data));
+  };
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let cut;
+    while ((cut = buf.search(/\r?\n\r?\n/)) >= 0) { const chunk = buf.slice(0, cut); buf = buf.slice(cut).replace(/^\r?\n\r?\n/, ''); take(chunk); }
+  }
+  buf += dec.decode();
+  if (buf.trim()) take(buf);
+  if (!msg || !stopped) throw new Error(AI_DROPPED);
+  msg.content = msg.content.filter(Boolean);
+  return msg;
+}
+
 async function aiCall(messages, opts) {
   const o = opts || {}, c = aiConf(), m = aiModel(), fallback = m[0] !== 'claude-haiku-5-5';
   const headers = { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
   // Opus and Sonnet can decline a request; server-side fallback retries it on the model Anthropic recommends.
   if (fallback) headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
-  const body = { model: m[0], max_tokens: 16000, system: o.system || AI_SYSTEM, tools: o.tools || AI_TOOLS.concat([webTool(5)]), messages, output_config: { effort: 'medium' }, cache_control: { type: 'ephemeral' } };
+  const body = { model: m[0], max_tokens: 16000, system: o.system || AI_SYSTEM, tools: o.tools || AI_TOOLS.concat([webTool(5)]), messages, output_config: { effort: 'medium' }, cache_control: { type: 'ephemeral' }, stream: true };
   if (fallback) body.fallbacks = 'default';
   let res;
   try { res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) }); } catch (e) { throw new Error('Couldn’t reach Anthropic. Check your connection and try again.'); }
+  if (res.ok && res.body && /event-stream/i.test(res.headers.get('content-type') || '')) {
+    try { return await aiStream(res); } catch (e) { throw e && (e.api || e.message === AI_DROPPED) ? e : new Error(AI_DROPPED); }
+  }
   const data = await res.json().catch(() => null);
   if (res.ok && data) return data;
   const msg = data && data.error && data.error.message ? data.error.message : 'HTTP ' + res.status;
