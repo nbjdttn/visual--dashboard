@@ -65,7 +65,19 @@ button { font: inherit; color: inherit; }
 .note { color: var(--muted); font-size: 14px; line-height: 1.5; }
 .split .splitlab { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; color: var(--ink-2); }
 .split .splitlab b { color: var(--ink); font-size: 22px; font-weight: 650; margin-right: 4px; font-variant-numeric: tabular-nums; }
-#splitR { width: 100%; height: 34px; margin: 0; accent-color: var(--brand); cursor: pointer; }
+/* The slider is drawn by hand so the marker for today's split sits exactly where the thumb would be at that value. */
+.splitbar { position: relative; padding-bottom: 20px; --t: 28px; --track: color-mix(in srgb, var(--muted) 40%, transparent);
+  --at-v: calc(var(--t) / 2 + var(--v, 0) * (100% - var(--t))); --at-now: calc(var(--t) / 2 + var(--now, 0) * (100% - var(--t))); }
+#splitR { position: relative; z-index: 1; display: block; -webkit-appearance: none; appearance: none; width: 100%; height: 34px; margin: 0; background: transparent; cursor: pointer; }
+#splitR::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(to right, transparent calc(var(--at-now) - 1px), var(--surface) calc(var(--at-now) - 1px) calc(var(--at-now) + 1px), transparent calc(var(--at-now) + 1px)), linear-gradient(to right, var(--brand) var(--at-v), var(--track) var(--at-v)); }
+#splitR::-moz-range-track { height: 8px; border-radius: 4px; background: linear-gradient(to right, transparent calc(var(--at-now) - 1px), var(--surface) calc(var(--at-now) - 1px) calc(var(--at-now) + 1px), transparent calc(var(--at-now) + 1px)), linear-gradient(to right, var(--brand) var(--at-v), var(--track) var(--at-v)); }
+#splitR::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; box-sizing: border-box; width: var(--t); height: var(--t); margin-top: calc(4px - var(--t) / 2); border-radius: 50%; background: var(--brand); border: 3px solid var(--surface); box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
+#splitR::-moz-range-thumb { box-sizing: border-box; width: var(--t); height: var(--t); border-radius: 50%; background: var(--brand); border: 3px solid var(--surface); box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
+#splitR:focus-visible { outline: none; }
+#splitR:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--brand-soft), 0 1px 4px rgba(0, 0, 0, .3); }
+#splitR:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--brand-soft), 0 1px 4px rgba(0, 0, 0, .3); }
+.splitmark { position: absolute; top: 24px; left: var(--at-now); margin-left: -5px; border: 5px solid transparent; border-top: 0; border-bottom: 6px solid var(--ink-2); pointer-events: none; }
+.splitnow { position: absolute; top: 32px; left: clamp(30px, var(--at-now), calc(100% - 30px)); transform: translateX(-50%); font-size: 13px; line-height: 16px; font-weight: 600; color: var(--ink-2); white-space: nowrap; pointer-events: none; }
 
 /* headings */
 .page { display: grid; gap: 2px; padding: 14px 2px 0; margin-bottom: -12px; }
@@ -545,7 +557,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '24 Nov 2026, 20:30';
+const VERSION = '25 Nov 2026, 18:00';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -678,9 +690,12 @@ function save() {
 }
 
 // View choices, such as which split or forecast range is showing. Kept apart from your figures.
-const ui = { split: 'type', fc: 'months', range: 36, theme: 'paper', allMonths: false, taxYear: 'this', ofv: 'offers' };
+const ui = { split: 'type', fc: 'months', range: 36, theme: 'paper', allMonths: false, taxYear: 'this' };
 try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}'), { allMonths: false }); } catch (e) { /* defaults are fine */ }
-const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ split: ui.split, fc: ui.fc, range: ui.range, theme: ui.theme, taxYear: ui.taxYear, ofv: ui.ofv })); } catch (e) { /* not essential */ } };
+// Funds used to sit beside Offers. It is now part of Forecast, so a saved choice of Funds opens it there.
+if (ui.ofv === 'funds') ui.fc = 'funds';
+delete ui.ofv;
+const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ split: ui.split, fc: ui.fc, range: ui.range, theme: ui.theme, taxYear: ui.taxYear })); } catch (e) { /* not essential */ } };
 
 const THEMES = [['paper', 'Paper'], ['evergreen', 'Evergreen'], ['midnight', 'Midnight'], ['aurora', 'Aurora']];
 function applyTheme() {
@@ -1526,10 +1541,10 @@ function vMonthly() {
 }
 
 function vForecast() {
-  const mode = ui.fc === 'retire' || ui.fc === 'tax' ? ui.fc : 'months';
-  return '<header class="page"><div class="ph"><h1>Forecast</h1>' + topActions() + '</div><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : 'In today’s money') + '</p></header>' +
-    seg('fc', [['months', 'Month by month'], ['retire', 'Retirement'], ['tax', 'Tax']], mode, 'Forecast type') +
-    (mode === 'months' ? vMonths() : mode === 'retire' ? vRetire() : vTax());
+  const mode = ['retire', 'funds', 'tax'].includes(ui.fc) ? ui.fc : 'months';
+  return '<header class="page"><div class="ph"><h1>Forecast</h1>' + topActions() + '</div><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : mode === 'funds' ? fundsSub() : 'In today’s money') + '</p></header>' +
+    seg('fc', [['months', 'Month by month'], ['retire', 'Retirement'], ['funds', 'Funds'], ['tax', 'Tax']], mode, 'Forecast type') +
+    (mode === 'months' ? vMonths() : mode === 'retire' ? vRetire() : mode === 'funds' ? vFunds() : vTax());
 }
 
 function vMonths() {
@@ -1591,13 +1606,16 @@ function splitCtl() {
   const s = state.settings, v = splitNow(), now = sharesFrac();
   return '<section class="sec split"><h2>Your split<small>' + esc(s.targetSharesBy ? 'plan for ' + fmtDate(s.targetSharesBy) : 'your plan') + '</small></h2><div class="panel pad">' +
     '<div class="splitlab"><span><b id="splitS">' + pct(v) + '</b> shares</span><span><b id="splitG">' + pct(1 - v) + '</b> gilts and savings</span></div>' +
-    '<input type="range" id="splitR" min="0" max="100" step="5" value="' + Math.round(v * 100) + '" aria-label="Share of everything in shares" aria-valuetext="' + pct(v) + ' in shares">' +
+    '<div class="splitbar" style="--v:' + (Math.round(v * 20) / 20) + ';--now:' + Math.min(1, Math.max(0, now)).toFixed(4) + '">' +
+    '<input type="range" id="splitR" min="0" max="100" step="5" value="' + Math.round(v * 20) * 5 + '" aria-label="Share of everything in shares" aria-valuetext="' + pct(v) + ' in shares" aria-describedby="splitNow">' +
+    '<span class="splitmark" aria-hidden="true"></span><span class="splitnow" id="splitNow">' + esc('Now ' + pct(now)) + '</span></div>' +
     '<p class="num-sub" id="splitX">' + esc(splitText(v)) + '</p></div>' +
     '<p class="note">' + esc('Now ' + pct(now) + ' of everything is in shares and pensions. The slider sets your plan, and every figure here follows it.' + (v < now - 0.005 ? ' Your plan never sells shares, so below today’s share the forecast keeps what you have.' : '')) + '</p></section>';
 }
 function splitLive(el) {
   const v = Number(el.value) / 100;
   $('#splitS').textContent = pct(v); $('#splitG').textContent = pct(1 - v); $('#splitX').textContent = splitText(v);
+  if (el.parentNode) el.parentNode.style.setProperty('--v', String(v));
   el.setAttribute('aria-valuetext', pct(v) + ' in shares');
 }
 function vRetire() {
@@ -1727,10 +1745,10 @@ function render(animate) {
   }
   document.body.classList.remove('no-tabs');
   let view = location.hash.slice(1);
-  // Tax now lives in Forecast; old links still land there.
-  if (view === 'tax') { ui.fc = 'tax'; saveUi(); history.replaceState(null, '', '#forecast'); view = 'forecast'; }
+  // Tax and Funds now live in Forecast; old links still land there.
+  if (view === 'tax' || view === 'funds') { ui.fc = view; saveUi(); history.replaceState(null, '', '#forecast'); view = 'forecast'; }
   if (!VIEWS[view]) view = 'home';
-  if (view === 'offers' && ui.ofv !== 'funds') newsSeen();
+  if (view === 'offers') newsSeen();
   $$('.tabs [data-tab]').forEach((a) => { a.classList.toggle('dot', a.getAttribute('data-tab') === 'offers' && newsUnseen()); const on = a.getAttribute('data-tab') === view; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   app.innerHTML = (state.example ? exampleBanner() : '') + VIEWS[view]();
 }
@@ -2242,7 +2260,7 @@ const aiModel = () => AI_MODELS.find((m) => m[0] === aiConf().model) || AI_MODEL
 const AI_SYSTEM = 'You are the assistant inside Money Snapshot, a private money tracker on the user\'s iPhone. They live in the UK and amounts are in pounds.\n\n' +
   'The app has no edit buttons: every change to their figures goes through you. Each monthly move shows a logo: the pot it pays into, or a bank named in its title, unless you set its provider to choose one. You can read balances from screenshots of banking apps and propose updating the matching pots; answer questions about their money, forecast, plan and tax; add, change or remove pots, monthly money moves and dates; remove an update from their history; and change any setting, such as their pay for tax, ISA payments, pension plans, retirement age or growth assumptions. You can\'t change how the app itself looks or works. You can search the web for current rates, offers and rules; keep the user\'s details out of your searches.\n\n' +
   'The app\'s figures come with the user\'s first message. Call get_finances again after the user applies a change, and use get_forecast and get_tax for figures about the future and tax rather than working them out yourself. Forecasts are estimates in today\'s money; tax follows the app\'s rules for England, Wales and Northern Ireland.\n\n' +
-  'The Offers tab also has a Funds page comparing index funds the user might buy, with a long-term forecast: get_funds reads it, refresh_funds starts a new web check of its figures, and the tracked_funds setting changes which funds it compares.\n\n' +
+  'The Forecast tab also has a Funds page comparing index funds the user might buy, with a long-term forecast: get_funds reads it, refresh_funds starts a new web check of its figures, and the tracked_funds setting changes which funds it compares.\n\n' +
   'Changes only happen through the propose tools, and the user approves each one in the app, so never say you have changed something. Match each amount in a screenshot to a pot by name and provider, and use the pot ids from the figures. If you can\'t tell which pot an amount belongs to, ask rather than guess. Amounts that aren\'t balances, such as interest earned, pending payments, totals and changes, aren\'t updates.\n\n' +
   'You explain options and trade-offs but don\'t give regulated financial advice. Keep replies short and plain, and reply in the language the user writes in.';
 const MOVE_PROPS = {
@@ -2961,11 +2979,10 @@ function offerCard(raw) {
     (it.forYou ? '<p class="st-you">' + esc(it.forYou) + '</p>' : '') + (meta ? '<p class="st-meta">' + meta + '</p>' : '') + '</article>';
 }
 function vOffers() {
-  if (ui.ofv === 'funds') return vFunds();
   const n = newsConf(), every = newsEvery(), items = (n && n.items) || [];
   const head = '<header class="page"><div class="ph"><h1>Offers</h1>' + topActions() + '</div><p class="sub">UK savings, switching and card offers, checked by Claude ' + (every ? 'every ' + every + ' days' : 'when you ask') + (n && n.at ? '. Last checked ' + esc(fmtDate(localISO(new Date(n.at)))) : '') + '</p></header>';
-  if (!aiConf().key) return head + offersSeg('offers') + '<p class="note">Once your Anthropic API key is in More, under Assistant, Claude searches the web for offers worth knowing about and compares them with your accounts.</p>';
-  return head + offersSeg('offers') + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error ? '<p class="note warnline">The last check didn’t work: ' + esc(n.error) + (items.length && n.at ? ' These are the offers from ' + esc(fmtDate(localISO(new Date(n.at)))) + '.' : '') + '</p>' : '') +
+  if (!aiConf().key) return head + '<p class="note">Once your Anthropic API key is in More, under Assistant, Claude searches the web for offers worth knowing about and compares them with your accounts.</p>';
+  return head + (newsBusy ? '<p class="note pending">Claude is searching the web for the latest UK offers…</p>' : n && n.error ? '<p class="note warnline">The last check didn’t work: ' + esc(n.error) + (items.length && n.at ? ' These are the offers from ' + esc(fmtDate(localISO(new Date(n.at)))) + '.' : '') + '</p>' : '') +
     (n && n.highlights && n.highlights.length ? '<section class="sec"><h2>Right now</h2><div class="hl">' + n.highlights.map((h) => '<div><span class="hl-l">' + esc(h.label) + '</span><b>' + esc(h.value) + '</b>' + (h.provider ? '<span class="hl-p">' + esc(h.provider) + '</span>' : '') + '</div>').join('') + '</div></section>' : '') +
     (items.length ? '<div class="feed">' + items.map(offerCard).join('') + '</div><p class="note">' + (n.model ? 'From ' + esc(n.model) + ', searching the web' : 'Searched on the web') + (n.cost >= 0.005 ? ', about $' + n.cost.toFixed(2) + ' for this check' : '') + '. Information, not financial advice: check the details with the provider.</p>'
       : newsBusy ? '' : '<p class="note">' + (every ? 'The first check runs the next time the app opens, or now.' : 'Checks are off. You can still check now.') + '</p>') +
@@ -2973,7 +2990,7 @@ function vOffers() {
 }
 
 /* ---------- funds ---------- */
-// The Funds page, beside Offers, compares the index funds you might buy: each calendar year's return, what £10,000
+// The Funds page, in Forecast, compares the index funds you might buy: each calendar year's return, what £10,000
 // became, buying just before the worst year, and a long-term forecast. Claude checks the figures on the web once a
 // month while the offers check is on, and whenever you ask. Only the funds' names go into the searches.
 const FUNDS_KEY = 'money-snapshot-funds';
@@ -3125,9 +3142,7 @@ function vFunds() {
   const fcAll = forecast(), endAll = fcAll.years >= 1 ? fcAll.mid[fcAll.mid.length - 1] : null, withAdds = endAll ? endAll.inv + endAll.pot : null;
   const when = c && c.at ? fmtDate(localISO(new Date(c.at))) : fmtDate(FUND_SEED_AT), until = L.age ? 'at ' + L.age : 'in ' + L.n + ' years';
   const checkNow = '<button class="btn quiet" data-act="funds-run">' + IC.spark + 'Check now</button>';
-  return '<header class="page"><div class="ph"><h1>Funds</h1>' + topActions() + '</div><p class="sub">Index funds you might buy, ' + (key && every ? 'checked by Claude once a month' : 'checked by Claude when you ask') + '. Figures from ' + esc(when) + '</p></header>' +
-    offersSeg('funds') +
-    (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web. It takes a minute or two: keep the app open.</p>'
+  return (fundsBusy ? '<p class="note pending">Claude is checking the funds on the web. It takes a minute or two: keep the app open.</p>'
       : c && c.error ? '<p class="note warnline">The last check didn’t finish: ' + esc(c.error) + ' It tries again ' + (c.net ? 'next time you open the app' : 'tomorrow') + '.</p>' + checkNow
       : !(c && c.at) ? '<p class="note">' + (key ? 'Claude hasn’t checked these funds yet' + (every ? '. It starts when the app opens, or now.' : '.') : 'Claude keeps these figures up to date once your API key is in More, under Assistant.') + '</p>' + (key ? checkNow : '')
       : c.summary ? '<p class="note fsum">' + esc(c.summary) + '</p>' : '') +
@@ -3162,7 +3177,11 @@ function vFunds() {
     '<p class="note">' + (c && c.at ? 'Checked by ' + esc(c.model || 'Claude') + ' on the web' + (c.cost >= 0.005 ? ', about $' + c.cost.toFixed(2) : '') + '. ' : '') + 'Past returns don’t predict future ones. Information, not financial advice.</p>' +
     (!key ? '<p class="note">Add your API key in More, under Assistant, and Claude keeps these figures up to date.</p>' : fundsBusy ? '' : '<button class="btn quiet" data-act="funds-run">' + IC.spark + 'Check again now</button>');
 }
-const offersSeg = (mode) => seg('ofv', [['offers', 'Offers'], ['funds', 'Funds']], mode, 'Show');
+// The line under the Forecast heading while Funds is showing.
+function fundsSub() {
+  const c = fundsConf(), when = c && c.at ? fmtDate(localISO(new Date(c.at))) : fmtDate(FUND_SEED_AT);
+  return 'Index funds you might buy, ' + (aiConf().key && newsEvery() ? 'checked by Claude once a month' : 'checked by Claude when you ask') + '. Figures from ' + esc(when);
+}
 
 // Claude's check: it searches for each fund's latest figures and hands them over in a form, checked here.
 const FUNDS_SYSTEM = 'You keep a UK investor\'s comparison of index funds up to date. Search the web for each fund\'s latest published figures, then call report_funds once with all of them.\n\n' +
@@ -3250,7 +3269,7 @@ async function fundsRun() {
   }
   fundsBusy = false;
   fundsPaint();
-  if (!error && !(location.hash === '#offers' && ui.ofv === 'funds')) toast('Fund figures updated: see Offers, then Funds');
+  if (!error && !(location.hash === '#forecast' && ui.fc === 'funds')) toast('Fund figures updated: see Forecast, then Funds');
 }
 // Once a month while the offers check is on. Straight away for a fund no check has asked about yet, or when this
 // version of the app asks for more. After a dropped connection it tries again 10 minutes on; after another failure, or
@@ -3291,7 +3310,7 @@ function aiRefreshFunds() {
   if (!state || state.example) throw new Error('There are no figures to check yet.');
   if (fundsBusy) return 'A check is already running. The figures appear on the Funds page when it finishes.';
   fundsRun();
-  return 'Started. Claude searches the web for the latest figures in the background, which takes a minute or two and usually costs 30p to 60p. They appear on the Funds page, in the Offers tab.';
+  return 'Started. Claude searches the web for the latest figures in the background, which takes a minute or two and usually costs 30p to 60p. They appear on the Funds page, in the Forecast tab.';
 }
 const checksMaybe = () => { newsMaybe(); fundsMaybe(); };
 
@@ -3480,7 +3499,6 @@ document.addEventListener('click', (e) => {
     case 'rename': openTitle(); break;
     case 'news-run': newsRun(); break;
     case 'funds-run': fundsRun(); break;
-    case 'ofv': ui.ofv = id === 'funds' ? 'funds' : 'offers'; saveUi(); render(true); break;
     case 'ai-setup': openAiSetup(null); break;
     case 'lock-on': openLockOn(); break;
     case 'lock-now': lock(); break;
