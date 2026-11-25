@@ -557,7 +557,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '25 Nov 2026, 18:00';
+const VERSION = '25 Nov 2026, 19:45';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -690,11 +690,13 @@ function save() {
 }
 
 // View choices, such as which split or forecast range is showing. Kept apart from your figures.
-const ui = { split: 'type', fc: 'months', range: 36, theme: 'paper', allMonths: false, taxYear: 'this' };
+const ui = { split: 'type', fc: 'months', range: 36, theme: 'paper', allMonths: false, taxYear: 'this', pv: 'pots' };
 try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || '{}'), { allMonths: false }); } catch (e) { /* defaults are fine */ }
 // Funds used to sit beside Offers. It is now part of Forecast, so a saved choice of Funds opens it there.
 if (ui.ofv === 'funds') ui.fc = 'funds';
 delete ui.ofv;
+// Tax has moved from Forecast to Pots.
+if (ui.fc === 'tax') ui.fc = 'months';
 const saveUi = () => { try { localStorage.setItem(UI_KEY, JSON.stringify({ split: ui.split, fc: ui.fc, range: ui.range, theme: ui.theme, taxYear: ui.taxYear })); } catch (e) { /* not essential */ } };
 
 const THEMES = [['paper', 'Paper'], ['evergreen', 'Evergreen'], ['midnight', 'Midnight'], ['aurora', 'Aurora']];
@@ -1506,8 +1508,11 @@ function potDelta(p) {
   return '<span class="vs ' + (ch > 0 ? 'up' : 'down') + '">' + gbpSigned(ch) + '</span>';
 }
 function vPots() {
-  const t = total();
-  return '<header class="page"><div class="ph"><h1>Pots</h1>' + topActions() + '</div><p class="sub">' + state.pots.length + ' pot' + (state.pots.length === 1 ? '' : 's') + ', ' + gbp(t) + ' in all</p></header>' +
+  const t = total(), n = state.pots.length, mode = ui.pv === 'tax' && n ? 'tax' : 'pots';
+  const head = '<header class="page"><div class="ph"><h1>Pots</h1>' + topActions() + '</div><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : n + ' pot' + (n === 1 ? '' : 's') + ', ' + gbp(t) + ' in all') + '</p></header>' +
+    (n ? seg('pv', [['pots', 'Pots'], ['tax', 'Tax']], mode, 'Show') : '');
+  if (mode === 'tax') return head + vTax();
+  return head +
     GROUPS.map((g) => {
       const pots = state.pots.filter((p) => g.types.includes(p.type));
       if (!pots.length) return '';
@@ -1541,10 +1546,10 @@ function vMonthly() {
 }
 
 function vForecast() {
-  const mode = ['retire', 'funds', 'tax'].includes(ui.fc) ? ui.fc : 'months';
-  return '<header class="page"><div class="ph"><h1>Forecast</h1>' + topActions() + '</div><p class="sub">' + (mode === 'tax' ? 'Tax on your savings interest, estimated' : mode === 'funds' ? fundsSub() : 'In today’s money') + '</p></header>' +
-    seg('fc', [['months', 'Month by month'], ['retire', 'Retirement'], ['funds', 'Funds'], ['tax', 'Tax']], mode, 'Forecast type') +
-    (mode === 'months' ? vMonths() : mode === 'retire' ? vRetire() : mode === 'funds' ? vFunds() : vTax());
+  const mode = ['retire', 'funds'].includes(ui.fc) ? ui.fc : 'months';
+  return '<header class="page"><div class="ph"><h1>Forecast</h1>' + topActions() + '</div><p class="sub">' + (mode === 'funds' ? fundsSub() : 'In today’s money') + '</p></header>' +
+    seg('fc', [['months', 'Months'], ['retire', 'Retirement'], ['funds', 'Funds']], mode, 'Forecast type') +
+    (mode === 'months' ? vMonths() : mode === 'retire' ? vRetire() : vFunds());
 }
 
 function vMonths() {
@@ -1745,8 +1750,9 @@ function render(animate) {
   }
   document.body.classList.remove('no-tabs');
   let view = location.hash.slice(1);
-  // Tax and Funds now live in Forecast; old links still land there.
-  if (view === 'tax' || view === 'funds') { ui.fc = view; saveUi(); history.replaceState(null, '', '#forecast'); view = 'forecast'; }
+  // Funds lives in Forecast and Tax in Pots; old links still land there.
+  if (view === 'funds') { ui.fc = 'funds'; saveUi(); history.replaceState(null, '', '#forecast'); view = 'forecast'; }
+  if (view === 'tax') { ui.pv = 'tax'; history.replaceState(null, '', '#pots'); view = 'pots'; }
   if (!VIEWS[view]) view = 'home';
   if (view === 'offers') newsSeen();
   $$('.tabs [data-tab]').forEach((a) => { a.classList.toggle('dot', a.getAttribute('data-tab') === 'offers' && newsUnseen()); const on = a.getAttribute('data-tab') === view; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -3514,6 +3520,7 @@ document.addEventListener('click', (e) => {
     case 'prop-skip': aiDecide(Number(id), false); break;
     case 'prop-undo': aiUndo(Number(id)); break;
     case 'fc': ui.fc = id; saveUi(); render(true); break;
+    case 'pv': ui.pv = id === 'tax' ? 'tax' : 'pots'; render(true); break;
     case 'range': ui.range = Number(id) || 36; ui.allMonths = false; saveUi(); render(true); break;
     case 'month': openMonth(id); break;
     case 'checks': openChecks(); break;
