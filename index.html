@@ -557,7 +557,7 @@ html.applock body { overflow: hidden; }
 (() => {
 'use strict';
 
-const VERSION = '25 Nov 2026, 19:45';
+const VERSION = '25 Nov 2026, 21:00';
 const KEY = 'money-snapshot-v1';
 const UI_KEY = 'money-snapshot-ui';
 const APP = 'money-snapshot';
@@ -1565,7 +1565,8 @@ function vMonths() {
   return '<section class="hero"><header class="head"><p class="num" id="fv">' + bigMoney(end.total) + '</p><p class="num-sub" id="fs">' + projSub(end, S) + '</p></header>' +
     projChart(rows, S) +
     seg('range', [[12, '1Y', '1 year'], [24, '2Y', '2 years'], [36, '3Y', '3 years'], [60, '5Y', '5 years']], range, 'How far ahead', 'ranges') + '</section>' +
-    (planOn() ? splitCtl() : '') +
+    // Shown whenever there is a shares pot to invest in, so sliding to 0% (which turns the plan off) can be undone here.
+    (investPot() ? splitCtl() : '') +
     '<section class="sec"><h2 id="fmt">Mix in ' + esc(fmtMonth(end.k)) + '</h2><div class="panel pad">' + mixBlock('fmix', groupSums(end.types), end.total) + '</div></section>' +
     '<section class="sec"><h2>Each month, on average</h2><div class="facts two">' + fact('Growth', gbp(avg((r) => r.growth)), 'after inflation') + fact('From your pay', gbp(avg((r) => r.added)), 'moves and pension') + '</div></section>' +
     (invested.length ? '<section class="sec"><h2>Following your plan</h2><div class="panel"><ul class="rows">' + invested.map(([y, v]) => row('Invested in ' + y, gbp(v))).join('') + '</ul></div>' +
